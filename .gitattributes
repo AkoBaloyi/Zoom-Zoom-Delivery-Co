@@ -1,0 +1,39 @@
+# Auto detect text files and normalize line endings
+* text=auto
+
+# Unity YAML files, treat as text so merges/diffs work sanely
+*.cs diff=csharp text
+*.cginc text
+*.shader text
+*.mat merge=unityyamlmerge eol=lf
+*.anim merge=unityyamlmerge eol=lf
+*.unity merge=unityyamlmerge eol=lf
+*.prefab merge=unityyamlmerge eol=lf
+*.physicsMaterial2D merge=unityyamlmerge eol=lf
+*.physicMaterial merge=unityyamlmerge eol=lf
+*.asset merge=unityyamlmerge eol=lf
+*.meta merge=unityyamlmerge eol=lf
+*.controller merge=unityyamlmerge eol=lf
+
+# Binary assets, never diff or merge as text
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.psd binary
+*.tga binary
+*.tif binary
+*.wav binary
+*.mp3 binary
+*.ogg binary
+*.fbx binary
+*.mb binary
+*.ma binary
+*.blend binary
+*.dae binary
+*.mp4 binary
+*.mov binary
+*.exr binary
+*.hdr binary
+*.ttf binary
+*.otf binary
