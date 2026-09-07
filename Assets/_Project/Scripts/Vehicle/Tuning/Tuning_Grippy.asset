@@ -1,0 +1,194 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a2b3c4d5e6f708192a3b4c5d6e7f801, type: 3}
+  m_Name: Tuning_Grippy
+  m_EditorClassIdentifier: 
+  profileName: Grippy
+  whyThisSetup: 'REJECTED as the default. Grip 18 with a matching tighter steering
+    curve, stronger brakes and a snappier turn-in. Very precise and very forgiving,
+    but the car basically does not slide, so the handbrake has nothing to do and cornering
+    has no texture at all. New players do well straight away and then stop improving,
+    because there is no limit left for them to learn. Top speed and physics rate are
+    identical to Balanced on purpose, so the two can be compared on the same test.
+    Worth keeping for a tutorial delivery or a slow zone where we do not want the
+    player fighting the car.'
+  isChosenSetup: 0
+  overrideFixedTimestep: 1
+  physicsHz: 120
+  gravity: 20
+  mass: 900
+  centreOfMassOffset: {x: 0, y: -0.4, z: 0}
+  maxAngularSpeed: 7
+  angularDamping: 3
+  linearDamping: 0
+  wheelForwardOffset: 1.4
+  wheelSideOffset: 0.8
+  wheelHeightOffset: 0
+  suspensionRestLength: 0.6
+  suspensionExtraRayLength: 0.3
+  springStrength: 130
+  springDamper: 17
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  topSpeed: 25
+  accelerationBySpeed:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 20
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 8
+      value: 15
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 16
+      value: 9
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 22
+      value: 4
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 25
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  reverseTopSpeed: 8
+  reverseAcceleration: 10
+  inputDeadzone: 0.08
+  brakeDeceleration: 26
+  coastDeceleration: 5.5
+  maxCurvatureBySpeed:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0.4
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 5
+      value: 0.36
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 10
+      value: 0.17
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 15
+      value: 0.078
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 20
+      value: 0.044
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 25
+      value: 0.028
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  steerInputSmoothTime: 0.05
+  maxYawAcceleration: 22
+  lateralGripAcceleration: 18
+  handbrakeGripMultiplier: 0.35
+  jumpSpeed: 6.5
+  jumpHoldTime: 0.18
+  jumpHoldAcceleration: 18
+  jumpCooldown: 0.35
+  inputBufferTime: 0.12
+  flipRequiresGrounded: 1
+  flipForce: 8
+  flipHopSpeed: 2.5
+  flipSpin: 2.2
+  flipDuration: 0.45
+  flipCooldown: 1.6
+  flipMaxSpeedGain: 2.5
+  flipNoSpeedGainAboveSpeed: 11
+  autoRightWhenStuck: 1
+  stuckUprightThreshold: 0.35
+  stuckSpeedThreshold: 1.2
+  stuckTimeBeforeRighting: 1.5
+  rightingTorque: 8
+  cameraDistance: 6.5
+  cameraHeight: 2.7
+  cameraFollowSmoothTime: 0.09
+  cameraLookAhead: 13
+  cameraLookAtHeight: 1.3
+  cameraExtraPitch: 4
+  cameraFieldOfView: 60
+  cameraExtraDistanceAtTopSpeed: 2
+  cameraExtraHeightAtTopSpeed: 0.6
+  cameraVelocityInfluence: 0.15
+  cameraRotationSmoothTime: 0.1
+  cameraSwivelSpeed: 120
+  cameraSwivelRecentreDelay: 1.2
