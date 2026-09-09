@@ -23,6 +23,37 @@ namespace ZoomZoom.Vehicle
     }
 
     /// <summary>
+    /// Where one wheel currently is and what it is doing, for anything that needs to draw it.
+    ///
+    /// The physics does not need this. It is published purely so the wheel models can sit on the
+    /// ground properly instead of being welded to the body: the visuals read the same raycast the
+    /// suspension already did, rather than doing their own and possibly disagreeing with it.
+    /// </summary>
+    public struct WheelVisualState
+    {
+        /// <summary>Which of the four. 0 front left, 1 front right, 2 rear left, 3 rear right.</summary>
+        public int index;
+
+        /// <summary>True when this wheel found ground.</summary>
+        public bool grounded;
+
+        /// <summary>
+        /// How far below the ray origin the wheel's contact patch currently sits, metres. Equal to
+        /// the rest length when the wheel is hanging free, smaller when the suspension is squashed.
+        /// </summary>
+        public float suspensionLength;
+
+        /// <summary>0 = hanging at full extension, 1 = fully squashed. Handy for driving effects.</summary>
+        public float compression01;
+
+        /// <summary>Front wheels steer, rear wheels do not.</summary>
+        public bool isFront;
+
+        /// <summary>Left side of the car.</summary>
+        public bool isLeft;
+    }
+
+    /// <summary>
     /// Arcade car on a Rigidbody, held up by four raycasts instead of WheelColliders.
     ///
     /// WHY RAYCASTS AND NOT WHEELCOLLIDERS
@@ -59,8 +90,17 @@ namespace ZoomZoom.Vehicle
         [Tooltip("Draw the wheel rays and the grip/steer directions in the scene view.")]
         [SerializeField] private bool drawDebugGizmos = true;
 
-        /// <summary>Set this every frame by whoever is driving.</summary>
-        [HideInInspector] public DriveInput Drive;
+        /// <summary>
+        /// Set this every frame by whoever is driving.
+        ///
+        /// NonSerialized on purpose. This is live input, rewritten every single frame, so saving it
+        /// into the scene file would be meaningless: it would store whatever key happened to be down
+        /// when the scene was last saved, and show up as noise in every git diff of the scene.
+        /// Marking it explicitly also settles Unity's serialization analyzer, which otherwise warns
+        /// that it is quietly skipping the field. Better to say we do not want it saved than to
+        /// leave the reader wondering whether it was an oversight.
+        /// </summary>
+        [System.NonSerialized] public DriveInput Drive;
 
         // ---------------- what the rest of the game can read ----------------
 
@@ -97,11 +137,36 @@ namespace ZoomZoom.Vehicle
         /// <summary>Turn rate about the ground normal, rad/s.</summary>
         public float YawRate { get; private set; }
 
+        /// <summary>
+        /// The turn curvature the steering is currently asking for, in 1/metres. This is the real
+        /// number the car is cornering on, so the wheel models can be turned to match it instead of
+        /// guessing an angle that has nothing to do with the physics.
+        /// </summary>
+        public float SteerCurvature { get; private set; }
+
         /// <summary>How upright the car is. 1 = on its wheels, 0 = on its side, -1 = on its roof.</summary>
         public float Uprightness => Vector3.Dot(transform.up, Vector3.up);
 
         /// <summary>True when the car is the right way up enough to drive.</summary>
         public bool IsUpright => Uprightness > 0.5f;
+
+        /// <summary>Always 4. Named rather than hard coded at every call site.</summary>
+        public const int WheelCount = 4;
+
+        /// <summary>
+        /// Where wheel i is and what it is doing, for drawing it. 0 front left, 1 front right,
+        /// 2 rear left, 3 rear right.
+        /// </summary>
+        public WheelVisualState GetWheelVisualState(int index)
+        {
+            return _wheelVisuals[Mathf.Clamp(index, 0, WheelCount - 1)];
+        }
+
+        /// <summary>Where wheel i's ray starts, in the car's own space.</summary>
+        public Vector3 GetWheelLocalRayOrigin(int index)
+        {
+            return _wheelLocalPositions[Mathf.Clamp(index, 0, WheelCount - 1)];
+        }
 
         // ---------------- internals ----------------
 
@@ -112,6 +177,9 @@ namespace ZoomZoom.Vehicle
         private readonly bool[] _wheelGrounded = new bool[4];
         private readonly Vector3[] _wheelContactPoints = new Vector3[4];
         private readonly float[] _wheelCompression = new float[4];
+
+        // Published for the visuals. Written once per physics step, read once per drawn frame.
+        private readonly WheelVisualState[] _wheelVisuals = new WheelVisualState[4];
 
         // Reused so the raycasts never allocate.
         private readonly RaycastHit[] _hitBuffer = new RaycastHit[8];
@@ -251,12 +319,17 @@ namespace ZoomZoom.Vehicle
             int groundedCount = 0;
             Vector3 normalSum = Vector3.zero;
 
+            float rest = tuning.suspensionRestLength;
+
             for (int i = 0; i < 4; i++)
             {
                 Vector3 origin = transform.TransformPoint(_wheelLocalPositions[i]);
                 _wheelGrounded[i] = false;
                 _wheelCompression[i] = 0f;
-                _wheelContactPoints[i] = origin + down * tuning.suspensionRestLength;
+                _wheelContactPoints[i] = origin + down * rest;
+
+                // Hanging at full extension is the default: that is where a wheel sits in mid air.
+                float suspensionLength = rest;
 
                 if (TryRaycast(origin, down, rayLength, out RaycastHit hit))
                 {
@@ -266,11 +339,26 @@ namespace ZoomZoom.Vehicle
                     // Positive = suspension squashed. Negative = wheel hanging below rest length,
                     // which still counts as grounded on purpose: the car should not lose drive
                     // every time it crests a small bump. Predictable beats picky.
-                    _wheelCompression[i] = tuning.suspensionRestLength - hit.distance;
+                    _wheelCompression[i] = rest - hit.distance;
+
+                    // For drawing, the wheel can be squashed up towards the body but never past a
+                    // bump stop, and never stretched further than its rest length. Without the
+                    // lower clamp a hard landing pulls the wheel model up inside the bodywork.
+                    suspensionLength = Mathf.Clamp(hit.distance, rest * 0.3f, rest);
 
                     normalSum += hit.normal;
                     groundedCount++;
                 }
+
+                _wheelVisuals[i] = new WheelVisualState
+                {
+                    index = i,
+                    grounded = _wheelGrounded[i],
+                    suspensionLength = suspensionLength,
+                    compression01 = Mathf.Clamp01((rest - suspensionLength) / Mathf.Max(0.0001f, rest * 0.7f)),
+                    isFront = i < 2,
+                    isLeft = (i % 2) == 0
+                };
             }
 
             WheelsOnGround = groundedCount;
@@ -462,6 +550,10 @@ namespace ZoomZoom.Vehicle
                 ? target
                 : Mathf.SmoothDamp(SteerAmount, target, ref _steerVelocity,
                     tuning.steerInputSmoothTime, Mathf.Infinity, dt);
+
+            // Kept up to date even in mid air, where there is no steering torque to apply but the
+            // front wheels should still visibly be turned the way the player is holding them.
+            SteerCurvature = tuning.MaxCurvatureAt(ForwardSpeed) * SteerAmount;
         }
 
         /// <summary>
@@ -483,7 +575,7 @@ namespace ZoomZoom.Vehicle
         {
             SmoothSteerInput(dt);
 
-            float curvature = tuning.MaxCurvatureAt(ForwardSpeed) * SteerAmount;
+            float curvature = SteerCurvature;
             float targetYawRate = curvature * ForwardSpeed;
 
             float yawError = targetYawRate - YawRate;

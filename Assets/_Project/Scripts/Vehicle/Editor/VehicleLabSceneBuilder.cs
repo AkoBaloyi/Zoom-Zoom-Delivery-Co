@@ -31,14 +31,87 @@ namespace ZoomZoom.Vehicle.EditorTools
         private const string TuningPath =
             "Assets/_Project/Scripts/Vehicle/Tuning/Tuning_Balanced.asset";
         private const string ControlsPath = "Assets/_Project/Scripts/Vehicle/VehicleControls.inputactions";
-        private const string CarMaterialPath = "Assets/_Project/Materials/Lab_Car.mat";
-        private const string NoseMaterialPath = "Assets/_Project/Materials/Lab_CarNose.mat";
+        // No material paths any more. The car model and its materials are built by CarVisualBuilder
+        // from the colours in the tuning profile, so swapping profile changes the car's paint too.
 
         [MenuItem("Tools/Zoom Zoom/Open VehicleLab Scene", priority = 0)]
         public static void OpenScene()
         {
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
             EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+        }
+
+        /// <summary>
+        /// Adds the visual components to a car that already exists in whatever scene is open, and
+        /// clears out any old placeholder geometry.
+        ///
+        /// Separate from the full rebuild because a rebuild throws the scene away. This is the safe
+        /// option: it changes the car and nothing else, so it can be run on a scene somebody has
+        /// already put work into. It is also what Kyuri and Zubuhle will want when they drop the car
+        /// into their own scenes.
+        /// </summary>
+        [MenuItem("Tools/Zoom Zoom/Add Car Visuals To Open Scene", priority = 10)]
+        public static void AddCarVisualsToOpenScene()
+        {
+            var cars = Object.FindObjectsByType<VehicleController>(FindObjectsSortMode.None);
+
+            if (cars.Length == 0)
+            {
+                EditorUtility.DisplayDialog(
+                    "No car found",
+                    "There is no VehicleController in the open scene, so there is nothing to add " +
+                    "visuals to.",
+                    "OK");
+                return;
+            }
+
+            int changed = 0;
+
+            foreach (VehicleController car in cars)
+            {
+                GameObject go = car.gameObject;
+
+                VehicleVisuals visuals = go.GetComponent<VehicleVisuals>();
+                if (visuals == null)
+                {
+                    visuals = Undo.AddComponent<VehicleVisuals>(go);
+
+                    var so = new SerializedObject(visuals);
+                    so.FindProperty("car").objectReferenceValue = car;
+                    so.ApplyModifiedPropertiesWithoutUndo();
+                    changed++;
+                }
+
+                if (go.GetComponent<CarVisualBuilder>() == null)
+                {
+                    Undo.AddComponent<CarVisualBuilder>(go);
+                    changed++;
+                }
+
+                // Old greybox stand-ins. Named exactly, so nothing else gets caught by accident.
+                foreach (string placeholder in new[] { "Body Visual", "Nose Marker" })
+                {
+                    Transform found = go.transform.Find(placeholder);
+                    if (found == null) continue;
+
+                    Undo.DestroyObjectImmediate(found.gameObject);
+                    changed++;
+                }
+
+                EditorUtility.SetDirty(go);
+            }
+
+            if (changed == 0)
+            {
+                Debug.Log("[VehicleLab] Car visuals were already set up. Nothing to change.");
+                return;
+            }
+
+            EditorSceneManager.MarkAllScenesDirty();
+            Debug.Log(
+                $"[VehicleLab] Car visuals added, {changed} change(s). Save the scene, then press " +
+                "Play. To see the model without playing, use the Build Model Now item in the " +
+                "CarVisualBuilder component's context menu.");
         }
 
         [MenuItem("Tools/Zoom Zoom/Rebuild VehicleLab Scene", priority = 20)]
@@ -162,6 +235,8 @@ namespace ZoomZoom.Vehicle.EditorTools
             VehicleController controller = go.AddComponent<VehicleController>();
             VehicleJumpFlip jumpFlip = go.AddComponent<VehicleJumpFlip>();
             VehicleInput input = go.AddComponent<VehicleInput>();
+            VehicleVisuals visuals = go.AddComponent<VehicleVisuals>();
+            go.AddComponent<CarVisualBuilder>();
 
             var controllerSo = new SerializedObject(controller);
             controllerSo.FindProperty("tuning").objectReferenceValue = tuning;
@@ -180,13 +255,14 @@ namespace ZoomZoom.Vehicle.EditorTools
                     "empty. The car will still drive, using the same bindings built in code.");
             }
 
-            AddVisual(go.transform, "Body Visual", new Vector3(0f, 0.2f, 0f),
-                new Vector3(1.8f, 1f, 4.2f), CarMaterialPath);
+            var visualsSo = new SerializedObject(visuals);
+            visualsSo.FindProperty("car").objectReferenceValue = controller;
+            visualsSo.ApplyModifiedPropertiesWithoutUndo();
 
-            // A stripe on the nose. Sounds trivial, but when the car is sliding you need to be able
-            // to see at a glance which way it is pointed as opposed to which way it is going.
-            AddVisual(go.transform, "Nose Marker", new Vector3(0f, 0.75f, 1.5f),
-                new Vector3(0.7f, 0.15f, 1f), NoseMaterialPath);
+            // No visual geometry is created here on purpose. CarVisualBuilder makes the model when
+            // the scene starts and hands the wheel transforms to VehicleVisuals itself, the same way
+            // VehicleLabBuilder makes the lab. That keeps the shape of the car in readable code
+            // instead of in a scene file nobody can review.
 
             return controller;
         }
@@ -247,25 +323,6 @@ namespace ZoomZoom.Vehicle.EditorTools
             go.transform.localPosition = localPosition;
             go.transform.localRotation = Quaternion.identity;
             return go.transform;
-        }
-
-        private static void AddVisual(Transform parent, string name, Vector3 localPosition,
-            Vector3 localScale, string materialPath)
-        {
-            GameObject visual = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            visual.name = name;
-
-            // The visual has no collider. The one BoxCollider on the car root is the whole physics
-            // shape, so there is exactly one place to look when collisions behave oddly.
-            Object.DestroyImmediate(visual.GetComponent<Collider>());
-
-            visual.transform.SetParent(parent, false);
-            visual.transform.localPosition = localPosition;
-            visual.transform.localScale = localScale;
-            visual.transform.localRotation = Quaternion.identity;
-
-            Material material = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
-            if (material != null) visual.GetComponent<MeshRenderer>().sharedMaterial = material;
         }
 
         /// <summary>
