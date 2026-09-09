@@ -33,6 +33,8 @@ MonoBehaviour:
   wheelForwardOffset: 1.4
   wheelSideOffset: 0.8
   wheelHeightOffset: 0
+  wheelRadius: 0.34
+  wheelWidth: 0.32
   suspensionRestLength: 0.6
   suspensionExtraRayLength: 0.3
   springStrength: 130
@@ -179,6 +181,17 @@ MonoBehaviour:
   stuckSpeedThreshold: 1.2
   stuckTimeBeforeRighting: 1.5
   rightingTorque: 8
+  maxVisualSteerAngle: 28
+  steerVisualExaggeration: 1.3
+  lockWheelsOnHandbrake: 1
+  airborneWheelSpinDecay: 0.6
+  bodyColour: {r: 0.16, g: 0.55, b: 0.85, a: 1}
+  trimColour: {r: 0.11, g: 0.12, b: 0.14, a: 1}
+  glassColour: {r: 0.25, g: 0.34, b: 0.42, a: 1}
+  tyreColour: {r: 0.08, g: 0.08, b: 0.09, a: 1}
+  rimColour: {r: 0.86, g: 0.88, b: 0.9, a: 1}
+  brakeLightOffColour: {r: 0.22, g: 0.03, b: 0.03, a: 1}
+  brakeLightOnColour: {r: 3, g: 0.15, b: 0.1, a: 1}
   cameraDistance: 6.5
   cameraHeight: 2.7
   cameraFollowSmoothTime: 0.09

@@ -96,6 +96,14 @@ namespace ZoomZoom.Vehicle
         [Tooltip("Height of the wheel ray origins in local space. 0 = level with the car origin.")]
         public float wheelHeightOffset = 0f;
 
+        [Tooltip("Wheel radius, metres. Used to place the wheel model on the ground and to work out " +
+                 "how fast it should be spinning: a wheel rolling without slipping turns at " +
+                 "speed / radius radians per second. Get this wrong and the wheels visibly skate.")]
+        public float wheelRadius = 0.36f;
+
+        [Tooltip("Wheel width, metres. Purely how the model looks, no effect on the physics.")]
+        public float wheelWidth = 0.28f;
+
         [Tooltip("How far below the ray origin the wheel sits when the suspension is fully extended, " +
                  "metres. This is effectively the ride height.")]
         public float suspensionRestLength = 0.6f;
@@ -277,6 +285,61 @@ namespace ZoomZoom.Vehicle
 
         [Tooltip("How hard the righting rotation is, rad/s^2.")]
         public float rightingTorque = 8f;
+
+        // ------------------------------------------------------------------
+        // LOOK
+        // These change what the player sees, never what the car does. They are in here with
+        // everything else so that a profile swap changes the whole car, look included.
+        // ------------------------------------------------------------------
+        [Header("Look: wheels")]
+        [Tooltip("Most the front wheels will visibly turn, degrees. A real car at speed barely turns " +
+                 "its wheels, which looks wrong on screen, so this is a cap on an exaggeration " +
+                 "rather than a physical value.")]
+        [Range(5f, 60f)]
+        public float maxVisualSteerAngle = 32f;
+
+        [Tooltip("Multiplier on the true steering geometry.\n\n" +
+                 "1 = the wheels show exactly the angle the physics is actually using, worked out " +
+                 "from the turn curvature. Honest, but at 25 m/s that is only about 3 degrees and " +
+                 "reads as dead straight. Above 1 the wheels lie a little so the player can see what " +
+                 "they asked for. The car still corners on the real number either way.")]
+        [Range(1f, 4f)]
+        public float steerVisualExaggeration = 1.6f;
+
+        [Tooltip("Stop the wheels turning while the handbrake is held. Locked wheels are the clearest " +
+                 "signal there is that the car has stopped gripping and started sliding.")]
+        public bool lockWheelsOnHandbrake = true;
+
+        [Tooltip("How quickly a spinning wheel slows down when the car leaves the ground, per second. " +
+                 "Wheels carry on turning in the air, they just are not being driven any more.")]
+        [Range(0f, 5f)]
+        public float airborneWheelSpinDecay = 0.6f;
+
+        [Header("Look: colours")]
+        [Tooltip("Main body colour.")]
+        public Color bodyColour = new Color(0.93f, 0.72f, 0.09f, 1f);
+
+        [Tooltip("Nose, skirts, wing and bumpers. A second darker colour is what stops the car " +
+                 "reading as one undifferentiated lump.")]
+        public Color trimColour = new Color(0.13f, 0.14f, 0.17f, 1f);
+
+        [Tooltip("Windscreen and canopy glass.")]
+        public Color glassColour = new Color(0.25f, 0.34f, 0.42f, 1f);
+
+        [Tooltip("Tyres.")]
+        public Color tyreColour = new Color(0.09f, 0.09f, 0.1f, 1f);
+
+        [Tooltip("Rims and the hub bar. Keep this bright: the hub bar is the only thing that makes " +
+                 "the wheel rotation visible at all, and a spinning plain cylinder looks stationary.")]
+        public Color rimColour = new Color(0.82f, 0.84f, 0.87f, 1f);
+
+        [Tooltip("Brake light colour when the brake is off.")]
+        public Color brakeLightOffColour = new Color(0.22f, 0.03f, 0.03f, 1f);
+
+        [Tooltip("Brake light colour when the brake is on. This is an emission colour, so values " +
+                 "above 1 are allowed and will bloom.")]
+        [ColorUsage(true, true)]
+        public Color brakeLightOnColour = new Color(3f, 0.15f, 0.1f, 1f);
 
         // ------------------------------------------------------------------
         // CAMERA
@@ -463,6 +526,11 @@ namespace ZoomZoom.Vehicle
             lateralGripAcceleration = Mathf.Max(0f, lateralGripAcceleration);
             suspensionRestLength = Mathf.Max(0.01f, suspensionRestLength);
             suspensionExtraRayLength = Mathf.Max(0f, suspensionExtraRayLength);
+
+            // A wheel bigger than the suspension travel would be buried in the body, and a zero
+            // radius would divide by zero when working out the spin rate.
+            wheelRadius = Mathf.Clamp(wheelRadius, 0.05f, suspensionRestLength);
+            wheelWidth = Mathf.Max(0.02f, wheelWidth);
             flipDuration = Mathf.Max(0.05f, flipDuration);
             cameraDistance = Mathf.Max(0.5f, cameraDistance);
 
