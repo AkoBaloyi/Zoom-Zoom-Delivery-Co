@@ -238,6 +238,10 @@ namespace ZoomZoom.Vehicle.EditorTools
             VehicleVisuals visuals = go.AddComponent<VehicleVisuals>();
             go.AddComponent<CarVisualBuilder>();
 
+            // Marks and tyre particles. Read-only like VehicleVisuals, so it cannot affect any
+            // measurement, and it finds or creates the shared skid mark mesh itself at startup.
+            go.AddComponent<TyreEffects>();
+
             var controllerSo = new SerializedObject(controller);
             controllerSo.FindProperty("tuning").objectReferenceValue = tuning;
             controllerSo.ApplyModifiedPropertiesWithoutUndo();

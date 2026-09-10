@@ -38,11 +38,11 @@ namespace ZoomZoom.Vehicle
         [Header("Floor")]
         [Tooltip("Length of the floor along Z, metres. Needs to be long enough to reach top speed, " +
                  "hit the wall, and still have room to stop.")]
-        [SerializeField] private float groundLength = 400f;
+        [SerializeField] private float groundLength = 600f;
 
         [Tooltip("Width of the floor along X, metres. Wide, because a turning circle at high speed " +
                  "needs a lot of room: radius = speed squared over grip.")]
-        [SerializeField] private float groundWidth = 240f;
+        [SerializeField] private float groundWidth = 520f;
 
         [Tooltip("How far back from the start line the floor extends, metres.")]
         [SerializeField] private float groundBehindStart = 40f;
@@ -78,6 +78,42 @@ namespace ZoomZoom.Vehicle
         [Tooltip("Where the turning circle test starts. Kept off to one side so a wide circle at high " +
                  "test speed still fits on the floor.")]
         [SerializeField] private Vector3 turnTestPosition = new Vector3(-70f, 0.8f, 80f);
+
+        [Header("Surface patches")]
+        [Tooltip("Lay out the surface test strips. Each is a wide patch of one surface type with its " +
+                 "own grip, running parallel to the main tarmac lane so the same corner can be tried " +
+                 "on each one and the readings compared directly.")]
+        [SerializeField] private bool buildSurfacePatches = true;
+
+        [Tooltip("Width of one surface strip, metres. Wide enough that all four wheels are on the " +
+                 "same surface, which matters because the car averages grip across its wheels and a " +
+                 "narrow strip would only ever give a half-and-half reading.")]
+        [SerializeField] private float patchWidth = 30f;
+
+        [Tooltip("Length of a surface strip, metres. Long enough to reach a useful speed, slide, and " +
+                 "still pull up before running out of it.")]
+        [SerializeField] private float patchLength = 260f;
+
+        [Tooltip("Distance from the start line to where the strips begin, metres. Placed past the " +
+                 "cone corner so the tarmac tests are not driven across.")]
+        [SerializeField] private float patchStartDistance = 40f;
+
+        [Tooltip("Gap between neighbouring strips, metres. A visible gap of plain tarmac between " +
+                 "strips means a run onto grass starts from a known grip rather than from whatever " +
+                 "the previous strip was.")]
+        [SerializeField] private float patchGap = 10f;
+
+        [Tooltip("Which surfaces get a strip, in left to right order across the floor. The main lane " +
+                 "down the middle stays tarmac, so tarmac does not need to be in this list.")]
+        [SerializeField]
+        private SurfaceKind[] patchKinds =
+        {
+            SurfaceKind.Wet,
+            SurfaceKind.Dirt,
+            SurfaceKind.Grass,
+            SurfaceKind.Ice,
+            SurfaceKind.Metal
+        };
 
         [Header("Build")]
         [Tooltip("Build the lab when the scene starts. Leave this on.")]
@@ -131,6 +167,16 @@ namespace ZoomZoom.Vehicle
             BuildDistanceMarkers(minorMarkerMaterial, majorMarkerMaterial);
             BuildWall(wallMaterial);
             BuildConeCorner(coneMaterial);
+            if (buildSurfacePatches) BuildSurfacePatches();
+
+            if (buildSurfacePatches && patchKinds != null && patchKinds.Length > 0)
+            {
+                Debug.Log(
+                    $"[VehicleLab] {patchKinds.Length} surface strips laid out to the right of the " +
+                    $"centre lane, each {patchWidth:0} x {patchLength:0} m starting at " +
+                    $"{patchStartDistance:0} m. Drive the same corner on each and compare: grip is " +
+                    "the tuning value times the strip's multiplier, printed on its label post.");
+            }
 
             Debug.Log(
                 $"[VehicleLab] Lab built. Floor {groundWidth:0} x {groundLength:0} m, markers every " +
@@ -297,6 +343,147 @@ namespace ZoomZoom.Vehicle
                 StripCollider(cone);
                 cone.transform.SetParent(corner, true);
             }
+        }
+
+        // ==================================================================
+        // SURFACE PATCHES
+        // ==================================================================
+
+        /// <summary>
+        /// Lays one strip per surface kind, side by side and all starting from the same line.
+        ///
+        /// WHY STRIPS RATHER THAN A PATCHWORK
+        /// The point of the lab is to be able to compare. Parallel strips of the same length starting
+        /// at the same distance mean the same test can be driven on ice and on dirt and the two
+        /// readings differ only by the surface. A scattered patchwork would look more like a level but
+        /// would make every reading depend on where exactly the car happened to be.
+        ///
+        /// WHY EACH STRIP IS WIDER THAN THE CAR
+        /// The car averages grip across whichever wheels are touching ground. A strip narrower than
+        /// the track width could never give a clean reading, because two wheels would always be on
+        /// tarmac. patchWidth is checked against that at build time.
+        ///
+        /// The strips sit slightly proud of the main floor and keep their colliders, so the wheel
+        /// raycasts hit the strip rather than the tarmac underneath it.
+        /// </summary>
+        private void BuildSurfacePatches()
+        {
+            if (patchKinds == null || patchKinds.Length == 0) return;
+
+            var patches = new GameObject("Surface patches").transform;
+            patches.SetParent(_generated, false);
+
+            // Laid out to the RIGHT of the centre lane, so the turning circle area off to the left at
+            // x -70 stays clear tarmac and the F2 reading is unaffected by any of this.
+            float x = markerSideOffset + patchGap + (patchWidth * 0.5f);
+
+            for (int i = 0; i < patchKinds.Length; i++)
+            {
+                SurfaceKind kind = patchKinds[i];
+                SurfaceProfile profile = SurfaceType.DefaultsFor(kind);
+
+                var strip = new GameObject($"{kind} (grip x{profile.gripMultiplier:0.00})");
+                strip.transform.SetParent(patches, false);
+
+                // Proud of the floor by 2 cm. The floor is a 2 m thick box centred 1 m below zero, so
+                // its top face is at y 0; putting the strip's top face just above that means the wheel
+                // ray hits the strip first without the car visibly climbing a step.
+                GameObject slab = MakeBox(
+                    "Surface",
+                    new Vector3(x, -0.09f, patchStartDistance + (patchLength * 0.5f)),
+                    new Vector3(patchWidth, 0.2f, patchLength),
+                    MakeMaterial(ColourFor(kind)),
+                    keepCollider: true);
+
+                slab.transform.SetParent(strip.transform, true);
+
+                // On the PARENT, not the slab. The controller resolves surfaces with
+                // GetComponentInParent, so labelling the parent covers this slab and anything else
+                // added to the strip later, such as a ramp or a kerb.
+                SurfaceType.Attach(strip, kind);
+
+                // A post at the near end so the driver can tell which strip is which from the seat.
+                GameObject label = MakeBox(
+                    "Marker post",
+                    new Vector3(x, 1.4f, patchStartDistance - 1.5f),
+                    new Vector3(0.35f, 2.8f, 0.35f),
+                    MakeMaterial(ColourFor(kind)),
+                    keepCollider: false);
+
+                label.transform.SetParent(strip.transform, true);
+
+                MakeSurfaceLabel(strip.transform, kind, profile, x);
+
+                x += patchWidth + patchGap;
+            }
+
+            float rightEdge = x - patchGap - (patchWidth * 0.5f);
+            float halfFloor = groundWidth * 0.5f;
+
+            // A strip hanging off the edge of the floor would drop the car into nothing, and finding
+            // that out by driving off is a poor use of anyone's afternoon.
+            if (rightEdge > halfFloor)
+            {
+                Debug.LogWarning(
+                    $"[VehicleLab] The surface strips reach x {rightEdge:0} m but the floor only goes " +
+                    $"to {halfFloor:0} m. Widen groundWidth, narrow patchWidth, or drop a surface " +
+                    "from the list, or the outermost strip will hang over the edge.", this);
+            }
+
+            // The track width check: a strip narrower than the car cannot give a clean reading.
+            float trackWidth = 1.6f;
+            if (patchWidth < trackWidth * 2f)
+            {
+                Debug.LogWarning(
+                    $"[VehicleLab] patchWidth is {patchWidth:0.0} m, which is tight against a car " +
+                    $"about {trackWidth:0.0} m across. Readings will be contaminated by wheels " +
+                    "hanging onto the tarmac either side. 10 m or more is comfortable.", this);
+            }
+        }
+
+        /// <summary>
+        /// A readable colour per surface. These are flat greybox colours chosen to be told apart at
+        /// speed rather than to look like the real material.
+        /// </summary>
+        private static Color ColourFor(SurfaceKind kind)
+        {
+            switch (kind)
+            {
+                case SurfaceKind.Wet: return new Color(0.18f, 0.28f, 0.42f);
+                case SurfaceKind.Dirt: return new Color(0.42f, 0.31f, 0.19f);
+                case SurfaceKind.Grass: return new Color(0.24f, 0.42f, 0.18f);
+                case SurfaceKind.Ice: return new Color(0.74f, 0.85f, 0.92f);
+                case SurfaceKind.Metal: return new Color(0.52f, 0.54f, 0.58f);
+                default: return new Color(0.32f, 0.34f, 0.36f);
+            }
+        }
+
+        /// <summary>
+        /// Prints the surface name and its grip multiplier beside the strip, facing back towards the
+        /// start line. The number is on the floor for the same reason the distance markers are: a
+        /// reading you can check by eye beats one you have to take on trust.
+        /// </summary>
+        private void MakeSurfaceLabel(Transform parent, SurfaceKind kind, SurfaceProfile profile, float x)
+        {
+            Font font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            if (font == null) return;
+
+            var label = new GameObject($"Label {kind}");
+            label.transform.SetPositionAndRotation(
+                new Vector3(x, 3.4f, patchStartDistance - 1.5f),
+                Quaternion.LookRotation(Vector3.back, Vector3.up));
+
+            TextMesh text = label.AddComponent<TextMesh>();
+            text.text = $"{kind}\nx{profile.gripMultiplier:0.00}";
+            text.font = font;
+            text.fontSize = 64;
+            text.characterSize = 0.5f;
+            text.anchor = TextAnchor.MiddleCenter;
+            text.alignment = TextAlignment.Center;
+            text.color = Color.white;
+
+            label.GetComponent<MeshRenderer>().sharedMaterial = font.material;
+            label.transform.SetParent(parent, true);
         }
 
         // ==================================================================
