@@ -195,7 +195,7 @@ MonoBehaviour:
   cameraDistance: 4.2
   cameraHeight: 1.7
   cameraFollowSmoothTime: 0.09
-  cameraLookAhead: 13
+  cameraLookAhead: 28
   cameraLookAtHeight: 1.3
   cameraExtraPitch: 4
   cameraFieldOfView: 98

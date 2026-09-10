@@ -13,13 +13,19 @@ MonoBehaviour:
   m_Name: Tuning_Balanced
   m_EditorClassIdentifier: 
   profileName: Balanced
-  whyThisSetup: 'CHOSEN SETUP. Grip 12 sits just under what the steering curve asks
-    for at every speed, so full lock is always right on the edge of gripping. Carry
-    too much speed into a corner and the car runs wide, and it runs wide by the same
-    amount every time, so a missed corner is readable and repeatable rather than random.
-    Stopping distance is 14.2 m from top speed and the camera shows more than that,
-    so no corner can arrive before the player could have seen it. Kept because it
-    is the only one of the three where being fast and being safe are the same skill.'
+  whyThisSetup: 'CHOSEN SETUP. Grip 13 is deliberately LESS than what full lock asks
+    for above about 18 m/s, so the steering can over-drive the tyres and a corner
+    taken too fast has a consequence. Below that speed the car grips and is precise,
+    which is where the player learns what it does. Because accelerating and cornering
+    share one grip budget, holding the throttle through a corner takes grip away from
+    the driven rear axle and the back steps out; lifting off gives it back, so the
+    throttle is a steering input as much as a speed input. The rear is given 84 per
+    cent of the grip the front has, which is what makes it the end that goes rather
+    than the car simply running wide. Stopping distance is 23.3 m from 32 m/s and the
+    camera looks 28 m ahead, so no corner can arrive before the player could have
+    seen it. Kept because being fast and being in control are the same skill here:
+    the car is stable until it is pushed, predictable when it lets go, and catchable
+    on counter-steer.'
   isChosenSetup: 1
   overrideFixedTimestep: 1
   physicsHz: 120
@@ -194,7 +200,7 @@ MonoBehaviour:
   cameraDistance: 4
   cameraHeight: 1.6
   cameraFollowSmoothTime: 0.12
-  cameraLookAhead: 16
+  cameraLookAhead: 28
   cameraLookAtHeight: 1.4
   cameraExtraPitch: 4
   cameraFieldOfView: 100
