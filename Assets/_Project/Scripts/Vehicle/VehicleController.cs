@@ -175,6 +175,16 @@ namespace ZoomZoom.Vehicle
         public SurfaceProfile SurfaceUnderWheel(int index) =>
             index >= 0 && index < 4 ? _wheelSurfaces[index] : SurfaceType.Default;
 
+        /// <summary>
+        /// How hard the tyres are working along the car this step, m/s^2. Drive and braking both count,
+        /// boost does not. This is what the friction circle spends against the grip budget, and it is
+        /// worth exposing because "why did the rear let go there" is answered by this number.
+        /// </summary>
+        public float LongitudinalDemand { get; private set; }
+
+        /// <summary>Lateral grip actually available after longitudinal demand took its share, m/s^2.</summary>
+        public float AvailableLateralGrip { get; private set; }
+
         /// <summary>Boost left in the tank, in boost-seconds. Drive the HUD gauge from this.</summary>
         public float BoostRemaining { get; private set; }
 
@@ -745,6 +755,12 @@ namespace ZoomZoom.Vehicle
             if (driveAccel > 0f && ForwardSpeed >= tuning.topSpeed) totalAccel = Mathf.Min(totalAccel, 0f);
             if (driveAccel < 0f && ForwardSpeed <= -tuning.reverseTopSpeed) totalAccel = Mathf.Max(totalAccel, 0f);
 
+            // Recorded for the friction circle. This is how much work the tyres are doing along the
+            // car, and it is what the lateral grip calculation then has to share a budget with.
+            // Boost is deliberately NOT counted: it is a rocket, not the tyres, so it does not consume
+            // grip. That also makes boost the tool for holding a slide rather than causing one.
+            LongitudinalDemand = Mathf.Abs(totalAccel);
+
             if (Mathf.Abs(totalAccel) > 0.0001f)
             {
                 _rb.AddForce(GroundForward * totalAccel, ForceMode.Acceleration);
@@ -901,7 +917,13 @@ namespace ZoomZoom.Vehicle
             }
 
             float grip = tuning.lateralGripAcceleration * Surface.gripMultiplier;
+
+            // The friction circle. Accelerating hard leaves less grip for cornering, which is what
+            // makes the throttle a handling input rather than just a speed input.
+            grip = tuning.LateralGripAfterLongitudinal(grip, LongitudinalDemand);
+
             if (Drive.handbrake) grip *= tuning.handbrakeGripMultiplier;
+            AvailableLateralGrip = grip;
             if (grip <= 0f) return;
 
             float accelNeededToStopSliding = Mathf.Abs(LateralSpeed) / Mathf.Max(dt, 0.0001f);
@@ -933,6 +955,13 @@ namespace ZoomZoom.Vehicle
 
             float frontGrip = total * tuning.gripBalance * 2f;
             float rearGrip = total * (1f - tuning.gripBalance) * 2f;
+
+            // The friction circle applies to the DRIVEN axle only, which is the rear. That asymmetry is
+            // the whole reason power oversteer exists: the rear tyres are being asked to put the power
+            // down AND hold the corner, the fronts only have to steer. Applying it to both axles would
+            // just make the car understeer under power instead of stepping out.
+            rearGrip = tuning.LateralGripAfterLongitudinal(rearGrip, LongitudinalDemand);
+            AvailableLateralGrip = (frontGrip + rearGrip) * 0.5f;
 
             // The handbrake works on the rear only. Locking one end is what turns a handbrake pull
             // into a rotation instead of a four wheel slide.

@@ -242,6 +242,10 @@ namespace ZoomZoom.Vehicle.EditorTools
             // measurement, and it finds or creates the shared skid mark mesh itself at startup.
             go.AddComponent<TyreEffects>();
 
+            // The grip readout. F9 hides it. This is the thing that turns "it did not feel right" into
+            // "the steering asked for 14 and the rear only had 8", which is a fixable statement.
+            go.AddComponent<VehicleTelemetry>();
+
             var controllerSo = new SerializedObject(controller);
             controllerSo.FindProperty("tuning").objectReferenceValue = tuning;
             controllerSo.ApplyModifiedPropertiesWithoutUndo();

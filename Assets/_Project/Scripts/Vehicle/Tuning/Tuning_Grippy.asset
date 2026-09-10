@@ -42,7 +42,7 @@ MonoBehaviour:
   groundMask:
     serializedVersion: 2
     m_Bits: 4294967295
-  topSpeed: 25
+  topSpeed: 32
   accelerationBySpeed:
     serializedVersion: 2
     m_Curve:
@@ -161,7 +161,7 @@ MonoBehaviour:
     m_RotationOrder: 4
   steerInputSmoothTime: 0.05
   maxYawAcceleration: 22
-  lateralGripAcceleration: 18
+  lateralGripAcceleration: 17
   handbrakeGripMultiplier: 0.35
   jumpSpeed: 6.5
   jumpHoldTime: 0.18
@@ -192,13 +192,13 @@ MonoBehaviour:
   rimColour: {r: 0.86, g: 0.88, b: 0.9, a: 1}
   brakeLightOffColour: {r: 0.22, g: 0.03, b: 0.03, a: 1}
   brakeLightOnColour: {r: 3, g: 0.15, b: 0.1, a: 1}
-  cameraDistance: 6.5
-  cameraHeight: 2.7
+  cameraDistance: 4.2
+  cameraHeight: 1.7
   cameraFollowSmoothTime: 0.09
   cameraLookAhead: 13
   cameraLookAtHeight: 1.3
   cameraExtraPitch: 4
-  cameraFieldOfView: 60
+  cameraFieldOfView: 98
   cameraExtraDistanceAtTopSpeed: 2
   cameraExtraHeightAtTopSpeed: 0.6
   cameraVelocityInfluence: 0.15
