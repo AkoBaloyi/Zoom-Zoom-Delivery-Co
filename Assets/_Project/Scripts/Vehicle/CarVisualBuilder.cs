@@ -64,7 +64,30 @@ namespace ZoomZoom.Vehicle
         [SerializeField] private float wingHeight = 0.30f;
 
         // Collected while building, handed to VehicleVisuals at the end.
+        // ------------------------------------------------------------------
+        // SAVED MATERIALS
+        // Empty means generate from the tuning colours, which keeps an unbaked scene working.
+        // Run Tools > Zoom Zoom > Bake Lab Assets to create and assign real .mat files.
+        // ------------------------------------------------------------------
+        [Header("Materials (leave empty to generate at runtime)")]
+        [SerializeField] private Material bodyMaterialAsset;
+        [SerializeField] private Material trimMaterialAsset;
+        [SerializeField] private Material glassMaterialAsset;
+        [SerializeField] private Material tyreMaterialAsset;
+        [SerializeField] private Material rimMaterialAsset;
+        [SerializeField] private Material headlightMaterialAsset;
+        [SerializeField] private Material brakeLightMaterialAsset;
+
+        /// <summary>Headlight colour. Public so the asset baker writes the same value.</summary>
+        public static readonly Color HeadlightColour = new Color(0.95f, 0.95f, 0.8f);
+
         private readonly List<Renderer> _brakeLightRenderers = new List<Renderer>();
+
+        /// <summary>Saved asset if present, otherwise a generated throwaway.</summary>
+        private Material Resolve(Material asset, string name, Color colour, float smoothness)
+        {
+            return asset != null ? asset : MakeMaterial(name, colour, smoothness);
+        }
 
         private VehicleController _car;
         private Transform _generated;
@@ -113,13 +136,17 @@ namespace ZoomZoom.Vehicle
             _generated.localPosition = Vector3.zero;
             _generated.localRotation = Quaternion.identity;
 
-            Material body = MakeMaterial("Car body", tuning.bodyColour, 0.35f);
-            Material trim = MakeMaterial("Car trim", tuning.trimColour, 0.2f);
-            Material glass = MakeMaterial("Car glass", tuning.glassColour, 0.85f);
-            Material tyre = MakeMaterial("Car tyre", tuning.tyreColour, 0.15f);
-            Material rim = MakeMaterial("Car rim", tuning.rimColour, 0.6f);
-            Material headlight = MakeMaterial("Car headlight", new Color(0.95f, 0.95f, 0.8f), 0.8f);
-            Material brakeLight = MakeMaterial("Car brake light", tuning.brakeLightOffColour, 0.5f);
+            // Saved assets when assigned, generated from the tuning colours otherwise. Once the baker
+            // has run, these are ordinary .mat files: Zubuhle can recolour the car without touching C#,
+            // and the brake light material is a real asset the emission can be tuned on.
+            Material body = Resolve(bodyMaterialAsset, "Car body", tuning.bodyColour, 0.35f);
+            Material trim = Resolve(trimMaterialAsset, "Car trim", tuning.trimColour, 0.2f);
+            Material glass = Resolve(glassMaterialAsset, "Car glass", tuning.glassColour, 0.85f);
+            Material tyre = Resolve(tyreMaterialAsset, "Car tyre", tuning.tyreColour, 0.15f);
+            Material rim = Resolve(rimMaterialAsset, "Car rim", tuning.rimColour, 0.6f);
+            Material headlight = Resolve(headlightMaterialAsset, "Car headlight", HeadlightColour, 0.8f);
+            Material brakeLight = Resolve(
+                brakeLightMaterialAsset, "Car brake light", tuning.brakeLightOffColour, 0.5f);
 
             _brakeLightRenderers.Clear();
 

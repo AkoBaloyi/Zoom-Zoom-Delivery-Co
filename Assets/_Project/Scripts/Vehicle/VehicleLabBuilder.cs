@@ -115,8 +115,34 @@ namespace ZoomZoom.Vehicle
             SurfaceKind.Metal
         };
 
+        // ------------------------------------------------------------------
+        // SAVED MATERIALS
+        //
+        // These used to be made with `new Material(...)` every time the scene started, which had three
+        // costs worth being rid of: a fresh instance leaked on every run, nobody could art-pass the lab
+        // without editing C#, and the scene looked empty until Play was pressed.
+        //
+        // Assigned, they are ordinary assets anyone can select and edit. Left empty, the builder falls
+        // back to making them in code so an unbaked scene still works rather than rendering magenta.
+        // Run Tools > Zoom Zoom > Bake Lab Assets to create and assign them.
+        // ------------------------------------------------------------------
+        [Header("Materials (leave empty to generate at runtime)")]
+        [SerializeField] private Material floorMaterialAsset;
+        [SerializeField] private Material minorMarkerMaterialAsset;
+        [SerializeField] private Material majorMarkerMaterialAsset;
+        [SerializeField] private Material wallMaterialAsset;
+        [SerializeField] private Material coneMaterialAsset;
+        [SerializeField] private Material startLineMaterialAsset;
+
+        [Tooltip("One per entry in Patch Kinds, in the same order. Left empty or short, the missing " +
+                 "ones are generated at runtime from the surface's colour.")]
+        [SerializeField] private Material[] surfaceMaterialAssets = new Material[0];
+
         [Header("Build")]
-        [Tooltip("Build the lab when the scene starts. Leave this on.")]
+        [Tooltip("Build the lab when the scene starts.\n\n" +
+                 "Turn this OFF once the lab has been baked into the scene with " +
+                 "Tools > Zoom Zoom > Bake Lab Into Scene, otherwise the saved geometry is thrown away " +
+                 "and regenerated on every Play, which defeats the point of baking it.")]
         [SerializeField] private bool buildOnAwake = true;
 
         // ---------------- what other scripts can read ----------------
@@ -155,12 +181,15 @@ namespace ZoomZoom.Vehicle
 
             PlaceReferencePoints();
 
-            Material floorMaterial = MakeMaterial(new Color(0.32f, 0.34f, 0.36f));
-            Material minorMarkerMaterial = MakeMaterial(new Color(0.85f, 0.85f, 0.85f));
-            Material majorMarkerMaterial = MakeMaterial(new Color(0.15f, 0.55f, 0.95f));
-            Material wallMaterial = MakeMaterial(new Color(0.75f, 0.2f, 0.2f));
-            Material coneMaterial = MakeMaterial(new Color(1f, 0.45f, 0.05f));
-            Material startMaterial = MakeMaterial(new Color(0.2f, 0.85f, 0.35f));
+            // Saved asset if one is assigned, generated only as a fallback. The colours stay here as
+            // the defaults the baker writes into the assets, so there is still one place that says
+            // what the lab is supposed to look like.
+            Material floorMaterial = Resolve(floorMaterialAsset, FloorColour);
+            Material minorMarkerMaterial = Resolve(minorMarkerMaterialAsset, MinorMarkerColour);
+            Material majorMarkerMaterial = Resolve(majorMarkerMaterialAsset, MajorMarkerColour);
+            Material wallMaterial = Resolve(wallMaterialAsset, WallColour);
+            Material coneMaterial = Resolve(coneMaterialAsset, ConeColour);
+            Material startMaterial = Resolve(startLineMaterialAsset, StartLineColour);
 
             BuildFloor(floorMaterial);
             BuildStartLine(startMaterial);
@@ -388,11 +417,16 @@ namespace ZoomZoom.Vehicle
                 // Proud of the floor by 2 cm. The floor is a 2 m thick box centred 1 m below zero, so
                 // its top face is at y 0; putting the strip's top face just above that means the wheel
                 // ray hits the strip first without the car visibly climbing a step.
+                // Saved asset for this strip if the baker has made one, otherwise generated.
+                Material stripMaterial = Resolve(
+                    i < surfaceMaterialAssets.Length ? surfaceMaterialAssets[i] : null,
+                    ColourFor(kind));
+
                 GameObject slab = MakeBox(
                     "Surface",
                     new Vector3(x, -0.09f, patchStartDistance + (patchLength * 0.5f)),
                     new Vector3(patchWidth, 0.2f, patchLength),
-                    MakeMaterial(ColourFor(kind)),
+                    stripMaterial,
                     keepCollider: true);
 
                 slab.transform.SetParent(strip.transform, true);
@@ -407,7 +441,7 @@ namespace ZoomZoom.Vehicle
                     "Marker post",
                     new Vector3(x, 1.4f, patchStartDistance - 1.5f),
                     new Vector3(0.35f, 2.8f, 0.35f),
-                    MakeMaterial(ColourFor(kind)),
+                    stripMaterial,
                     keepCollider: false);
 
                 label.transform.SetParent(strip.transform, true);
@@ -546,6 +580,31 @@ namespace ZoomZoom.Vehicle
         /// not need material assets cluttering up the project, and because nothing in here is
         /// supposed to look like anything.
         /// </summary>
+        // The lab's palette, in one place. The baker reads these when it writes the material assets, so
+        // the colours and the assets cannot drift apart silently.
+        public static readonly Color FloorColour = new Color(0.32f, 0.34f, 0.36f);
+        public static readonly Color MinorMarkerColour = new Color(0.85f, 0.85f, 0.85f);
+        public static readonly Color MajorMarkerColour = new Color(0.15f, 0.55f, 0.95f);
+        public static readonly Color WallColour = new Color(0.75f, 0.2f, 0.2f);
+        public static readonly Color ConeColour = new Color(1f, 0.45f, 0.05f);
+        public static readonly Color StartLineColour = new Color(0.2f, 0.85f, 0.35f);
+
+        /// <summary>Colour for a surface strip. Public so the asset baker writes the same values.</summary>
+        public static Color SurfaceColour(SurfaceKind kind) => ColourFor(kind);
+
+        /// <summary>Which surfaces the lab is currently set up to lay out.</summary>
+        public SurfaceKind[] PatchKinds => patchKinds;
+
+        /// <summary>
+        /// Use the saved asset when there is one, otherwise make a throwaway. Keeping the fallback means
+        /// a scene that has never been baked still renders correctly instead of turning magenta, which
+        /// matters because a teammate pulling this branch has not run the baker yet.
+        /// </summary>
+        private static Material Resolve(Material asset, Color fallbackColour)
+        {
+            return asset != null ? asset : MakeMaterial(fallbackColour);
+        }
+
         private static Material MakeMaterial(Color colour)
         {
             Shader shader = Shader.Find("Universal Render Pipeline/Lit");

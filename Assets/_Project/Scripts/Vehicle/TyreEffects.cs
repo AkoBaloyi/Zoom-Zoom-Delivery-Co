@@ -44,6 +44,11 @@ namespace ZoomZoom.Vehicle
                  "rear left, rear right. Leave empty and they are built in code at startup.")]
         [SerializeField] private ParticleSystem[] wheelParticles = new ParticleSystem[0];
 
+        [Header("Material (leave empty to generate at runtime)")]
+        [Tooltip("Shared by all four wheel emitters. The per-surface colour comes from the particle " +
+                 "start colour rather than the material, so one asset covers every surface.")]
+        [SerializeField] private Material particleMaterialAsset;
+
         [Header("Behaviour")]
         [Tooltip("Draw marks on the ground.")]
         [SerializeField] private bool drawMarks = true;
@@ -226,7 +231,9 @@ namespace ZoomZoom.Vehicle
 
             ParticleSystemRenderer renderer = holder.GetComponent<ParticleSystemRenderer>();
             renderer.renderMode = ParticleSystemRenderMode.Billboard;
-            renderer.material = CreateParticleMaterial();
+            renderer.material = particleMaterialAsset != null
+                ? particleMaterialAsset
+                : CreateParticleMaterial();
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             renderer.receiveShadows = false;
 

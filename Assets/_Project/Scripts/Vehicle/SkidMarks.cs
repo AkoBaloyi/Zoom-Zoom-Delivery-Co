@@ -44,6 +44,11 @@ namespace ZoomZoom.Vehicle
             public int previous;   // index of the mark this one connects back to, -1 to start fresh
         }
 
+        [Header("Material (leave empty to generate at runtime)")]
+        [Tooltip("Must be a vertex-coloured transparent material: the mesh carries the surface colour " +
+                 "in its vertex colours, which is how one mesh shows rubber on tarmac and dust on dirt.")]
+        [SerializeField] private Material markMaterialAsset;
+
         [Header("Budget")]
         [Tooltip("How many mark segments exist before the oldest is recycled. Each one is a quad, so " +
                  "1024 segments is 4096 vertices, which is nothing for a GPU. Raise it for longer " +
@@ -123,7 +128,10 @@ namespace ZoomZoom.Vehicle
             GetComponent<MeshFilter>().sharedMesh = _mesh;
 
             MeshRenderer renderer = GetComponent<MeshRenderer>();
-            if (renderer.sharedMaterial == null) renderer.sharedMaterial = CreateMarkMaterial();
+
+            // Saved asset first, then whatever is already on the renderer, then a generated fallback.
+            if (markMaterialAsset != null) renderer.sharedMaterial = markMaterialAsset;
+            else if (renderer.sharedMaterial == null) renderer.sharedMaterial = CreateMarkMaterial();
 
             // Marks lie on the floor and cannot meaningfully cast or receive shadows, and turning
             // both off avoids a shadow pass over a large always-visible mesh.
