@@ -20,6 +20,9 @@ namespace ZoomZoom.Vehicle
 
         /// <summary>Held handbrake: cuts sideways grip on purpose.</summary>
         public bool handbrake;
+
+        /// <summary>Held boost: the second speed stage, above throttle-only top speed.</summary>
+        public bool boost;
     }
 
     /// <summary>
@@ -144,6 +147,50 @@ namespace ZoomZoom.Vehicle
         /// </summary>
         public float SteerCurvature { get; private set; }
 
+        /// <summary>
+        /// The surface under the car right now, averaged across whichever wheels are touching
+        /// ground. Read this for skid mark colour, particle colour and any HUD readout. When the car
+        /// is airborne it holds the last surface it was on, which is what a landing effect needs.
+        /// </summary>
+        public SurfaceProfile Surface { get; private set; } = SurfaceType.Default;
+
+        /// <summary>The surface under one wheel, 0 to 3. Front left, front right, rear left, rear right.</summary>
+        public SurfaceProfile SurfaceUnderWheel(int index) =>
+            index >= 0 && index < 4 ? _wheelSurfaces[index] : SurfaceType.Default;
+
+        /// <summary>Boost left in the tank, in boost-seconds. Drive the HUD gauge from this.</summary>
+        public float BoostRemaining { get; private set; }
+
+        /// <summary>Boost left as 0 to 1, for a bar or a dial.</summary>
+        public float BoostFraction =>
+            tuning != null && tuning.boostCapacity > 0f
+                ? Mathf.Clamp01(BoostRemaining / tuning.boostCapacity)
+                : 0f;
+
+        /// <summary>True while boost is actually being spent, as opposed to merely held.</summary>
+        public bool IsBoosting { get; private set; }
+
+        /// <summary>
+        /// True at and above the supersonic threshold. This is the hook for the trail, the speed
+        /// lines, the engine howl and any camera shake: a state that switches on and off reads as
+        /// fast in a way a gradually rising number never does.
+        /// </summary>
+        public bool IsSupersonic { get; private set; }
+
+        /// <summary>
+        /// Angle in DEGREES between where the car is pointing and where it is actually going.
+        /// 0 = tracking true. 90 = travelling straight sideways. This is the number that says
+        /// "this is a drift" rather than "this is a corner", and it is what tyre squeal volume,
+        /// smoke and skid marks should all be driven from.
+        /// </summary>
+        public float SlipAngle { get; private set; }
+
+        /// <summary>
+        /// True while the car is sliding enough, and fast enough, to count as drifting. Read this
+        /// for audio, particles and any drift scoring rather than recomputing the test elsewhere.
+        /// </summary>
+        public bool IsDrifting { get; private set; }
+
         /// <summary>How upright the car is. 1 = on its wheels, 0 = on its side, -1 = on its roof.</summary>
         public float Uprightness => Vector3.Dot(transform.up, Vector3.up);
 
@@ -185,6 +232,16 @@ namespace ZoomZoom.Vehicle
         private readonly RaycastHit[] _hitBuffer = new RaycastHit[8];
 
         private float _steerVelocity;      // scratch for the steering smoothing
+        private float _boostRechargeCountdown;
+
+        private readonly SurfaceProfile[] _wheelSurfaces = new SurfaceProfile[4];
+
+        // GetComponent is not free and this lookup happens four times per physics step, which at
+        // 120 Hz is 480 calls a second for an answer that almost never changes. Caching by collider
+        // turns that into a dictionary hit. Nulls are cached too, so an unlabelled floor is only
+        // ever asked about once.
+        private readonly System.Collections.Generic.Dictionary<Collider, SurfaceType> _surfaceCache =
+            new System.Collections.Generic.Dictionary<Collider, SurfaceType>(64);
         private float _stuckTimer;
         private float _appliedFixedTimestep = -1f;
 
@@ -206,6 +263,10 @@ namespace ZoomZoom.Vehicle
             tuning.EnsureCurves();
             ApplyTuningToBody();
             RebuildWheelPositions();
+
+            // Start with a full tank so the fast state is reachable from the first second of play,
+            // rather than making the player wait to find out what the car can do.
+            BoostRemaining = tuning.boostCapacity;
         }
 
         /// <summary>
@@ -224,7 +285,13 @@ namespace ZoomZoom.Vehicle
             _rb.linearDamping = tuning.linearDamping;
             _rb.angularDamping = tuning.angularDamping;
             _rb.maxAngularVelocity = tuning.maxAngularSpeed;
-            _rb.maxLinearVelocity = tuning.topSpeed * 2.5f;
+
+            // Headroom above whichever ceiling is higher, so the boost is never silently clamped by
+            // a limit derived from the throttle-only top speed.
+            float highestIntendedSpeed = tuning.boostEnabled
+                ? Mathf.Max(tuning.topSpeed, tuning.boostTopSpeed)
+                : tuning.topSpeed;
+            _rb.maxLinearVelocity = highestIntendedSpeed * 2.5f;
 
             // Interpolation matters: physics runs at a fixed rate that is not the frame rate, so
             // without this the car visibly stutters even though the simulation is perfectly smooth.
@@ -283,6 +350,9 @@ namespace ZoomZoom.Vehicle
             // 4. Gravity, always, grounded or not.
             _rb.AddForce(Vector3.down * tuning.gravity, ForceMode.Acceleration);
 
+            // 4b. Boost, also grounded or not: a rocket does not need wheels on the floor.
+            ApplyBoost(dt);
+
             // 5, 6, 7. Driving only works with wheels on the ground. In the air the car is a
             // thrown object, which is what makes committing to a jump or a flip feel like a decision.
             if (IsGrounded)
@@ -328,6 +398,9 @@ namespace ZoomZoom.Vehicle
                 _wheelCompression[i] = 0f;
                 _wheelContactPoints[i] = origin + down * rest;
 
+                // A wheel in the air keeps the surface it last touched rather than resetting to
+                // tarmac, so a jump off dirt still lands with dirt particles.
+
                 // Hanging at full extension is the default: that is where a wheel sits in mid air.
                 float suspensionLength = rest;
 
@@ -348,6 +421,8 @@ namespace ZoomZoom.Vehicle
 
                     normalSum += hit.normal;
                     groundedCount++;
+
+                    _wheelSurfaces[i] = ResolveSurface(hit.collider);
                 }
 
                 _wheelVisuals[i] = new WheelVisualState
@@ -363,6 +438,8 @@ namespace ZoomZoom.Vehicle
 
             WheelsOnGround = groundedCount;
             IsGrounded = groundedCount > 0;
+
+            UpdateSurfaceBlend();
             GroundNormal = groundedCount > 0 ? (normalSum / groundedCount).normalized : Vector3.up;
 
             // The basis the car actually drives in: its nose flattened onto the ground.
@@ -379,6 +456,92 @@ namespace ZoomZoom.Vehicle
                 : Vector3.forward;
 
             GroundRight = Vector3.Cross(GroundNormal, GroundForward).normalized;
+        }
+
+        /// <summary>
+        /// What kind of ground a collider is, cached so the answer is looked up once per collider
+        /// rather than four times per physics step forever.
+        ///
+        /// A collider with no SurfaceType returns plain tarmac. That default is deliberate: it means
+        /// an unlabelled floor drives exactly as it did before this system existed, so none of the
+        /// readings already taken in the lab are invalidated by adding surfaces.
+        /// </summary>
+        private SurfaceProfile ResolveSurface(Collider collider)
+        {
+            if (collider == null) return SurfaceType.Default;
+
+            if (!_surfaceCache.TryGetValue(collider, out SurfaceType surface))
+            {
+                // GetComponentInParent, not GetComponent: the lab builds a patch as a parent with
+                // its geometry underneath, and labelling the parent should cover the children.
+                surface = collider.GetComponentInParent<SurfaceType>();
+
+                // Cached even when null, so an unlabelled floor is not re-queried every step.
+                _surfaceCache[collider] = surface;
+            }
+
+            return surface != null ? surface.Profile : SurfaceType.Default;
+        }
+
+        /// <summary>
+        /// Blends the four wheel surfaces into the one the car is treated as driving on.
+        ///
+        /// Averaging matters at boundaries. With two wheels on tarmac and two on ice, a "whichever
+        /// surface most wheels are on" rule would flip between full grip and almost none as the car
+        /// crossed the line, and a car that changes behaviour discontinuously reads as broken rather
+        /// than as difficult. Averaging gives a transition the player can feel and drive through.
+        /// </summary>
+        private void UpdateSurfaceBlend()
+        {
+            int count = 0;
+            float grip = 0f, drive = 0f, brake = 0f, roll = 0f, markStrength = 0f, particles = 0f;
+            Color mark = Color.clear, particleColour = Color.clear;
+            SurfaceKind dominant = Surface.kind;
+            bool spray = false;
+            float dominantWeight = -1f;
+
+            for (int i = 0; i < 4; i++)
+            {
+                if (!_wheelGrounded[i]) continue;
+
+                SurfaceProfile s = _wheelSurfaces[i];
+                grip += s.gripMultiplier;
+                drive += s.driveMultiplier;
+                brake += s.brakeMultiplier;
+                roll += s.rollingResistance;
+                markStrength += s.markStrength;
+                particles += s.particleAmount;
+                mark += s.markColour;
+                particleColour += s.particleColour;
+                count++;
+
+                // The discrete fields cannot be averaged, so the loosest surface under any wheel
+                // wins. One wheel on grass should throw grass, because that is what is happening.
+                if (s.particleAmount > dominantWeight)
+                {
+                    dominantWeight = s.particleAmount;
+                    dominant = s.kind;
+                    spray = s.sprayWhenRolling;
+                }
+            }
+
+            // Airborne: hold the last surface, so a landing still reads as landing on that ground.
+            if (count == 0) return;
+
+            float inverse = 1f / count;
+            Surface = new SurfaceProfile
+            {
+                kind = dominant,
+                sprayWhenRolling = spray,
+                gripMultiplier = grip * inverse,
+                driveMultiplier = drive * inverse,
+                brakeMultiplier = brake * inverse,
+                rollingResistance = roll * inverse,
+                markStrength = markStrength * inverse,
+                particleAmount = particles * inverse,
+                markColour = mark * inverse,
+                particleColour = particleColour * inverse
+            };
         }
 
         /// <summary>
@@ -431,6 +594,16 @@ namespace ZoomZoom.Vehicle
             ForwardSpeed = Vector3.Dot(v, GroundForward);
             LateralSpeed = Vector3.Dot(v, GroundRight);
             YawRate = Vector3.Dot(_rb.angularVelocity, GroundNormal);
+
+            // Slip angle from the two components we already have. Atan2 against the ABSOLUTE forward
+            // speed so that reversing does not read as a 180 degree slide.
+            SlipAngle = Speed < 0.5f
+                ? 0f
+                : Mathf.Abs(Mathf.Atan2(LateralSpeed, Mathf.Abs(ForwardSpeed)) * Mathf.Rad2Deg);
+
+            IsDrifting = IsGrounded
+                         && Speed >= tuning.driftMinimumSpeed
+                         && SlipAngle >= tuning.driftSlipAngleThreshold;
         }
 
         // ==================================================================
@@ -495,7 +668,9 @@ namespace ZoomZoom.Vehicle
                 }
                 else
                 {
-                    driveAccel += tuning.AccelerationAt(ForwardSpeed) * throttle;
+                    // Loose ground spins the wheels instead of pushing the car, so the same throttle
+                    // produces less acceleration on dirt than on tarmac.
+                    driveAccel += tuning.AccelerationAt(ForwardSpeed) * throttle * Surface.driveMultiplier;
                 }
             }
             else if (throttle < 0f)
@@ -521,8 +696,12 @@ namespace ZoomZoom.Vehicle
 
             if (brake > 0f)
             {
-                stoppingAccel += tuning.brakeDeceleration * brake;
+                stoppingAccel += tuning.brakeDeceleration * brake * Surface.brakeMultiplier;
             }
+
+            // Deep grass and loose dirt drag the car even under power. This is what makes cutting a
+            // corner across the verge a decision with a cost rather than a free shortcut.
+            stoppingAccel += Surface.rollingResistance;
 
             stoppingAccel = Mathf.Min(stoppingAccel, maxStoppingAccel);
 
@@ -537,6 +716,63 @@ namespace ZoomZoom.Vehicle
             {
                 _rb.AddForce(GroundForward * totalAccel, ForceMode.Acceleration);
             }
+        }
+
+        // ==================================================================
+        // 4b. BOOST: the second speed stage
+        // ==================================================================
+
+        /// <summary>
+        /// Boost is a separate push with its own, higher ceiling.
+        ///
+        /// It is deliberately NOT just a bigger number on the throttle. Throttle fades out at
+        /// topSpeed and boost carries the car from there up to boostTopSpeed, so there are two
+        /// distinct states and the player can feel the moment they cross between them. A single
+        /// flat top speed has nothing to be compared against, which is exactly why simply raising
+        /// topSpeed makes a car feel no faster than it did before.
+        ///
+        /// Runs whether or not the wheels are on the ground, because a rocket does not care.
+        /// </summary>
+        private void ApplyBoost(float dt)
+        {
+            IsBoosting = false;
+
+            if (!tuning.boostEnabled)
+            {
+                IsSupersonic = false;
+                return;
+            }
+
+            bool wants = Drive.boost && BoostRemaining > 0f;
+
+            if (wants)
+            {
+                // Only push while there is headroom left. Without this the boost keeps spending fuel
+                // at the ceiling and the tank drains for nothing the player can see.
+                if (ForwardSpeed < tuning.boostTopSpeed)
+                {
+                    _rb.AddForce(GroundForward * tuning.boostAcceleration, ForceMode.Acceleration);
+                }
+
+                BoostRemaining = Mathf.Max(0f, BoostRemaining - tuning.boostConsumptionRate * dt);
+                _boostRechargeCountdown = tuning.boostRechargeDelay;
+                IsBoosting = true;
+            }
+            else if (tuning.boostRechargeRate > 0f)
+            {
+                // A delay before refilling, so feathering the button is not a free way to sit at top
+                // speed forever. Spending the tank has to be a decision with a cost.
+                _boostRechargeCountdown = Mathf.Max(0f, _boostRechargeCountdown - dt);
+
+                if (_boostRechargeCountdown <= 0f)
+                {
+                    BoostRemaining = Mathf.Min(
+                        tuning.boostCapacity,
+                        BoostRemaining + tuning.boostRechargeRate * dt);
+                }
+            }
+
+            IsSupersonic = Speed >= tuning.supersonicThreshold;
         }
 
         // ==================================================================
@@ -582,10 +818,27 @@ namespace ZoomZoom.Vehicle
 
             // maxYawAcceleration limits how quickly the car takes up the new turn rate. It changes
             // how eager the car feels, not where the car ends up.
+            float yawAuthority = tuning.maxYawAcceleration;
+
+            // While drifting, hand most of the rotation over to the tyres.
+            //
+            // Steering here COMMANDS a turn rate. At full authority that command wins instantly, so
+            // the moment the rear steps out the steering hauls the car straight back to the turn rate
+            // it asked for and the slide dies before the player can hold it. Backing the authority off
+            // during a drift is what lets the axle forces decide the rotation, which in turn is what
+            // makes counter-steering actually catch the car instead of just requesting a new turn rate.
+            //
+            // Only applies when perAxleGrip is on. Without axle forces there is nothing else producing
+            // yaw, so reducing this on the original model would just make the car unresponsive.
+            if (tuning.perAxleGrip && IsDrifting)
+            {
+                yawAuthority *= tuning.driftYawAuthority;
+            }
+
             float yawAccel = Mathf.Clamp(
                 yawError / Mathf.Max(dt, 0.0001f),
-                -tuning.maxYawAcceleration,
-                tuning.maxYawAcceleration);
+                -yawAuthority,
+                yawAuthority);
 
             _rb.AddTorque(GroundNormal * yawAccel, ForceMode.Acceleration);
         }
@@ -608,7 +861,13 @@ namespace ZoomZoom.Vehicle
         /// </summary>
         private void ApplyLateralGrip(float dt)
         {
-            float grip = tuning.lateralGripAcceleration;
+            if (tuning.perAxleGrip)
+            {
+                ApplyLateralGripPerAxle(dt);
+                return;
+            }
+
+            float grip = tuning.lateralGripAcceleration * Surface.gripMultiplier;
             if (Drive.handbrake) grip *= tuning.handbrakeGripMultiplier;
             if (grip <= 0f) return;
 
@@ -617,6 +876,63 @@ namespace ZoomZoom.Vehicle
             if (accelToApply <= 0.0001f) return;
 
             _rb.AddForce(GroundRight * (-Mathf.Sign(LateralSpeed) * accelToApply),
+                ForceMode.Acceleration);
+        }
+
+        /// <summary>
+        /// The same grip budget, split front/rear and applied AT THE AXLES.
+        ///
+        /// This is the whole difference between a skid and a drift. One force at the centre of mass
+        /// can only ever slide the car sideways. Two forces at two positions also produce a yaw
+        /// moment, so when the rear axle runs out of grip before the front, the back end swings and
+        /// the car rotates because it is sliding. That is oversteer, and oversteer is what a drift is.
+        ///
+        /// The bookkeeping is deliberately arranged so that at gripBalance 0.5 the total sideways
+        /// force is exactly what the single-force version produced. Each axle gets a budget of
+        /// (total * share * 2) and contributes half of what it spends, so the two halves add back up
+        /// to the original number. That means switching this on does not silently move the turning
+        /// circle, and the readings from F2 still mean what they meant.
+        /// </summary>
+        private void ApplyLateralGripPerAxle(float dt)
+        {
+            float total = tuning.lateralGripAcceleration * Surface.gripMultiplier;
+            if (total <= 0f) return;
+
+            float frontGrip = total * tuning.gripBalance * 2f;
+            float rearGrip = total * (1f - tuning.gripBalance) * 2f;
+
+            // The handbrake works on the rear only. Locking one end is what turns a handbrake pull
+            // into a rotation instead of a four wheel slide.
+            if (Drive.handbrake) rearGrip *= tuning.handbrakeRearGripMultiplier;
+
+            ApplyAxleGrip(tuning.wheelForwardOffset, frontGrip, dt);
+            ApplyAxleGrip(-tuning.wheelForwardOffset, rearGrip, dt);
+        }
+
+        /// <summary>
+        /// Spends one axle's grip budget against the sideways motion measured AT THAT AXLE.
+        ///
+        /// GetPointVelocity is the important part: a rotating car has different velocity at the nose
+        /// and at the tail, and that difference is exactly the information a single centre-of-mass
+        /// reading throws away.
+        /// </summary>
+        private void ApplyAxleGrip(float localForwardOffset, float grip, float dt)
+        {
+            if (grip <= 0f) return;
+
+            Vector3 axlePosition = transform.TransformPoint(
+                new Vector3(0f, tuning.wheelHeightOffset, localForwardOffset));
+
+            float lateralAtAxle = Vector3.Dot(_rb.GetPointVelocity(axlePosition), GroundRight);
+
+            float accelNeeded = Mathf.Abs(lateralAtAxle) / Mathf.Max(dt, 0.0001f);
+            float accelToApply = Mathf.Min(accelNeeded, grip);
+            if (accelToApply <= 0.0001f) return;
+
+            // Half each, so front + rear equals the original single force at neutral balance.
+            _rb.AddForceAtPosition(
+                GroundRight * (-Mathf.Sign(lateralAtAxle) * accelToApply * 0.5f),
+                axlePosition,
                 ForceMode.Acceleration);
         }
 
@@ -703,6 +1019,13 @@ namespace ZoomZoom.Vehicle
             SteerAmount = 0f;
             _steerVelocity = 0f;
             _stuckTimer = 0f;
+
+            // A measured run has to start from a known boost state, or one reading gets a full tank
+            // and the next gets whatever was left over.
+            if (tuning != null) BoostRemaining = tuning.boostCapacity;
+            _boostRechargeCountdown = 0f;
+            IsBoosting = false;
+            IsSupersonic = false;
         }
 
         private void OnDrawGizmos()

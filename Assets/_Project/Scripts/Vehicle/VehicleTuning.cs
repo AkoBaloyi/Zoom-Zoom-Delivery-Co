@@ -150,6 +150,54 @@ namespace ZoomZoom.Vehicle
         public float inputDeadzone = 0.08f;
 
         // ------------------------------------------------------------------
+        // BOOST
+        //
+        // WHY A SECOND SPEED STAGE RATHER THAN JUST A HIGHER TOP SPEED
+        // Rocket League's top speed is 2300 uu/s, which is 23 m/s, or about 83 km/h. That is
+        // SLOWER than this car already goes. It does not feel slower, and the reason is not the
+        // number: it is that throttle alone caps at 1410 uu/s and boost is what carries you the
+        // rest of the way. Two stages means there is a fast state you enter deliberately, and a
+        // normal state to compare it against. One flat top speed has nothing to compare against,
+        // so it just becomes the new normal and stops reading as fast at all.
+        //
+        // The supersonic threshold does the same job for the eyes and ears: a named state that
+        // starts and stops, rather than a number that creeps.
+        // ------------------------------------------------------------------
+        [Header("Boost")]
+        [Tooltip("Turn the whole boost system on. Off = throttle-only, exactly as before.")]
+        public bool boostEnabled = true;
+
+        [Tooltip("Top speed while boosting, m/s. Throttle alone still stops at topSpeed, so this is " +
+                 "the headroom the boost opens up. The CONTRAST between the two is what sells speed, " +
+                 "so keep a wide gap: 25 to 40 reads far faster than a flat 40 ever will.")]
+        public float boostTopSpeed = 40f;
+
+        [Tooltip("Acceleration the boost adds, m/s^2. Rocket League uses 991.666 uu/s^2, which is " +
+                 "9.92 m/s^2, and that is a good starting point.")]
+        public float boostAcceleration = 16f;
+
+        [Tooltip("Full boost tank, in boost-seconds. 100 with a consumption rate of 33.3 gives three " +
+                 "seconds of continuous boost, which is what Rocket League gives you.")]
+        public float boostCapacity = 100f;
+
+        [Tooltip("Boost used per second while held. 33.3 empties a full tank in three seconds.")]
+        public float boostConsumptionRate = 33.3f;
+
+        [Tooltip("Boost regained per second while not boosting. Rocket League refills from pads " +
+                 "instead, but a delivery game with no pads laid out needs some way back to full. " +
+                 "Set to 0 and pick boost up from the world instead.")]
+        public float boostRechargeRate = 12f;
+
+        [Tooltip("Seconds after releasing boost before it starts refilling. Stops the player " +
+                 "feathering the button to hold top speed for free.")]
+        public float boostRechargeDelay = 1f;
+
+        [Tooltip("Speed (m/s) at which the car counts as supersonic. Rocket League sets this 100 uu/s " +
+                 "below max, so it triggers just before the ceiling and stays on. Read IsSupersonic " +
+                 "for the trail, the camera shake, the engine howl and the speed lines.")]
+        public float supersonicThreshold = 38f;
+
+        // ------------------------------------------------------------------
         // SLOWING DOWN
         // ------------------------------------------------------------------
         [Header("Braking and coasting")]
@@ -199,6 +247,65 @@ namespace ZoomZoom.Vehicle
                  "sideways grip, so it slides on purpose. This is the same dial as above, on a button.")]
         [Range(0f, 1f)]
         public float handbrakeGripMultiplier = 0.25f;
+
+        // ------------------------------------------------------------------
+        // DRIFT
+        //
+        // WHY THIS SECTION EXISTS
+        // With one grip value applied at the centre of mass, the car can only ever understeer:
+        // grip is lost by the whole car at once, so it slides wide while still rotating exactly
+        // as the steering asked. That is a skid, not a drift. A drift is OVERSTEER, which needs
+        // the rear to let go while the front still bites.
+        //
+        // Ticking perAxleGrip on splits the same grip budget between the front and rear axles and
+        // applies each half AT ITS AXLE instead of at the centre. Two forces at two positions make
+        // a yaw moment, so rotation from sliding becomes something the car does rather than
+        // something we tell it to do. Counter-steering starts to work because the front tyres are
+        // then the only thing generating the correcting force.
+        //
+        // Leave it OFF and the handling is bit-for-bit what it was, so the F1 to F6 readings taken
+        // before this existed still stand.
+        // ------------------------------------------------------------------
+        [Header("Drift (opt-in)")]
+        [Tooltip("OFF = one grip force at the centre of mass, the original model. Understeer only.\n" +
+                 "ON  = the same total grip split front/rear and applied at each axle, which lets " +
+                 "the rear step out and the car rotate because it is sliding.\n\n" +
+                 "At gripBalance 0.5 the total sideways force is identical to the original model, so " +
+                 "turning this on by itself does not change the turning circle.")]
+        public bool perAxleGrip = false;
+
+        [Tooltip("How the grip budget is split. 0.5 = even, and behaves like the original model.\n\n" +
+                 "ABOVE 0.5 = more grip at the front than the rear, so the rear runs out first and " +
+                 "the car OVERSTEERS. This is the drift dial. 0.65 is a good first try.\n" +
+                 "BELOW 0.5 = the front runs out first, so the car pushes wide and refuses to turn.")]
+        [Range(0.1f, 0.9f)]
+        public float gripBalance = 0.5f;
+
+        [Tooltip("What the handbrake does to the REAR axle only, when perAxleGrip is on. Killing grip " +
+                 "at one end is what makes a handbrake turn rotate the car instead of just sliding it " +
+                 "sideways. 0.15 keeps a sliver of rear grip so the back end swings rather than snaps.")]
+        [Range(0f, 1f)]
+        public float handbrakeRearGripMultiplier = 0.15f;
+
+        [Tooltip("How much of the normal steering yaw authority the car keeps while it is drifting, " +
+                 "0 to 1.\n\n" +
+                 "This matters because steering commands a turn rate directly. At full authority the " +
+                 "steering immediately drags the car back to the turn rate it asked for and kills the " +
+                 "slide before the player can hold it. Lowering it hands control of rotation to the " +
+                 "tyres during a drift, which is what makes counter-steer feel like it is doing " +
+                 "something. Too low and the car will not respond at all mid-slide.")]
+        [Range(0f, 1f)]
+        public float driftYawAuthority = 0.4f;
+
+        [Tooltip("Slip angle in DEGREES above which the car counts as drifting. Slip angle is the " +
+                 "angle between where the car points and where it is actually travelling. Around 12 " +
+                 "degrees is the point a slide starts to read on screen as a drift rather than a wobble.")]
+        [Range(2f, 45f)]
+        public float driftSlipAngleThreshold = 12f;
+
+        [Tooltip("Below this speed (m/s) the car never counts as drifting, no matter the slip angle. " +
+                 "Stops a slow three point turn registering as a drift.")]
+        public float driftMinimumSpeed = 4f;
 
         // ------------------------------------------------------------------
         // JUMP
@@ -345,12 +452,17 @@ namespace ZoomZoom.Vehicle
         // CAMERA
         // ------------------------------------------------------------------
         [Header("Chase camera")]
-        [Tooltip("How far behind the car the camera sits, metres.")]
-        public float cameraDistance = 7f;
+        [Tooltip("How far behind the car the camera sits, metres.\n\n" +
+                 "This is one of the two biggest levers on how fast the game FEELS, and it costs " +
+                 "nothing. Rocket League's default is 270 uu, which is 2.7 m, and almost every pro " +
+                 "stays between 2.6 and 2.8. Sitting 7 m back shrinks the car on screen and slows " +
+                 "the apparent flow of the ground to a crawl. Close in and the same speed reads as " +
+                 "much faster.")]
+        public float cameraDistance = 3.4f;
 
         [Tooltip("How far above the car the camera sits, metres. Higher shows more road but flattens " +
-                 "the sense of speed.")]
-        public float cameraHeight = 2.9f;
+                 "the sense of speed. Rocket League's default is 100 uu, which is 1.0 m.")]
+        public float cameraHeight = 1.4f;
 
         [Tooltip("Seconds for the camera to catch up to where it should be. This is the 'stiffness' dial. " +
                  "0 = welded to the car (harsh, no sense of weight). Large = the camera trails badly and " +
@@ -371,9 +483,14 @@ namespace ZoomZoom.Vehicle
         public float cameraExtraPitch = 4f;
 
         [Tooltip("Camera field of view in degrees. Wider shows more road and exaggerates speed, but " +
-                 "distorts at the edges.")]
-        [Range(30f, 110f)]
-        public float cameraFieldOfView = 62f;
+                 "distorts at the edges.\n\n" +
+                 "The single cheapest thing on this whole list. Rocket League caps FOV at 110 and " +
+                 "roughly 70 percent of RLCS professionals run it maxed, because peripheral movement " +
+                 "is what the eye reads as speed. At 62 the world barely moves at the screen edges " +
+                 "and 25 m/s looks like a car park manoeuvre. Change this one number before touching " +
+                 "any physics value.")]
+        [Range(30f, 120f)]
+        public float cameraFieldOfView = 103f;
 
         [Tooltip("Extra distance added at top speed, metres. Pulling back as the car speeds up shows " +
                  "more road exactly when the stopping distance is longest.")]
