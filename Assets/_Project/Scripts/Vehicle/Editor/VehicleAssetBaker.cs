@@ -312,11 +312,25 @@ namespace ZoomZoom.Vehicle.EditorTools
         }
 
         /// <summary>
-        /// Writes the material, or updates the existing asset in place when one is already there.
+        /// Creates the material if it is missing, and otherwise leaves the existing asset completely
+        /// alone, returning it so it can still be assigned.
         ///
-        /// Updating in place rather than deleting and recreating is deliberate: the GUID survives, so
-        /// every scene and prefab already pointing at this material keeps pointing at it. Recreating
-        /// would silently break those references on everyone else's machine.
+        /// WHY AN EXISTING ASSET IS NEVER TOUCHED
+        /// The first version of this overwrote the existing material with a freshly built one. That was
+        /// wrong twice over.
+        ///
+        /// It was not idempotent. A newly constructed Material has none of the metadata Unity fills in
+        /// when a material is imported, so copying its properties over an existing asset stripped
+        /// `stringTagMap: RenderType: Opaque` and the disabled MOTIONVECTORS pass. Running the baker a
+        /// second time quietly degraded every material it had made the first time.
+        ///
+        /// More importantly it defeated the entire purpose of having assets. The reason for baking these
+        /// out was so Zubuhle could recolour the game without editing C#. An overwriting baker means his
+        /// work is destroyed by whoever next runs the tool, which is worse than not having the assets at
+        /// all because the loss is silent.
+        ///
+        /// So the rule is: the baker owns creation, the artist owns the asset thereafter. To reset one
+        /// deliberately, delete it and re-run.
         /// </summary>
         private static Material Save(Material material, string name, List<string> written)
         {
@@ -327,11 +341,10 @@ namespace ZoomZoom.Vehicle.EditorTools
 
             if (existing != null)
             {
-                existing.shader = material.shader;
-                existing.CopyPropertiesFromMaterial(material);
-                EditorUtility.SetDirty(existing);
+                // The freshly built one was only ever a template and is now redundant.
+                Object.DestroyImmediate(material);
 
-                written.Add($"{name}.mat (updated, GUID preserved)");
+                written.Add($"{name}.mat (already existed, left untouched)");
                 return existing;
             }
 
