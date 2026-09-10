@@ -375,7 +375,7 @@ namespace ZoomZoom.Vehicle
                  "tyres during a drift, which is what makes counter-steer feel like it is doing " +
                  "something. Too low and the car will not respond at all mid-slide.")]
         [Range(0f, 1f)]
-        public float driftYawAuthority = 0.4f;
+        public float driftYawAuthority = 0.55f;
 
         [Tooltip("Slip angle in DEGREES above which the car counts as drifting. Slip angle is the " +
                  "angle between where the car points and where it is actually travelling. Around 12 " +

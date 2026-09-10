@@ -55,6 +55,7 @@ namespace ZoomZoom.Vehicle
         private InputAction _steer;
         private InputAction _brake;
         private InputAction _handbrake;
+        private InputAction _boost;
         private InputAction _jump;
         private InputAction _flip;
         private InputAction _flipDirection;
@@ -101,6 +102,7 @@ namespace ZoomZoom.Vehicle
             _steer = Find("Steer");
             _brake = Find("Brake");
             _handbrake = Find("Handbrake");
+            _boost = Find("Boost");
             _jump = Find("Jump");
             _flip = Find("Flip");
             _flipDirection = Find("FlipDirection");
@@ -146,6 +148,13 @@ namespace ZoomZoom.Vehicle
             InputAction handbrake = map.AddAction("Handbrake", InputActionType.Value);
             handbrake.AddBinding("<Keyboard>/leftCtrl");
             handbrake.AddBinding("<Gamepad>/leftShoulder");
+
+            // Boost. Left Shift is already the jump and the right trigger is already the throttle, so
+            // this takes Left Alt, which is reachable without leaving WASD, and the right shoulder on a
+            // pad. Held rather than tapped, because the boost is a resource being spent.
+            InputAction boost = map.AddAction("Boost", InputActionType.Value);
+            boost.AddBinding("<Keyboard>/leftAlt");
+            boost.AddBinding("<Gamepad>/rightShoulder");
 
             InputAction jump = map.AddAction("Jump", InputActionType.Button);
             jump.AddBinding("<Keyboard>/leftShift");
@@ -208,7 +217,8 @@ namespace ZoomZoom.Vehicle
                 throttle = Read(_throttle),
                 steer = Read(_steer),
                 brake = Read(_brake),
-                handbrake = Read(_handbrake) > 0.5f
+                handbrake = Read(_handbrake) > 0.5f,
+                boost = Read(_boost) > 0.5f
             };
 
             if (jumpFlip != null)
