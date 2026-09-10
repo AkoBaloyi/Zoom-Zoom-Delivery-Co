@@ -54,6 +54,23 @@ namespace ZoomZoom.Vehicle
 
         /// <summary>Left side of the car.</summary>
         public bool isLeft;
+
+        /// <summary>
+        /// Where this wheel touches the ground, in world space. When the wheel is airborne this is
+        /// where the contact patch would be at full extension, which is meaningless for effects, so
+        /// check <see cref="grounded"/> first.
+        /// </summary>
+        public Vector3 contactPoint;
+
+        /// <summary>The ground normal under THIS wheel, not the car average. World up when airborne.</summary>
+        public Vector3 contactNormal;
+
+        /// <summary>
+        /// How fast this wheel's contact patch is sliding sideways, m/s. Taken at the wheel rather
+        /// than at the centre of mass, so a rotating car correctly reports the outside rear wheel
+        /// sliding hardest. This is the number skid marks and tyre squeal should be driven from.
+        /// </summary>
+        public float lateralSlipSpeed;
     }
 
     /// <summary>
@@ -404,6 +421,10 @@ namespace ZoomZoom.Vehicle
                 // Hanging at full extension is the default: that is where a wheel sits in mid air.
                 float suspensionLength = rest;
 
+                // Per-wheel normal, so a mark laid on a ramp lies flat on the ramp rather than
+                // following the car's averaged idea of which way is up.
+                Vector3 contactNormal = up;
+
                 if (TryRaycast(origin, down, rayLength, out RaycastHit hit))
                 {
                     _wheelGrounded[i] = true;
@@ -422,8 +443,17 @@ namespace ZoomZoom.Vehicle
                     normalSum += hit.normal;
                     groundedCount++;
 
+                    contactNormal = hit.normal;
                     _wheelSurfaces[i] = ResolveSurface(hit.collider);
                 }
+
+                // Sideways slide measured AT this wheel. GetPointVelocity is what makes the outside
+                // rear wheel of a spinning car report more slide than the inside front one, which is
+                // the difference between four identical skid marks and four that read as a drift.
+                Vector3 wheelRight = Vector3.ProjectOnPlane(transform.right, contactNormal);
+                float slip = wheelRight.sqrMagnitude > 0.0001f
+                    ? Vector3.Dot(_rb.GetPointVelocity(_wheelContactPoints[i]), wheelRight.normalized)
+                    : 0f;
 
                 _wheelVisuals[i] = new WheelVisualState
                 {
@@ -432,7 +462,10 @@ namespace ZoomZoom.Vehicle
                     suspensionLength = suspensionLength,
                     compression01 = Mathf.Clamp01((rest - suspensionLength) / Mathf.Max(0.0001f, rest * 0.7f)),
                     isFront = i < 2,
-                    isLeft = (i % 2) == 0
+                    isLeft = (i % 2) == 0,
+                    contactPoint = _wheelContactPoints[i],
+                    contactNormal = contactNormal,
+                    lateralSlipSpeed = _wheelGrounded[i] ? slip : 0f
                 };
             }
 
