@@ -109,11 +109,10 @@ namespace ZoomZoom.Vehicle
         {
             if (!drawMarks || skidMarks != null) return;
 
-#if UNITY_2023_1_OR_NEWER
-            skidMarks = Object.FindFirstObjectByType<SkidMarks>();
-#else
-            skidMarks = Object.FindObjectOfType<SkidMarks>();
-#endif
+            // FindAnyObjectByType rather than FindFirstObjectByType: "first" is defined by instance ID
+            // ordering, which Unity has deprecated because it will not survive the move to EntityId.
+            // Any one will do here, since a scene should only ever hold one skid mark mesh.
+            skidMarks = Object.FindAnyObjectByType<SkidMarks>();
 
             if (skidMarks != null) return;
 

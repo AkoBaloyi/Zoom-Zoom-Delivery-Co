@@ -53,7 +53,7 @@ namespace ZoomZoom.Vehicle.EditorTools
         [MenuItem("Tools/Zoom Zoom/Add Car Visuals To Open Scene", priority = 10)]
         public static void AddCarVisualsToOpenScene()
         {
-            var cars = Object.FindObjectsByType<VehicleController>(FindObjectsSortMode.None);
+            var cars = Object.FindObjectsByType<VehicleController>();
 
             if (cars.Length == 0)
             {

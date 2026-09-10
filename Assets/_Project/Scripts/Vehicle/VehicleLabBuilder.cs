@@ -176,6 +176,23 @@ namespace ZoomZoom.Vehicle
         {
             Clear();
 
+            // Grow the floor to fit whatever is being laid out on it. Only ever grows, so a deliberately
+            // enormous floor set by hand is left alone.
+            float neededWidth = RequiredGroundWidth();
+            float neededLength = RequiredGroundLength();
+
+            if (groundWidth < neededWidth || groundLength < neededLength)
+            {
+                Debug.Log(
+                    $"[VehicleLab] Floor grown from {groundWidth:0} x {groundLength:0} m to " +
+                    $"{Mathf.Max(groundWidth, neededWidth):0} x {Mathf.Max(groundLength, neededLength):0} m " +
+                    "so everything laid out on it has ground underneath. The saved value was smaller " +
+                    "than the current layout needs.", this);
+
+                groundWidth = Mathf.Max(groundWidth, neededWidth);
+                groundLength = Mathf.Max(groundLength, neededLength);
+            }
+
             _generated = new GameObject(GeneratedContainerName).transform;
             _generated.SetParent(transform, false);
 
@@ -254,6 +271,49 @@ namespace ZoomZoom.Vehicle
                     new Vector3(0f, 0f, wallDistance),
                     Quaternion.identity);
             }
+        }
+
+        /// <summary>
+        /// How wide the floor has to be for everything laid out on it to actually sit on it, metres.
+        ///
+        /// WHY THIS IS COMPUTED RATHER THAN TRUSTED
+        /// groundWidth is a serialised field, so a scene saved before the surface strips existed carries
+        /// whatever value it had then. That is exactly what happened: the strips were laid out to 212 m
+        /// against a floor that stopped at 120 m, and the outermost two were left hanging over nothing.
+        /// A number that has to agree with a separate calculation will eventually disagree with it, so
+        /// the floor is sized from the layout instead of being asked to match it.
+        /// </summary>
+        private float RequiredGroundWidth()
+        {
+            float needed = markerSideOffset * 2f;
+
+            if (buildSurfacePatches && patchKinds != null && patchKinds.Length > 0)
+            {
+                float rightEdge = markerSideOffset + patchGap
+                                  + (patchKinds.Length * patchWidth)
+                                  + ((patchKinds.Length - 1) * patchGap);
+
+                // Symmetric, because the turning circle test sits out to the left at x -70 and needs
+                // floor under it too.
+                needed = Mathf.Max(needed, rightEdge * 2f);
+            }
+
+            // A margin so a car sliding off the last strip has somewhere to end up rather than
+            // discovering the edge of the world at 30 m/s.
+            return needed + 80f;
+        }
+
+        /// <summary>Floor length needed to cover the wall, the cone corner and the full strip run.</summary>
+        private float RequiredGroundLength()
+        {
+            float needed = Mathf.Max(wallDistance, coneCornerDistance);
+
+            if (buildSurfacePatches && patchKinds != null && patchKinds.Length > 0)
+            {
+                needed = Mathf.Max(needed, patchStartDistance + patchLength);
+            }
+
+            return needed + groundBehindStart + 100f;
         }
 
         private void BuildFloor(Material material)

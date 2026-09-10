@@ -119,7 +119,7 @@ namespace ZoomZoom.Vehicle.EditorTools
                 so.ApplyModifiedProperties();
             }
 
-            foreach (SkidMarks marks in Object.FindObjectsByType<SkidMarks>(FindObjectsSortMode.None))
+            foreach (SkidMarks marks in Object.FindObjectsByType<SkidMarks>())
             {
                 var so = new SerializedObject(marks);
                 so.FindProperty("markMaterialAsset").objectReferenceValue = skid;
@@ -197,7 +197,7 @@ namespace ZoomZoom.Vehicle.EditorTools
         [MenuItem("Tools/Zoom Zoom/Save Car As Prefab", priority = 42)]
         public static void SaveCarPrefab()
         {
-            VehicleController car = Object.FindFirstObjectByType<VehicleController>();
+            VehicleController car = Object.FindAnyObjectByType<VehicleController>();
 
             if (car == null)
             {
@@ -355,12 +355,12 @@ namespace ZoomZoom.Vehicle.EditorTools
         }
 
         private static VehicleLabBuilder FindLab() =>
-            Object.FindFirstObjectByType<VehicleLabBuilder>();
+            Object.FindAnyObjectByType<VehicleLabBuilder>();
 
         private static CarVisualBuilder FindCarVisualBuilder() =>
-            Object.FindFirstObjectByType<CarVisualBuilder>();
+            Object.FindAnyObjectByType<CarVisualBuilder>();
 
         private static TyreEffects FindTyreEffects() =>
-            Object.FindFirstObjectByType<TyreEffects>();
+            Object.FindAnyObjectByType<TyreEffects>();
     }
 }
