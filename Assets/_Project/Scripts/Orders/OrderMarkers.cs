@@ -23,6 +23,36 @@ namespace ZoomZoom.Orders
     [DisallowMultipleComponent]
     public class OrderMarkers : MonoBehaviour
     {
+        /// <summary>
+        /// Attaches this component to the order system automatically when a scene loads.
+        ///
+        /// WHY IT SELF-ATTACHES INSTEAD OF BEING PLACED IN THE SCENE
+        /// A component nobody adds does nothing, and that is a failure with no symptom: the file
+        /// compiles, the scene loads, no error is logged, and the feature is simply absent. That is
+        /// exactly what happened here the first time round.
+        ///
+        /// Adding it to the scene by hand would fix it once, but the scene is shared, so the edit has to
+        /// survive whoever next rebuilds or re-bakes it. Attaching at load means the marker follows the
+        /// order system wherever it exists, in the editor and in a build, without a scene change anyone
+        /// has to remember to keep.
+        /// </summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        private static void AttachToOrderSystem()
+        {
+            OrderManager manager = Object.FindAnyObjectByType<OrderManager>();
+            if (manager == null) return;
+
+            if (manager.GetComponent<OrderMarkers>() != null) return;
+
+            manager.gameObject.AddComponent<OrderMarkers>();
+
+            Debug.Log(
+                "[OrderMarkers] Attached to the order system. F8 hides the beacons and the order list. " +
+                "Cargo pickup and delivery are still driven by OrderFlowTestHarness until real zone " +
+                "detection exists: C collects the oldest active order, V delivers what is carried, " +
+                "L logs every order's state.");
+        }
+
         [Header("Wiring")]
         [Tooltip("The order system being watched. Found on this object, or anywhere in the scene, if " +
                  "left empty.")]
@@ -68,6 +98,7 @@ namespace ZoomZoom.Orders
         private readonly List<GameObject> _beaconPool = new List<GameObject>();
         private Material _beaconMaterial;
         private Transform _beaconRoot;
+        private Transform _player;
         private GUIStyle _style;
         private GUIStyle _shadow;
 
@@ -87,6 +118,10 @@ namespace ZoomZoom.Orders
 
             var root = new GameObject("Order beacons");
             _beaconRoot = root.transform;
+
+            // By tag, so this never needs a reference to the vehicle system.
+            GameObject player = GameObject.FindGameObjectWithTag("Player");
+            if (player != null) _player = player.transform;
         }
 
         private void Update()
@@ -217,8 +252,12 @@ namespace ZoomZoom.Orders
             for (int i = 0; i < orders.Count; i++)
             {
                 Order order = orders[i];
+                // Distance from the CAR, not from this component. Found by tag rather than by type so
+                // the order system keeps knowing nothing about the vehicle system.
+                Vector3 from = _player != null ? _player.position : transform.position;
+
                 float distance = Vector3.Distance(
-                    transform.position,
+                    from,
                     order.State == OrderState.Carried ? order.DropOffPoint : order.PickupPoint);
 
                 text.AppendLine(
