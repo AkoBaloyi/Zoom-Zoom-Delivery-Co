@@ -1,18 +1,33 @@
 # Tells the team what just landed, every time anyone pushes.
 #
-# WHY IT WORKS THIS WAY
-# There is no GitHub feature that emails a custom message to a list of people. The only things that
-# generate an email are notifications, and notifications come from activity on a resource somebody is
-# subscribed to. So this posts a comment on one tracking issue, and GitHub emails everybody watching
-# that issue. That means no SMTP server, no app password, and no repository secrets to leak: the
-# GITHUB_TOKEN every workflow already has is enough.
+# WHY THIS IS BUILT ON MENTIONS
+# There is no GitHub feature that emails a custom message to a list of people. The only thing that
+# generates an email is a notification, so the trick is to produce a notification GitHub will deliver.
 #
-# WHAT EACH PERSON DOES ONCE
-# Open the "Push log" issue this workflow creates and click Subscribe. That is the whole setup.
+# The first version of this workflow posted a comment on a tracking issue and told everyone to click
+# Subscribe once. That failed, and it failed silently, which is the worst way for a notification
+# system to fail: the workflow went green on every push, the comments were all posted correctly, and
+# the repository had ZERO subscribers, so not one email was ever sent. A setup step that every person
+# has to remember is a setup step that does not happen.
 #
-# The alternative, watching the whole repository on All Activity, also emails on every push and needs
-# no workflow at all, but the email is GitHub's raw commit mail. This gives a written summary instead:
-# who pushed, to which branch, what the commits said, and how many files moved.
+# So delivery no longer depends on anyone opting in:
+#
+#   1. Every summary @mentions the team. A mention notifies the person whether or not they watch the
+#      repository or the issue, because mentions count as "Participating" activity, which is on by
+#      default and goes to email by default. This is the part that actually sends the mail.
+#
+#   2. The team is also assigned to the tracking issue. Being assigned subscribes you to that issue
+#      for good, so every later comment reaches you even if the mention line is ever removed. This is
+#      belt and braces, and it self-heals: a new name added below gets assigned on the next push.
+#
+# WHAT EACH PERSON DOES
+# Nothing. If the mail is unwanted, mute the "Push log" issue on GitHub, or take your name out of
+# TEAM below.
+#
+# IF THE MAIL STILL DOES NOT ARRIVE
+# Check github.com/settings/notifications: "Participating, @mentions and custom" must have Email
+# ticked, and the address at github.com/settings/emails must be verified. A workflow cannot override
+# a personal notification setting, and it cannot email an unverified address.
 
 name: Notify team on push
 
@@ -21,8 +36,8 @@ on:
     branches:
       - '**'
 
-# Least privilege. The workflow reads nothing from the code and only needs to write a comment, so it
-# is given exactly that and nothing else.
+# Least privilege. The workflow reads nothing from the code, and writing a comment, applying a label
+# and adding an assignee are all covered by issues: write.
 permissions:
   contents: read
   issues: write
@@ -45,6 +60,22 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
+            // ---------------------------------------------------------------
+            // WHO GETS TOLD. Edit this line to add or remove somebody.
+            //
+            // Written out rather than fetched from the collaborator API on
+            // purpose: that endpoint needs push permission, which would mean
+            // widening this workflow's token beyond issues: write just to
+            // read a list of three names that changes once a semester. It is
+            // also plainer to review, since who gets emailed is visible in
+            // the diff instead of depending on repository settings.
+            //
+            // The pusher is mentioned too. Getting a copy of your own summary
+            // is the only proof the notification actually went out, and it is
+            // how you tell "nobody was told" apart from "nobody replied".
+            // ---------------------------------------------------------------
+            const TEAM = ['AkoBaloyi', 'KyuriR', 'ZAA18'];
+
             const tracker = 'Push log';
             const trackerLabel = 'push-log';
 
@@ -78,6 +109,8 @@ jobs:
               return `- [\`${short}\`](${commit.url}) ${subject} — *${commit.author?.name || 'unknown'}*`;
             });
 
+            const mentions = TEAM.map(name => `@${name}`).join(' ');
+
             const body = [
               `### ${pusher} pushed to \`${branch}\``,
               '',
@@ -89,7 +122,12 @@ jobs:
               '',
               context.payload.compare ? `[See the diff](${context.payload.compare})` : '',
               '',
-              `To work on top of this: \`git fetch origin && git merge origin/${branch}\``
+              `To work on top of this: \`git fetch origin && git merge origin/${branch}\``,
+              '',
+              '---',
+              // The mention line is what triggers the email. Kept last so it reads as a footer
+              // rather than shouting at three people before they have seen what changed.
+              mentions
             ].filter(Boolean).join('\n');
 
             // Find the tracking issue, or make it the first time this ever runs. Searching by label
@@ -125,9 +163,12 @@ jobs:
                 title: tracker,
                 labels: [trackerLabel],
                 body: [
-                  'Every push to this repository gets a summary posted here.',
+                  'Every push to this repository gets a summary posted here, and everyone named in',
+                  'the workflow is mentioned so it arrives by email.',
                   '',
-                  '**Click Subscribe on the right to get these by email.**',
+                  'You are assigned to this issue on purpose. Assignment subscribes you, which is what',
+                  'keeps the summaries coming even if the mention line changes. Unassign yourself or',
+                  'mute the issue to stop them.',
                   '',
                   'Leave this issue open. Closing it makes the next push open a replacement.'
                 ].join('\n')
@@ -135,6 +176,56 @@ jobs:
 
               issueNumber = created.data.number;
               core.info(`Created the push log as issue #${issueNumber}.`);
+            }
+
+            // Subscribe the team by assigning them, but only the ones not already on it, so a normal
+            // push does not churn the issue's timeline with repeated assignment events.
+            //
+            // A name GitHub will not accept, someone who left the project or a typo, is silently
+            // dropped by this endpoint rather than erroring. So the assigned list is compared against
+            // TEAM afterwards and any difference is warned about, otherwise a misspelled username
+            // would quietly never be told anything, which is the exact failure this rewrite exists
+            // to remove.
+            try {
+              const issue = await github.rest.issues.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber
+              });
+
+              const assigned = (issue.data.assignees || []).map(user => user.login);
+              const missing = TEAM.filter(name => !assigned.includes(name));
+
+              if (missing.length) {
+                await github.rest.issues.addAssignees({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber,
+                  assignees: missing
+                });
+
+                const after = await github.rest.issues.get({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber
+                });
+
+                const nowAssigned = (after.data.assignees || []).map(user => user.login);
+                const refused = TEAM.filter(name => !nowAssigned.includes(name));
+
+                if (refused.length) {
+                  core.warning(
+                    `GitHub would not assign: ${refused.join(', ')}. They are still mentioned, so they ` +
+                    `should get the email, but they are not subscribed to the issue. Usually this means ` +
+                    `the username is wrong or they are not a collaborator on this repository.`);
+                } else {
+                  core.info(`Subscribed by assignment: ${missing.join(', ')}.`);
+                }
+              }
+            } catch (error) {
+              // Never fail the run over this. The mention in the comment is what sends the mail, and
+              // assignment is only the backup, so losing it must not cost the team the summary.
+              core.warning(`Could not update the assignees, carrying on. (${error.message})`);
             }
 
             await github.rest.issues.createComment({
@@ -150,4 +241,4 @@ jobs:
               .addRaw(body)
               .write();
 
-            core.info(`Posted the summary to issue #${issueNumber}.`);
+            core.info(`Posted the summary to issue #${issueNumber}, mentioning ${mentions}.`);
