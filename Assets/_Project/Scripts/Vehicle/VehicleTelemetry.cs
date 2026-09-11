@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace ZoomZoom.Vehicle
 {
@@ -28,8 +29,11 @@ namespace ZoomZoom.Vehicle
         [Tooltip("Show the readout. Toggled at runtime with the key below.")]
         [SerializeField] private bool show = true;
 
-        [Tooltip("Key that shows and hides the readout.")]
-        [SerializeField] private KeyCode toggleKey = KeyCode.F9;
+        // F10 rather than F9, because VehicleMeasurement already uses F9 for its own developer
+        // overlay. One key toggling two overlays meant you could never see one without the other.
+        [Tooltip("Key that shows and hides the readout. F1 to F9 belong to VehicleMeasurement, so " +
+                 "pick something outside that range.")]
+        [SerializeField] private Key toggleKey = Key.F10;
 
         [Tooltip("Draw velocity and acceleration arrows in the scene view. Green is forward velocity, " +
                  "red is sideways velocity, blue is acceleration.")]
@@ -50,7 +54,10 @@ namespace ZoomZoom.Vehicle
 
         private void Update()
         {
-            if (Input.GetKeyDown(toggleKey)) show = !show;
+            // Device read rather than UnityEngine.Input: active input handling is the Input System
+            // package, and the legacy class throws on every call under that setting.
+            Keyboard keyboard = Keyboard.current;
+            if (keyboard != null && keyboard[toggleKey].wasPressedThisFrame) show = !show;
         }
 
         private void FixedUpdate()

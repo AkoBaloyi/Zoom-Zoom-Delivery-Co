@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace ZoomZoom.Orders
 {
@@ -47,7 +48,7 @@ namespace ZoomZoom.Orders
             manager.gameObject.AddComponent<OrderMarkers>();
 
             Debug.Log(
-                "[OrderMarkers] Attached to the order system. F8 hides the beacons and the order list. " +
+                "[OrderMarkers] Attached to the order system. F11 hides the beacons and the order list. " +
                 "Cargo pickup and delivery are still driven by OrderFlowTestHarness until real zone " +
                 "detection exists: C collects the oldest active order, V delivers what is carried, " +
                 "L logs every order's state.");
@@ -62,8 +63,12 @@ namespace ZoomZoom.Orders
         [Tooltip("Show the world markers and the order list. Toggled at runtime with the key below.")]
         [SerializeField] private bool show = true;
 
-        [Tooltip("Key that shows and hides the order markers.")]
-        [SerializeField] private KeyCode toggleKey = KeyCode.F8;
+        // F11 rather than F8, because VehicleMeasurement in this scene already owns F1 to F9 and F8
+        // there resets the car to the start line. Sharing the key meant hiding the beacons also
+        // teleported the player, which reads as the markers breaking the car.
+        [Tooltip("Key that shows and hides the order markers. F1 to F9 are taken by the vehicle lab " +
+                 "tools, so pick something outside that range.")]
+        [SerializeField] private Key toggleKey = Key.F11;
 
         [Tooltip("Draw a beacon at each pickup and drop-off point.")]
         [SerializeField] private bool worldMarkers = true;
@@ -126,7 +131,15 @@ namespace ZoomZoom.Orders
 
         private void Update()
         {
-            if (Input.GetKeyDown(toggleKey)) show = !show;
+            // Read straight off the keyboard device, not UnityEngine.Input. This project has active
+            // input handling set to the Input System package, and the old class throws
+            // InvalidOperationException on every call under that setting, which meant this Update
+            // aborted before drawing a single beacon and filled the console instead.
+            //
+            // The null check matters: Keyboard.current is null when no keyboard is present, which is
+            // normal on a gamepad-only or mobile session, not an error.
+            Keyboard keyboard = Keyboard.current;
+            if (keyboard != null && keyboard[toggleKey].wasPressedThisFrame) show = !show;
 
             if (!worldMarkers) return;
 

@@ -4398,6 +4398,8 @@ GameObject:
   - component: {fileID: 592668306}
   - component: {fileID: 592668312}
   - component: {fileID: 592668313}
+  - component: {fileID: 592668314}
+  - component: {fileID: 592668315}
   m_Layer: 0
   m_Name: Car
   m_TagString: Player
@@ -20020,6 +20022,45 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2135440271}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &592668314
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 592668305}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c05a420b28956847a9446ccb905cf2c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.TyreEffects
+  car: {fileID: 592668308}
+  skidMarks: {fileID: 0}
+  wheelParticles: []
+  particleMaterialAsset: {fileID: 2100000, guid: a90216214338982479cc527512cecf20, type: 2}
+  drawMarks: 1
+  emitParticles: 1
+  slipForFullEmission: 6
+  minimumSlipToEmit: 1.2
+  particlesPerSecondAtFullSlip: 45
+  speedForFullRollingSpray: 18
+  rollingSprayParticlesPerSecond: 14
+--- !u!114 &592668315
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 592668305}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 97ce993dd0a699a4b903956154e74cad, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.VehicleTelemetry
+  car: {fileID: 592668308}
+  show: 1
+  toggleKey: 103
+  drawVectors: 1
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

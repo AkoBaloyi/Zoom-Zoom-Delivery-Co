@@ -21,6 +21,7 @@ namespace ZoomZoom.Vehicle
     ///   Steer         A / D                 Left stick X
     ///   Brake         Space                 B (east)
     ///   Handbrake     Left Ctrl             LB
+    ///   Boost         Left Alt              RB
     ///   Jump          Left Shift            A (south)
     ///   Flip          Q                     X (west)
     ///   FlipDirection WASD                  Left stick

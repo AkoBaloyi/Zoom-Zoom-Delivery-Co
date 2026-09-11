@@ -16,6 +16,8 @@ GameObject:
   - component: {fileID: 796045499182467673}
   - component: {fileID: 1354331633510725021}
   - component: {fileID: 1793991264809196491}
+  - component: {fileID: 1793991264809196492}
+  - component: {fileID: 1793991264809196493}
   m_Layer: 0
   m_Name: Car
   m_TagString: Player
@@ -164,10 +166,49 @@ MonoBehaviour:
   bodyCentreHeight: 0
   buildDetail: 1
   wingHeight: 0.3
-  bodyMaterialAsset: {fileID: 0}
-  trimMaterialAsset: {fileID: 0}
-  glassMaterialAsset: {fileID: 0}
-  tyreMaterialAsset: {fileID: 0}
-  rimMaterialAsset: {fileID: 0}
-  headlightMaterialAsset: {fileID: 0}
-  brakeLightMaterialAsset: {fileID: 0}
+  bodyMaterialAsset: {fileID: 2100000, guid: 27937d63de031f14baddcf161f468d34, type: 2}
+  trimMaterialAsset: {fileID: 2100000, guid: dcc715072ff8259419d74f5fd143f6dc, type: 2}
+  glassMaterialAsset: {fileID: 2100000, guid: 1da55b825cd2bfb4ab0e5973a08326f7, type: 2}
+  tyreMaterialAsset: {fileID: 2100000, guid: 3289bcb977ddb734fafccc06147899d9, type: 2}
+  rimMaterialAsset: {fileID: 2100000, guid: 323eb05f804e02f49a401cc837fab803, type: 2}
+  headlightMaterialAsset: {fileID: 2100000, guid: 3e370c9a507f616419d59f66a54ca92b, type: 2}
+  brakeLightMaterialAsset: {fileID: 2100000, guid: 14267e44d1fb50e4299703a7e96b84fd, type: 2}
+--- !u!114 &1793991264809196492
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7709041335015692283}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c05a420b28956847a9446ccb905cf2c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.TyreEffects
+  car: {fileID: 217903828679979488}
+  skidMarks: {fileID: 0}
+  wheelParticles: []
+  particleMaterialAsset: {fileID: 2100000, guid: a90216214338982479cc527512cecf20, type: 2}
+  drawMarks: 1
+  emitParticles: 1
+  slipForFullEmission: 6
+  minimumSlipToEmit: 1.2
+  particlesPerSecondAtFullSlip: 45
+  speedForFullRollingSpray: 18
+  rollingSprayParticlesPerSecond: 14
+--- !u!114 &1793991264809196493
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7709041335015692283}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 97ce993dd0a699a4b903956154e74cad, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.VehicleTelemetry
+  car: {fileID: 217903828679979488}
+  show: 1
+  toggleKey: 103
+  drawVectors: 1

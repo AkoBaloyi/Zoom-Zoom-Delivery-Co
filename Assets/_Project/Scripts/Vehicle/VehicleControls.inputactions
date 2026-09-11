@@ -42,6 +42,15 @@
                     "initialStateCheck": true
                 },
                 {
+                    "name": "Boost",
+                    "type": "Value",
+                    "id": "11110000-0000-4000-8000-000000000009",
+                    "expectedControlType": "Axis",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
+                {
                     "name": "Jump",
                     "type": "Button",
                     "id": "11110000-0000-4000-8000-000000000005",
@@ -230,6 +239,28 @@
                     "processors": "",
                     "groups": ";Gamepad",
                     "action": "Handbrake",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "22220000-0000-4000-8000-00000000001b",
+                    "path": "<Keyboard>/leftAlt",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";Keyboard&Mouse",
+                    "action": "Boost",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "22220000-0000-4000-8000-00000000001c",
+                    "path": "<Gamepad>/rightShoulder",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";Gamepad",
+                    "action": "Boost",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
