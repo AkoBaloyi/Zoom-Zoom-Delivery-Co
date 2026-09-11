@@ -94,11 +94,51 @@ jobs:
 
             // Files touched across the whole push, de-duplicated: a file changed in three commits is
             // one file, not three.
-            const touched = new Set();
-            for (const commit of commits) {
-              for (const path of [...(commit.added || []), ...(commit.modified || []), ...(commit.removed || [])]) {
-                touched.add(path);
+            //
+            // WHY THIS ASKS THE COMPARE API INSTEAD OF READING THE PAYLOAD
+            // The obvious source is commit.added/modified/removed on the push payload, and that is
+            // what the first version used. It reported "0 files changed" on every single push for
+            // weeks, including a push of seven files, because GitHub does not reliably populate those
+            // arrays. A summary that always says zero is worse than no summary: it looks like a real
+            // measurement and it is not.
+            //
+            // The compare endpoint returns the actual diff between where the branch was and where it
+            // is now, which is the number people care about anyway. It costs one API call and needs
+            // only contents: read, which this workflow already has.
+            const NO_PARENT = '0000000000000000000000000000000000000000';
+            const before = context.payload.before;
+            const after = context.payload.after;
+
+            let touchedCount = null;
+            let countIsExact = true;
+
+            if (before && before !== NO_PARENT && after && after !== NO_PARENT) {
+              try {
+                const diff = await github.rest.repos.compareCommitsWithBasehead({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  basehead: `${before}...${after}`
+                });
+
+                // The compare response pages its file list at 300. Past that the count is a floor
+                // rather than a total, and it says so rather than quietly under-reporting.
+                touchedCount = diff.data.files?.length ?? 0;
+                countIsExact = touchedCount < 300;
+              } catch (error) {
+                core.warning(`Could not compare ${before}...${after}, falling back to the payload. (${error.message})`);
               }
+            }
+
+            // Fallback for a brand new branch, where there is no "before" to compare against, and for
+            // a compare that failed. Union of whatever the payload did give us.
+            if (touchedCount === null) {
+              const touched = new Set();
+              for (const commit of commits) {
+                for (const path of [...(commit.added || []), ...(commit.modified || []), ...(commit.removed || [])]) {
+                  touched.add(path);
+                }
+              }
+              touchedCount = touched.size;
             }
 
             // The commit subject is the description. This is why the team writes a real subject line
@@ -116,7 +156,8 @@ jobs:
               '',
               forced ? '> **Force push.** Check nothing of yours was overwritten before you pull.\n' : '',
               `**${commits.length}** commit${commits.length === 1 ? '' : 's'}, `
-                + `**${touched.size}** file${touched.size === 1 ? '' : 's'} changed.`,
+                + `**${countIsExact ? '' : 'at least '}${touchedCount}** `
+                + `file${touchedCount === 1 ? '' : 's'} changed.`,
               '',
               lines.length ? lines.join('\n') : '_No new commits._',
               '',
