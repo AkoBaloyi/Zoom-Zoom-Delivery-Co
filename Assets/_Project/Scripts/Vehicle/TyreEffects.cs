@@ -247,22 +247,14 @@ namespace ZoomZoom.Vehicle
         /// Additive-free, alpha-blended, vertex-coloured particle material. Vertex colour matters for
         /// the same reason it does on the marks: it is how one shared material shows grey smoke off
         /// tarmac and brown dust off dirt without needing a material per surface.
+        ///
+        /// Shares SkidMarks' builder rather than repeating it. Both needed exactly the same thing, and
+        /// the copy here had the same bug: it set _Surface and assumed that made the material
+        /// transparent, which on URP it does not. See the comment on the helper for why.
         /// </summary>
         private static Material CreateParticleMaterial()
         {
-            Shader shader =
-                Shader.Find("Universal Render Pipeline/Particles/Unlit")
-                ?? Shader.Find("Sprites/Default")
-                ?? Shader.Find("Legacy Shaders/Particles/Alpha Blended");
-
-            Material material = new Material(shader) { name = "Tyre particles" };
-
-            if (material.HasProperty("_Surface")) material.SetFloat("_Surface", 1f);
-            if (material.HasProperty("_Blend")) material.SetFloat("_Blend", 0f);
-            if (material.HasProperty("_ZWrite")) material.SetFloat("_ZWrite", 0f);
-
-            material.renderQueue = 3000;
-            return material;
+            return SkidMarks.CreateVertexColouredTransparent("Tyre particles");
         }
 
         // ==================================================================
