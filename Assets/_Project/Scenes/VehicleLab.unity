@@ -20128,7 +20128,10 @@ MonoBehaviour:
   markMaterialAsset: {fileID: 2100000, guid: 4d435edb9886b674aad590de462c470c, type: 2}
   maxMarks: 1024
   minimumSegmentDistance: 0.12
-  markWidth: 0.24
+  markWidth: 0.3
+  markTextureURange: {x: 0.42, y: 0.58}
+  markTextureV: 0.5
+  minimumOpacity: 0.45
   groundOffset: 0.02
   slipForFullOpacity: 6
   minimumSlipToMark: 1.2
