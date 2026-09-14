@@ -19,10 +19,15 @@ namespace ZoomZoom.Vehicle
     ///   ------------  --------------------  ------------------
     ///   Throttle      W / S                 RT / LT
     ///   Steer         A / D                 Left stick X
-    ///   Brake         Space                 B (east)
-    ///   Handbrake     Left Ctrl             LB
+    ///   Brake         Left Ctrl             B (east)
+    ///   Handbrake     Space                 LB
     ///   Boost         Left Alt              RB
     ///   Jump          Left Shift            A (south)
+    ///
+    /// Three separate ways to slow down, on purpose:
+    ///   S           brakes, then reverses once stopped. The everyday one.
+    ///   Left Ctrl   brakes and never reverses. For stopping ON a drop-off point.
+    ///   Space       handbrake. Locks the REAR only, so the car rotates rather than just slowing.
     ///   Flip          Q                     X (west)
     ///   FlipDirection WASD                  Left stick
     ///   CameraLook    Mouse move            Right stick
@@ -142,12 +147,18 @@ namespace ZoomZoom.Vehicle
                 .With("Negative", "<Keyboard>/a");
             steer.AddBinding("<Gamepad>/leftStick/x");
 
+            // Footbrake on Left Ctrl, not Space. S already brakes before it reverses, so this is the
+            // secondary control: stop without ever rolling backwards, which is what you want when
+            // pulling up at a drop-off point.
             InputAction brake = map.AddAction("Brake", InputActionType.Value);
-            brake.AddBinding("<Keyboard>/space");
+            brake.AddBinding("<Keyboard>/leftCtrl");
             brake.AddBinding("<Gamepad>/buttonEast");
 
+            // Handbrake on Space. It was on Left Ctrl, which is the wrong way round: the handbrake is
+            // a thing you stab mid-corner and hold, and Space is the key every driving game puts it
+            // on. LB matches the same convention on a pad.
             InputAction handbrake = map.AddAction("Handbrake", InputActionType.Value);
-            handbrake.AddBinding("<Keyboard>/leftCtrl");
+            handbrake.AddBinding("<Keyboard>/space");
             handbrake.AddBinding("<Gamepad>/leftShoulder");
 
             // Boost. Left Shift is already the jump and the right trigger is already the throttle, so

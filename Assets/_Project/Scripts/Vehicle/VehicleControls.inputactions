@@ -201,7 +201,7 @@
                 {
                     "name": "",
                     "id": "22220000-0000-4000-8000-00000000000b",
-                    "path": "<Keyboard>/space",
+                    "path": "<Keyboard>/leftCtrl",
                     "interactions": "",
                     "processors": "",
                     "groups": ";Keyboard&Mouse",
@@ -223,7 +223,7 @@
                 {
                     "name": "",
                     "id": "22220000-0000-4000-8000-00000000000d",
-                    "path": "<Keyboard>/leftCtrl",
+                    "path": "<Keyboard>/space",
                     "interactions": "",
                     "processors": "",
                     "groups": ";Keyboard&Mouse",

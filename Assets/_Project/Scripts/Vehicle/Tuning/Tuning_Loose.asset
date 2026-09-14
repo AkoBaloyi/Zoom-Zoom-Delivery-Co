@@ -205,3 +205,28 @@ MonoBehaviour:
   cameraRotationSmoothTime: 0.18
   cameraSwivelSpeed: 120
   cameraSwivelRecentreDelay: 1.2
+  accelerationFromFormula: 1
+  launchAcceleration: 22
+  accelerationFalloffPower: 1.7
+  boostEnabled: 1
+  boostTopSpeed: 40
+  boostAcceleration: 16
+  boostCapacity: 100
+  boostConsumptionRate: 33.3
+  boostRechargeRate: 12
+  boostRechargeDelay: 1
+  supersonicThreshold: 38
+  handbrakeDeceleration: 6
+  useFrictionCircle: 1
+  frictionCircleStrength: 0.8
+  longitudinalGripReference: 16
+  steerFromGripBudget: 1
+  steerOverdriveAtLowSpeed: 0.6
+  steerOverdriveAtTopSpeed: 1.15
+  maximumCurvature: 0.35
+  perAxleGrip: 1
+  gripBalance: 0.58
+  handbrakeRearGripMultiplier: 0.1
+  driftYawAuthority: 0.55
+  driftSlipAngleThreshold: 12
+  driftMinimumSpeed: 4

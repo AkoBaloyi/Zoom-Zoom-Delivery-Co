@@ -171,6 +171,19 @@ namespace ZoomZoom.Vehicle
         /// </summary>
         public SurfaceProfile Surface { get; private set; } = SurfaceType.Default;
 
+        /// <summary>
+        /// Sideways grip budget at the front axle, m/s^2, after the balance split. Zero until a
+        /// grounded physics step has run the per-axle path.
+        /// </summary>
+        public float FrontAxleGrip { get; private set; }
+
+        /// <summary>
+        /// Sideways grip budget at the rear axle, m/s^2, after the balance split, the friction circle
+        /// and the handbrake. This is the number the handbrake attacks, so watching it drop when the
+        /// handbrake goes on is the direct confirmation that the drift tool is doing something.
+        /// </summary>
+        public float RearAxleGrip { get; private set; }
+
         /// <summary>The surface under one wheel, 0 to 3. Front left, front right, rear left, rear right.</summary>
         public SurfaceProfile SurfaceUnderWheel(int index) =>
             index >= 0 && index < 4 ? _wheelSurfaces[index] : SurfaceType.Default;
@@ -742,6 +755,22 @@ namespace ZoomZoom.Vehicle
                 stoppingAccel += tuning.brakeDeceleration * brake * Surface.brakeMultiplier;
             }
 
+            // The handbrake drags as well as letting go sideways. Without this it was purely a grip
+            // switch: the back end went light but the car carried its speed straight on, which reads
+            // as the tyres icing over rather than as wheels locking up.
+            //
+            // It is added to the same stoppingAccel as the footbrake, which means it also lands in
+            // LongitudinalDemand below, and LongitudinalDemand is what the friction circle spends
+            // against the REAR axle. So the drag consumes rear cornering grip on top of the direct
+            // cut, which is exactly the real mechanism: a locked wheel has no grip left for anything
+            // else. Pulling the handbrake mid-corner therefore rotates the car rather than just
+            // slowing it.
+            float handbrakeDrag = Drive.handbrake
+                ? tuning.handbrakeDeceleration * Surface.brakeMultiplier
+                : 0f;
+
+            stoppingAccel += handbrakeDrag;
+
             // Deep grass and loose dirt drag the car even under power. This is what makes cutting a
             // corner across the verge a decision with a cost rather than a free shortcut.
             stoppingAccel += Surface.rollingResistance;
@@ -759,7 +788,14 @@ namespace ZoomZoom.Vehicle
             // car, and it is what the lateral grip calculation then has to share a budget with.
             // Boost is deliberately NOT counted: it is a rocket, not the tyres, so it does not consume
             // grip. That also makes boost the tool for holding a slide rather than causing one.
-            LongitudinalDemand = Mathf.Abs(totalAccel);
+            //
+            // The handbrake drag is floored in separately rather than left to the net figure. totalAccel
+            // is drive MINUS braking, so holding the throttle while pulling the handbrake very nearly
+            // cancels out, and the demand would come out near zero at the exact moment the tyres are
+            // working hardest. That combination is the standard way to start a drift, so reporting it
+            // as no grip used would defeat the point. Taking the larger of the two never lowers the
+            // demand below what it was before, so nothing outside the handbrake case changes.
+            LongitudinalDemand = Mathf.Max(Mathf.Abs(totalAccel), handbrakeDrag);
 
             if (Mathf.Abs(totalAccel) > 0.0001f)
             {
@@ -910,7 +946,18 @@ namespace ZoomZoom.Vehicle
         /// </summary>
         private void ApplyLateralGrip(float dt)
         {
-            if (tuning.perAxleGrip)
+            // The handbrake forces the two-force model even when per-axle grip is switched off.
+            //
+            // A rear-only handbrake cannot be expressed as one force at the centre of mass. One force
+            // there can only ever push the whole car sideways, so the best the single-force model can
+            // do is cut grip at all four corners, and that is a four wheel skid: the car slides
+            // without rotating, and the handbrake becomes an ice button. Rotation needs two forces at
+            // two positions, so pulling the handbrake switches to that model for the step.
+            //
+            // At gripBalance 0.5 the two models produce identical total force, so the switch is
+            // seamless. Away from 0.5 there is a small step at the moment of the pull, which is a
+            // moment the player is already expecting the car to change behaviour.
+            if (tuning.perAxleGrip || Drive.handbrake)
             {
                 ApplyLateralGripPerAxle(dt);
                 return;
@@ -922,7 +969,6 @@ namespace ZoomZoom.Vehicle
             // makes the throttle a handling input rather than just a speed input.
             grip = tuning.LateralGripAfterLongitudinal(grip, LongitudinalDemand);
 
-            if (Drive.handbrake) grip *= tuning.handbrakeGripMultiplier;
             AvailableLateralGrip = grip;
             if (grip <= 0f) return;
 
@@ -966,6 +1012,13 @@ namespace ZoomZoom.Vehicle
             // The handbrake works on the rear only. Locking one end is what turns a handbrake pull
             // into a rotation instead of a four wheel slide.
             if (Drive.handbrake) rearGrip *= tuning.handbrakeRearGripMultiplier;
+
+            // Published for the telemetry overlay. The gap between these two numbers IS the car's
+            // balance: front above rear is oversteer and the back steps out, rear above front is
+            // understeer and the nose pushes wide. Tuning a drift by feel alone means guessing which
+            // of the two is happening, and they are easy to confuse from the driving seat.
+            FrontAxleGrip = frontGrip;
+            RearAxleGrip = rearGrip;
 
             ApplyAxleGrip(tuning.wheelForwardOffset, frontGrip, dt);
             ApplyAxleGrip(-tuning.wheelForwardOffset, rearGrip, dt);

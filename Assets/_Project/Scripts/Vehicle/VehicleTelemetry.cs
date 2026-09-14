@@ -100,7 +100,7 @@ namespace ZoomZoom.Vehicle
                 $"THROTTLE    {Bar(car.Drive.throttle)}  {car.Drive.throttle:+0.00;-0.00; 0.00}\n" +
                 $"STEER       {Bar(car.Drive.steer)}  {car.Drive.steer:+0.00;-0.00; 0.00}\n" +
                 $"BRAKE       {Bar(car.Drive.brake)}  {car.Drive.brake:0.00}\n" +
-                $"HANDBRAKE   {(car.Drive.handbrake ? "ON" : "off")}\n" +
+                $"HANDBRAKE   {(car.Drive.handbrake ? "ON  rear locked" : "off")}\n" +
                 $"BOOST       {(car.IsBoosting ? "ON " : "off")} {car.BoostRemaining:0}%" +
                 $"{(car.IsSupersonic ? "   SUPERSONIC" : "")}\n" +
                 "\n" +
@@ -108,6 +108,8 @@ namespace ZoomZoom.Vehicle
                 $"{(overGrip ? ">>> SLIDING <<<" : "within grip")}\n" +
                 $"  long dmd  {car.LongitudinalDemand:0.0} m/s2 " +
                 $"{(tuning != null && tuning.useFrictionCircle ? "(eating lateral grip)" : "(circle OFF)")}\n" +
+                $"BALANCE     front {car.FrontAxleGrip:0.0} / rear {car.RearAxleGrip:0.0} m/s2   " +
+                $"{BalanceText()}\n" +
                 $"SLIP ANGLE  {car.SlipAngle:0.0} deg   {(car.IsDrifting ? "DRIFTING" : "")}\n" +
                 "\n" +
                 $"YAW RATE    {car.YawRate:+0.00;-0.00; 0.00} rad/s\n" +
@@ -140,6 +142,24 @@ namespace ZoomZoom.Vehicle
         {
             float v = Mathf.Abs(car.ForwardSpeed);
             return v * v * Mathf.Abs(car.SteerCurvature);
+        }
+
+        /// <summary>
+        /// Which end is giving up first, in words. "The car did not rotate" and "the car would not
+        /// turn in" feel similar at the wheel and have opposite fixes, so naming which one is
+        /// happening saves tuning the wrong number.
+        /// </summary>
+        private string BalanceText()
+        {
+            float front = car.FrontAxleGrip;
+            float rear = car.RearAxleGrip;
+
+            if (front <= 0f && rear <= 0f) return "-";
+
+            // A tenth of a m/s2 either way is not a handling characteristic, it is arithmetic noise.
+            if (Mathf.Abs(front - rear) < 0.1f) return "neutral";
+
+            return front > rear ? "rear lets go first (oversteer)" : "front lets go first (understeer)";
         }
 
         private string TurnRadiusText()
