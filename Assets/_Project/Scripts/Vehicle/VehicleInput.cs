@@ -96,6 +96,40 @@ namespace ZoomZoom.Vehicle
                     $"[VehicleInput] Using bindings from '{controlsAsset.name}'.", this);
             }
 
+            ResolveActions();
+        }
+
+        /// <summary>
+        /// Looks up the action map and every action from the asset as it exists RIGHT NOW.
+        ///
+        /// WHY THIS IS NOT DONE ONCE IN Awake
+        /// It used to be, and that caused this:
+        ///
+        ///   Map must be contained in state
+        ///   Map index on InputActionMap is out of range
+        ///
+        /// Those are Debug.Asserts inside the Input System's InputActionState. EnableAllActions checks
+        /// that the map it was handed is present in the state it belongs to, then calls EnableControls
+        /// which asserts the same thing again, which is why a single Enable() call prints each message
+        /// twice and it looks like two components are at fault when there is only one.
+        ///
+        /// They fire when the InputActionMap object is orphaned: its state exists but no longer lists
+        /// this map, and its index is stale. That happens whenever the .inputactions asset is
+        /// re-imported while the scene is loaded, which is exactly what editing the bindings by hand
+        /// does. Unity rebuilds the asset's maps as new objects and the reference cached in Awake keeps
+        /// pointing at the old ones.
+        ///
+        /// Awake does not run again when a component is merely disabled and re-enabled, and this
+        /// component is disabled deliberately, by VehicleMeasurement, so the harness can drive. So the
+        /// stale reference survived and OnEnable kept handing it to Enable().
+        ///
+        /// Re-resolving is a handful of dictionary lookups once per enable, not per frame, so the cost
+        /// is irrelevant next to being correct.
+        /// </summary>
+        private void ResolveActions()
+        {
+            if (controlsAsset == null) return;
+
             _map = controlsAsset.FindActionMap(MapName, throwIfNotFound: false);
             if (_map == null)
             {
@@ -113,6 +147,30 @@ namespace ZoomZoom.Vehicle
             _flip = Find("Flip");
             _flipDirection = Find("FlipDirection");
             _cameraLook = Find("CameraLook");
+        }
+
+        /// <summary>
+        /// True when the cached map must not be handed to Enable or Disable.
+        ///
+        /// The identity comparison at the end is the one that matters, and it is not obvious. Comparing
+        /// _map.asset against controlsAsset is not enough: when Unity re-imports an .inputactions file
+        /// it reloads the ScriptableObject IN PLACE, so the asset reference survives and the old map
+        /// still names it as its owner, while the asset's own array has been rebuilt with new map
+        /// objects. The old map therefore looks perfectly valid by every cheap test and is still
+        /// orphaned from the live state.
+        ///
+        /// So the real question is not "does this map claim to belong to the asset" but "is this the map
+        /// the asset hands out right now", and only reference equality answers that.
+        /// </summary>
+        private bool MapIsStale
+        {
+            get
+            {
+                if (_map == null || controlsAsset == null) return true;
+                if (_map.asset != controlsAsset) return true;
+
+                return !ReferenceEquals(_map, controlsAsset.FindActionMap(MapName, throwIfNotFound: false));
+            }
         }
 
         /// <summary>
@@ -206,12 +264,22 @@ namespace ZoomZoom.Vehicle
 
         private void OnEnable()
         {
+            // Re-resolved unconditionally rather than only when a staleness test says so. Enabling is
+            // rare, a handful of name lookups costs nothing measurable, and any test for "is this
+            // reference still good" is a guess about Unity's asset reload behaviour that would silently
+            // stop being true. Fetching the current map is not a guess.
+            ResolveActions();
+
             _map?.Enable();
         }
 
         private void OnDisable()
         {
-            _map?.Disable();
+            // Only disable a map that is still attached to its asset. DisableAllActions carries the
+            // same assertions as the enable path, so disabling an orphaned map spams the console on the
+            // way out just as enabling one did on the way in. An orphaned map is already not driving
+            // anything, so there is nothing to switch off.
+            if (!MapIsStale) _map.Disable();
 
             // Let go of everything. Without this, a key held at the moment this component is
             // switched off would stay "held" forever as far as the car is concerned.
