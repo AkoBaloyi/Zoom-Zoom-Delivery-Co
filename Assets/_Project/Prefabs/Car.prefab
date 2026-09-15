@@ -1,0 +1,214 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &7709041335015692283
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 9174141420889347802}
+  - component: {fileID: 8437961128947842983}
+  - component: {fileID: 3500422029694228420}
+  - component: {fileID: 217903828679979488}
+  - component: {fileID: 66466511804111710}
+  - component: {fileID: 796045499182467673}
+  - component: {fileID: 1354331633510725021}
+  - component: {fileID: 1793991264809196491}
+  - component: {fileID: 1793991264809196492}
+  - component: {fileID: 1793991264809196493}
+  m_Layer: 0
+  m_Name: Car
+  m_TagString: Player
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &9174141420889347802
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7709041335015692283}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.8, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &8437961128947842983
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7709041335015692283}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1.8, y: 1, z: 4.2}
+  m_Center: {x: 0, y: 0.2, z: 0}
+--- !u!54 &3500422029694228420
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7709041335015692283}
+  serializedVersion: 5
+  m_Mass: 900
+  m_LinearDamping: 0
+  m_AngularDamping: 2.5
+  m_CenterOfMass: {x: 0, y: -0.35, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 0
+  m_ImplicitTensor: 1
+  m_UseGravity: 0
+  m_IsKinematic: 0
+  m_Interpolate: 1
+  m_Constraints: 0
+  m_CollisionDetection: 2
+--- !u!114 &217903828679979488
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7709041335015692283}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a2b3c4d5e6f708192a3b4c5d6e7f803, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.VehicleController
+  tuning: {fileID: 11400000, guid: 1a2b3c4d5e6f708192a3b4c5d6e7f811, type: 2}
+  drawDebugGizmos: 1
+--- !u!114 &66466511804111710
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7709041335015692283}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a2b3c4d5e6f708192a3b4c5d6e7f804, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.VehicleJumpFlip
+  logRefusals: 0
+--- !u!114 &796045499182467673
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7709041335015692283}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a2b3c4d5e6f708192a3b4c5d6e7f802, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.VehicleInput
+  controlsAsset: {fileID: -944628639613478452, guid: 1a2b3c4d5e6f708192a3b4c5d6e7f810, type: 3}
+  controller: {fileID: 217903828679979488}
+  jumpFlip: {fileID: 66466511804111710}
+  invertCameraLookY: 0
+--- !u!114 &1354331633510725021
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7709041335015692283}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a2b3c4d5e6f708192a3b4c5d6e7f809, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  car: {fileID: 217903828679979488}
+  wheels: []
+  brakeLights: []
+  animate: 1
+--- !u!114 &1793991264809196491
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7709041335015692283}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a2b3c4d5e6f708192a3b4c5d6e7f80a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  buildOnStart: 1
+  bodyWidth: 1.3
+  bodyLength: 4
+  bodyHeight: 0.42
+  bodyCentreHeight: 0
+  buildDetail: 1
+  wingHeight: 0.3
+  bodyMaterialAsset: {fileID: 2100000, guid: 27937d63de031f14baddcf161f468d34, type: 2}
+  trimMaterialAsset: {fileID: 2100000, guid: dcc715072ff8259419d74f5fd143f6dc, type: 2}
+  glassMaterialAsset: {fileID: 2100000, guid: 1da55b825cd2bfb4ab0e5973a08326f7, type: 2}
+  tyreMaterialAsset: {fileID: 2100000, guid: 3289bcb977ddb734fafccc06147899d9, type: 2}
+  rimMaterialAsset: {fileID: 2100000, guid: 323eb05f804e02f49a401cc837fab803, type: 2}
+  headlightMaterialAsset: {fileID: 2100000, guid: 3e370c9a507f616419d59f66a54ca92b, type: 2}
+  brakeLightMaterialAsset: {fileID: 2100000, guid: 14267e44d1fb50e4299703a7e96b84fd, type: 2}
+--- !u!114 &1793991264809196492
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7709041335015692283}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c05a420b28956847a9446ccb905cf2c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.TyreEffects
+  car: {fileID: 217903828679979488}
+  skidMarks: {fileID: 0}
+  wheelParticles: []
+  particleMaterialAsset: {fileID: 2100000, guid: a90216214338982479cc527512cecf20, type: 2}
+  drawMarks: 1
+  emitParticles: 1
+  slipForFullEmission: 6
+  minimumSlipToEmit: 1.2
+  particlesPerSecondAtFullSlip: 45
+  speedForFullRollingSpray: 18
+  rollingSprayParticlesPerSecond: 14
+--- !u!114 &1793991264809196493
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7709041335015692283}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 97ce993dd0a699a4b903956154e74cad, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.VehicleTelemetry
+  car: {fileID: 217903828679979488}
+  show: 1
+  toggleKey: 103
+  drawVectors: 1

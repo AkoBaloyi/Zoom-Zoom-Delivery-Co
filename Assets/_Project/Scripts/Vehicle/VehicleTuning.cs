@@ -129,7 +129,25 @@ namespace ZoomZoom.Vehicle
         // ------------------------------------------------------------------
         [Header("Drive")]
         [Tooltip("Top speed on full throttle, m/s. 25 m/s is about 90 km/h.")]
-        public float topSpeed = 25f;
+        public float topSpeed = 32f;
+
+        [Tooltip("Work out drive acceleration from a formula instead of the authored curve.\n\n" +
+                 "The authored curve collapsed to 5 m/s^2 by 20 m/s and 1.2 by 24, which had two bad " +
+                 "consequences: the last quarter of the speed range took nearly three seconds of " +
+                 "nothing happening, and there was no longitudinal force left at speed for the friction " +
+                 "circle to work against, so throttle stopped affecting handling exactly where it " +
+                 "should have mattered most.")]
+        public bool accelerationFromFormula = true;
+
+        [Tooltip("Acceleration from a standstill, m/s^2. 22 is about 2.2 g, which is firmly arcade. " +
+                 "Rocket League launches at roughly 2.6 g with boost.")]
+        public float launchAcceleration = 22f;
+
+        [Tooltip("How the pull fades towards top speed. 1 = fades in a straight line. Above 1 holds on " +
+                 "to its pull longer and then drops away late, which keeps real thrust at speed so the " +
+                 "throttle still has something to say in a fast corner.")]
+        [Range(0.5f, 4f)]
+        public float accelerationFalloffPower = 1.7f;
 
         [Tooltip("Forward acceleration in m/s^2 (Y) at a given forward speed in m/s (X).\n\n" +
                  "This is a CURVE, not one number, on purpose: a single acceleration value means the " +
@@ -148,6 +166,54 @@ namespace ZoomZoom.Vehicle
                  "stick drift from creeping the car forward.")]
         [Range(0f, 0.4f)]
         public float inputDeadzone = 0.08f;
+
+        // ------------------------------------------------------------------
+        // BOOST
+        //
+        // WHY A SECOND SPEED STAGE RATHER THAN JUST A HIGHER TOP SPEED
+        // Rocket League's top speed is 2300 uu/s, which is 23 m/s, or about 83 km/h. That is
+        // SLOWER than this car already goes. It does not feel slower, and the reason is not the
+        // number: it is that throttle alone caps at 1410 uu/s and boost is what carries you the
+        // rest of the way. Two stages means there is a fast state you enter deliberately, and a
+        // normal state to compare it against. One flat top speed has nothing to compare against,
+        // so it just becomes the new normal and stops reading as fast at all.
+        //
+        // The supersonic threshold does the same job for the eyes and ears: a named state that
+        // starts and stops, rather than a number that creeps.
+        // ------------------------------------------------------------------
+        [Header("Boost")]
+        [Tooltip("Turn the whole boost system on. Off = throttle-only, exactly as before.")]
+        public bool boostEnabled = true;
+
+        [Tooltip("Top speed while boosting, m/s. Throttle alone still stops at topSpeed, so this is " +
+                 "the headroom the boost opens up. The CONTRAST between the two is what sells speed, " +
+                 "so keep a wide gap: 25 to 40 reads far faster than a flat 40 ever will.")]
+        public float boostTopSpeed = 40f;
+
+        [Tooltip("Acceleration the boost adds, m/s^2. Rocket League uses 991.666 uu/s^2, which is " +
+                 "9.92 m/s^2, and that is a good starting point.")]
+        public float boostAcceleration = 16f;
+
+        [Tooltip("Full boost tank, in boost-seconds. 100 with a consumption rate of 33.3 gives three " +
+                 "seconds of continuous boost, which is what Rocket League gives you.")]
+        public float boostCapacity = 100f;
+
+        [Tooltip("Boost used per second while held. 33.3 empties a full tank in three seconds.")]
+        public float boostConsumptionRate = 33.3f;
+
+        [Tooltip("Boost regained per second while not boosting. Rocket League refills from pads " +
+                 "instead, but a delivery game with no pads laid out needs some way back to full. " +
+                 "Set to 0 and pick boost up from the world instead.")]
+        public float boostRechargeRate = 12f;
+
+        [Tooltip("Seconds after releasing boost before it starts refilling. Stops the player " +
+                 "feathering the button to hold top speed for free.")]
+        public float boostRechargeDelay = 1f;
+
+        [Tooltip("Speed (m/s) at which the car counts as supersonic. Rocket League sets this 100 uu/s " +
+                 "below max, so it triggers just before the ceiling and stays on. Read IsSupersonic " +
+                 "for the trail, the camera shake, the engine howl and the speed lines.")]
+        public float supersonicThreshold = 38f;
 
         // ------------------------------------------------------------------
         // SLOWING DOWN
@@ -199,6 +265,127 @@ namespace ZoomZoom.Vehicle
                  "sideways grip, so it slides on purpose. This is the same dial as above, on a button.")]
         [Range(0f, 1f)]
         public float handbrakeGripMultiplier = 0.25f;
+
+        // ------------------------------------------------------------------
+        // DRIFT
+        //
+        // WHY THIS SECTION EXISTS
+        // With one grip value applied at the centre of mass, the car can only ever understeer:
+        // grip is lost by the whole car at once, so it slides wide while still rotating exactly
+        // as the steering asked. That is a skid, not a drift. A drift is OVERSTEER, which needs
+        // the rear to let go while the front still bites.
+        //
+        // Ticking perAxleGrip on splits the same grip budget between the front and rear axles and
+        // applies each half AT ITS AXLE instead of at the centre. Two forces at two positions make
+        // a yaw moment, so rotation from sliding becomes something the car does rather than
+        // something we tell it to do. Counter-steering starts to work because the front tyres are
+        // then the only thing generating the correcting force.
+        //
+        // Leave it OFF and the handling is bit-for-bit what it was, so the F1 to F6 readings taken
+        // before this existed still stand.
+        // ------------------------------------------------------------------
+        // ------------------------------------------------------------------
+        // COMBINED SLIP: the friction circle
+        //
+        // A tyre has ONE grip budget, and accelerating and cornering both spend from it. The original
+        // model spent them from separate budgets, which is why flooring the throttle mid-corner cost
+        // nothing: the lateral force was computed as though the tyre were doing no work at all.
+        //
+        // With this on, lateral grip available = sqrt(total^2 - longitudinal^2). Hold full throttle in
+        // a corner and the lateral budget shrinks, the rear runs out first, and the car steps out. That
+        // is the mechanic, and it falls out of one equation rather than being scripted.
+        // ------------------------------------------------------------------
+        [Header("Combined slip (friction circle)")]
+        [Tooltip("Make accelerating and cornering share one grip budget. This is the single change " +
+                 "that makes throttle affect handling. Off = the original behaviour where throttle and " +
+                 "steering draw on separate, unlimited budgets.")]
+        public bool useFrictionCircle = true;
+
+        [Tooltip("How completely longitudinal force eats into lateral grip, 0 to 1.\n\n" +
+                 "1 = a true friction circle, which is the honest version but can feel punishing " +
+                 "because full throttle in a corner leaves almost nothing for cornering. 0.7 to 0.85 " +
+                 "keeps the effect legible while leaving the player something to drive with.")]
+        [Range(0f, 1f)]
+        public float frictionCircleStrength = 0.8f;
+
+        [Tooltip("Longitudinal acceleration, m/s^2, treated as spending the WHOLE grip budget. Below " +
+                 "this the tyre keeps a proportion of its lateral grip. Set it near the peak drive " +
+                 "acceleration so full throttle from low speed is what really unsticks the rear.")]
+        public float longitudinalGripReference = 16f;
+
+        // ------------------------------------------------------------------
+        // STEERING AUTHORITY BY GRIP
+        //
+        // The old curve was hand-authored to sit just inside the grip budget at every speed, which
+        // made breaking traction by steering arithmetically impossible: peak demand was 11.25 m/s^2
+        // against a budget of 12, at every speed above 10 m/s.
+        //
+        // Deriving curvature from the grip budget instead means one number controls how far the player
+        // is allowed to over-drive the tyres, it automatically stays correct if grip is retuned, and it
+        // keeps working above the old curve's last key so boost speeds are covered.
+        // ------------------------------------------------------------------
+        [Header("Steering authority")]
+        [Tooltip("Work out the tightest available corner from the grip budget rather than from the " +
+                 "hand-authored curve. Off = use maxCurvatureBySpeed as before.")]
+        public bool steerFromGripBudget = true;
+
+        [Tooltip("Fraction of the grip budget full lock asks for at walking pace. Below 1 the car is " +
+                 "planted and precise when parking and manoeuvring, which is where the player learns " +
+                 "what the car does.")]
+        [Range(0.3f, 1.5f)]
+        public float steerOverdriveAtLowSpeed = 0.6f;
+
+        [Tooltip("Fraction of the grip budget full lock asks for at top speed. ABOVE 1 is the point: " +
+                 "at 1.45 the steering asks for half again more grip than the tyres have, so full lock " +
+                 "at speed WILL break traction. This is the dial that gives a corner consequences.")]
+        [Range(0.5f, 2.5f)]
+        public float steerOverdriveAtTopSpeed = 1.15f;
+
+        [Tooltip("Tightest curvature allowed at any speed, 1/metres. 0.35 is a 2.9 m radius, about a " +
+                 "three point turn. Stops the grip formula asking for an absurd radius near standstill.")]
+        [Range(0.05f, 1f)]
+        public float maximumCurvature = 0.35f;
+
+        [Header("Drift (opt-in)")]
+        [Tooltip("OFF = one grip force at the centre of mass, the original model. Understeer only.\n" +
+                 "ON  = the same total grip split front/rear and applied at each axle, which lets " +
+                 "the rear step out and the car rotate because it is sliding.\n\n" +
+                 "At gripBalance 0.5 the total sideways force is identical to the original model, so " +
+                 "turning this on by itself does not change the turning circle.")]
+        public bool perAxleGrip = true;
+
+        [Tooltip("How the grip budget is split. 0.5 = even, and behaves like the original model.\n\n" +
+                 "ABOVE 0.5 = more grip at the front than the rear, so the rear runs out first and " +
+                 "the car OVERSTEERS. This is the drift dial. 0.65 is a good first try.\n" +
+                 "BELOW 0.5 = the front runs out first, so the car pushes wide and refuses to turn.")]
+        [Range(0.1f, 0.9f)]
+        public float gripBalance = 0.58f;
+
+        [Tooltip("What the handbrake does to the REAR axle only, when perAxleGrip is on. Killing grip " +
+                 "at one end is what makes a handbrake turn rotate the car instead of just sliding it " +
+                 "sideways. 0.15 keeps a sliver of rear grip so the back end swings rather than snaps.")]
+        [Range(0f, 1f)]
+        public float handbrakeRearGripMultiplier = 0.15f;
+
+        [Tooltip("How much of the normal steering yaw authority the car keeps while it is drifting, " +
+                 "0 to 1.\n\n" +
+                 "This matters because steering commands a turn rate directly. At full authority the " +
+                 "steering immediately drags the car back to the turn rate it asked for and kills the " +
+                 "slide before the player can hold it. Lowering it hands control of rotation to the " +
+                 "tyres during a drift, which is what makes counter-steer feel like it is doing " +
+                 "something. Too low and the car will not respond at all mid-slide.")]
+        [Range(0f, 1f)]
+        public float driftYawAuthority = 0.55f;
+
+        [Tooltip("Slip angle in DEGREES above which the car counts as drifting. Slip angle is the " +
+                 "angle between where the car points and where it is actually travelling. Around 12 " +
+                 "degrees is the point a slide starts to read on screen as a drift rather than a wobble.")]
+        [Range(2f, 45f)]
+        public float driftSlipAngleThreshold = 12f;
+
+        [Tooltip("Below this speed (m/s) the car never counts as drifting, no matter the slip angle. " +
+                 "Stops a slow three point turn registering as a drift.")]
+        public float driftMinimumSpeed = 4f;
 
         // ------------------------------------------------------------------
         // JUMP
@@ -345,12 +532,17 @@ namespace ZoomZoom.Vehicle
         // CAMERA
         // ------------------------------------------------------------------
         [Header("Chase camera")]
-        [Tooltip("How far behind the car the camera sits, metres.")]
-        public float cameraDistance = 7f;
+        [Tooltip("How far behind the car the camera sits, metres.\n\n" +
+                 "This is one of the two biggest levers on how fast the game FEELS, and it costs " +
+                 "nothing. Rocket League's default is 270 uu, which is 2.7 m, and almost every pro " +
+                 "stays between 2.6 and 2.8. Sitting 7 m back shrinks the car on screen and slows " +
+                 "the apparent flow of the ground to a crawl. Close in and the same speed reads as " +
+                 "much faster.")]
+        public float cameraDistance = 3.4f;
 
         [Tooltip("How far above the car the camera sits, metres. Higher shows more road but flattens " +
-                 "the sense of speed.")]
-        public float cameraHeight = 2.9f;
+                 "the sense of speed. Rocket League's default is 100 uu, which is 1.0 m.")]
+        public float cameraHeight = 1.4f;
 
         [Tooltip("Seconds for the camera to catch up to where it should be. This is the 'stiffness' dial. " +
                  "0 = welded to the car (harsh, no sense of weight). Large = the camera trails badly and " +
@@ -371,9 +563,14 @@ namespace ZoomZoom.Vehicle
         public float cameraExtraPitch = 4f;
 
         [Tooltip("Camera field of view in degrees. Wider shows more road and exaggerates speed, but " +
-                 "distorts at the edges.")]
-        [Range(30f, 110f)]
-        public float cameraFieldOfView = 62f;
+                 "distorts at the edges.\n\n" +
+                 "The single cheapest thing on this whole list. Rocket League caps FOV at 110 and " +
+                 "roughly 70 percent of RLCS professionals run it maxed, because peripheral movement " +
+                 "is what the eye reads as speed. At 62 the world barely moves at the screen edges " +
+                 "and 25 m/s looks like a car park manoeuvre. Change this one number before touching " +
+                 "any physics value.")]
+        [Range(30f, 120f)]
+        public float cameraFieldOfView = 103f;
 
         [Tooltip("Extra distance added at top speed, metres. Pulling back as the car speeds up shows " +
                  "more road exactly when the stopping distance is longest.")]
@@ -407,18 +604,91 @@ namespace ZoomZoom.Vehicle
         // something is wrong in the controller, not in the driving.
         // ==================================================================
 
-        /// <summary>Forward acceleration the drive should produce at this speed, m/s^2.</summary>
+        /// <summary>
+        /// Forward acceleration the drive should produce at this speed, m/s^2.
+        ///
+        /// The formula keeps pulling much further up the speed range than the authored curve did, which
+        /// matters for two separate reasons: the car actually reaches its top speed in a usable time,
+        /// and there is still longitudinal force at speed for the friction circle to trade against
+        /// cornering grip. Without the second part, throttle stops being a handling input above about
+        /// 15 m/s, which is precisely where a corner should be getting interesting.
+        /// </summary>
         public float AccelerationAt(float forwardSpeed)
         {
-            EnsureCurves();
-            return Mathf.Max(0f, accelerationBySpeed.Evaluate(Mathf.Abs(forwardSpeed)));
+            float v = Mathf.Abs(forwardSpeed);
+
+            if (!accelerationFromFormula)
+            {
+                EnsureCurves();
+                return Mathf.Max(0f, accelerationBySpeed.Evaluate(v));
+            }
+
+            float speed01 = Mathf.Clamp01(v / Mathf.Max(0.1f, topSpeed));
+            float remaining = 1f - Mathf.Pow(speed01, accelerationFalloffPower);
+
+            return Mathf.Max(0f, launchAcceleration * remaining);
         }
 
-        /// <summary>Tightest curvature (1/metres) available at this speed.</summary>
+        /// <summary>
+        /// Tightest curvature (1/metres) available at this speed.
+        ///
+        /// With steerFromGripBudget on, this comes from the grip budget and the overdrive ratio rather
+        /// than from the authored curve. A corner of radius R at speed V needs V*V/R of lateral grip,
+        /// so rearranging, the curvature the steering is allowed to ask for is:
+        ///
+        ///     curvature = (grip * overdrive) / V^2
+        ///
+        /// When overdrive is above 1 the steering asks for more grip than the tyres have, and the car
+        /// runs wide or steps out by a calculable amount. That is the whole point: the limit is still
+        /// completely predictable, it is just now possible to exceed it.
+        /// </summary>
         public float MaxCurvatureAt(float speed)
         {
-            EnsureCurves();
-            return Mathf.Max(0f, maxCurvatureBySpeed.Evaluate(Mathf.Abs(speed)));
+            float v = Mathf.Abs(speed);
+
+            if (!steerFromGripBudget)
+            {
+                EnsureCurves();
+                return Mathf.Max(0f, maxCurvatureBySpeed.Evaluate(v));
+            }
+
+            // Near standstill the formula divides by almost zero, so the cap takes over.
+            if (v < 0.5f) return maximumCurvature;
+
+            float reference = Mathf.Max(1f, BoostOrTopSpeed());
+            float speed01 = Mathf.Clamp01(v / reference);
+
+            float overdrive = Mathf.Lerp(steerOverdriveAtLowSpeed, steerOverdriveAtTopSpeed, speed01);
+            float curvature = (lateralGripAcceleration * overdrive) / (v * v);
+
+            return Mathf.Min(curvature, maximumCurvature);
+        }
+
+        /// <summary>The speed the handling curves are scaled against: the boosted ceiling when boost
+        /// is enabled, otherwise the throttle-only top speed.</summary>
+        public float BoostOrTopSpeed()
+        {
+            return boostEnabled ? Mathf.Max(topSpeed, boostTopSpeed) : topSpeed;
+        }
+
+        /// <summary>
+        /// Lateral grip left over once longitudinal force has taken its share, m/s^2.
+        ///
+        /// The friction circle: lateral^2 + longitudinal^2 must fit inside total^2. Strength blends
+        /// between ignoring the interaction entirely and enforcing it fully, because the honest version
+        /// leaves so little cornering grip under full power that the car becomes hard to place.
+        /// </summary>
+        public float LateralGripAfterLongitudinal(float totalGrip, float longitudinalDemand)
+        {
+            if (!useFrictionCircle || frictionCircleStrength <= 0f || totalGrip <= 0f) return totalGrip;
+
+            float used01 = Mathf.Clamp01(
+                Mathf.Abs(longitudinalDemand) / Mathf.Max(0.01f, longitudinalGripReference));
+
+            // sqrt(1 - used^2) is the circle. At used 0 it is 1, at used 1 it is 0.
+            float remaining = Mathf.Sqrt(Mathf.Max(0f, 1f - (used01 * used01)));
+
+            return totalGrip * Mathf.Lerp(1f, remaining, frictionCircleStrength);
         }
 
         /// <summary>Tightest turn radius the steering curve allows at this speed, metres.</summary>

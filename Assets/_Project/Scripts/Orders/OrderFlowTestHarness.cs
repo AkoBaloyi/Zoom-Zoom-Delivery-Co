@@ -35,8 +35,11 @@ namespace ZoomZoom.Orders
 
         private void Awake()
         {
-            if (orderManager == null) orderManager = FindFirstObjectByType<OrderManager>();
-            if (cargoSystem == null) cargoSystem = FindFirstObjectByType<CargoSystem>();
+            // FindAnyObjectByType, not FindFirstObjectByType: "first" is defined by instance ID
+            // ordering, which Unity has deprecated because it will not survive the move to EntityId.
+            // A scene should only ever hold one of each of these, so any match is the right match.
+            if (orderManager == null) orderManager = FindAnyObjectByType<OrderManager>();
+            if (cargoSystem == null) cargoSystem = FindAnyObjectByType<CargoSystem>();
 
             if (orderManager == null || cargoSystem == null)
             {

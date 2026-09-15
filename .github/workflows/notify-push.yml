@@ -1,0 +1,153 @@
+# Tells the team what just landed, every time anyone pushes.
+#
+# WHY IT WORKS THIS WAY
+# There is no GitHub feature that emails a custom message to a list of people. The only things that
+# generate an email are notifications, and notifications come from activity on a resource somebody is
+# subscribed to. So this posts a comment on one tracking issue, and GitHub emails everybody watching
+# that issue. That means no SMTP server, no app password, and no repository secrets to leak: the
+# GITHUB_TOKEN every workflow already has is enough.
+#
+# WHAT EACH PERSON DOES ONCE
+# Open the "Push log" issue this workflow creates and click Subscribe. That is the whole setup.
+#
+# The alternative, watching the whole repository on All Activity, also emails on every push and needs
+# no workflow at all, but the email is GitHub's raw commit mail. This gives a written summary instead:
+# who pushed, to which branch, what the commits said, and how many files moved.
+
+name: Notify team on push
+
+on:
+  push:
+    branches:
+      - '**'
+
+# Least privilege. The workflow reads nothing from the code and only needs to write a comment, so it
+# is given exactly that and nothing else.
+permissions:
+  contents: read
+  issues: write
+
+# One run at a time per branch, and let a newer push cancel an older run still queued. Two people
+# pushing within seconds should not produce two half-finished notifications.
+concurrency:
+  group: notify-push-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+
+    # A deleted branch fires a push event with no commits, and there is nothing to report about it.
+    if: github.event.deleted == false
+
+    steps:
+      - name: Post the summary to the push log
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const tracker = 'Push log';
+            const trackerLabel = 'push-log';
+
+            const branch = context.ref.replace('refs/heads/', '');
+            const commits = context.payload.commits || [];
+            const pusher = context.payload.pusher?.name || context.actor;
+            const forced = context.payload.forced === true;
+
+            // A force push or a fast-forward with nothing new both arrive with an empty commit list.
+            // Worth saying out loud rather than posting an empty summary, because a force push is the
+            // one thing on a shared branch that can lose somebody else's work.
+            if (commits.length === 0 && !forced) {
+              core.info('No commits in this push and it was not forced. Nothing to report.');
+              return;
+            }
+
+            // Files touched across the whole push, de-duplicated: a file changed in three commits is
+            // one file, not three.
+            const touched = new Set();
+            for (const commit of commits) {
+              for (const path of [...(commit.added || []), ...(commit.modified || []), ...(commit.removed || [])]) {
+                touched.add(path);
+              }
+            }
+
+            // The commit subject is the description. This is why the team writes a real subject line
+            // rather than "update": it is what everyone reads in the email.
+            const lines = commits.map(commit => {
+              const subject = commit.message.split('\n')[0];
+              const short = commit.id.substring(0, 7);
+              return `- [\`${short}\`](${commit.url}) ${subject} — *${commit.author?.name || 'unknown'}*`;
+            });
+
+            const body = [
+              `### ${pusher} pushed to \`${branch}\``,
+              '',
+              forced ? '> **Force push.** Check nothing of yours was overwritten before you pull.\n' : '',
+              `**${commits.length}** commit${commits.length === 1 ? '' : 's'}, `
+                + `**${touched.size}** file${touched.size === 1 ? '' : 's'} changed.`,
+              '',
+              lines.length ? lines.join('\n') : '_No new commits._',
+              '',
+              context.payload.compare ? `[See the diff](${context.payload.compare})` : '',
+              '',
+              `To work on top of this: \`git fetch origin && git merge origin/${branch}\``
+            ].filter(Boolean).join('\n');
+
+            // Find the tracking issue, or make it the first time this ever runs. Searching by label
+            // rather than by title so renaming the issue does not orphan it.
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: trackerLabel,
+              per_page: 1
+            });
+
+            let issueNumber = existing.data[0]?.number;
+
+            if (!issueNumber) {
+              // The label has to exist before it can be applied, and creating one that is already
+              // there is an error rather than a no-op, so the failure is swallowed deliberately.
+              try {
+                await github.rest.issues.createLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: trackerLabel,
+                  color: '1d76db',
+                  description: 'Automatic push summaries for the team'
+                });
+              } catch (error) {
+                core.info(`Label already present, carrying on. (${error.message})`);
+              }
+
+              const created = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: tracker,
+                labels: [trackerLabel],
+                body: [
+                  'Every push to this repository gets a summary posted here.',
+                  '',
+                  '**Click Subscribe on the right to get these by email.**',
+                  '',
+                  'Leave this issue open. Closing it makes the next push open a replacement.'
+                ].join('\n')
+              });
+
+              issueNumber = created.data.number;
+              core.info(`Created the push log as issue #${issueNumber}.`);
+            }
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              body
+            });
+
+            // Also shows on the run itself in the Actions tab, so the summary is readable without
+            // opening the issue.
+            await core.summary
+              .addRaw(body)
+              .write();
+
+            core.info(`Posted the summary to issue #${issueNumber}.`);
