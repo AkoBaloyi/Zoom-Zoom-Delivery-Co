@@ -228,6 +228,18 @@ namespace ZoomZoom.Vehicle
                  "full brake. This is a big part of feeling in control.")]
         public float coastDeceleration = 5f;
 
+        [Tooltip("Deceleration from the handbrake, m/s^2. Deliberately far smaller than " +
+                 "brakeDeceleration: a handbrake locks the REAR wheels only, so it has roughly a " +
+                 "third of the stopping power of all four.\n\n" +
+                 "This number is what makes the handbrake feel like a handbrake rather than a grip " +
+                 "switch. It also feeds the friction circle, and because the circle is applied to the " +
+                 "rear axle only, the drag itself eats into rear cornering grip. So pulling the " +
+                 "handbrake loosens the back end twice over: directly through " +
+                 "handbrakeRearGripMultiplier, and again through the grip this drag consumes.\n\n" +
+                 "Keep it low. Too high and the car stops instead of rotating, which kills the drift " +
+                 "you pulled the handbrake to start.")]
+        public float handbrakeDeceleration = 8f;
+
         // ------------------------------------------------------------------
         // STEERING
         // ------------------------------------------------------------------

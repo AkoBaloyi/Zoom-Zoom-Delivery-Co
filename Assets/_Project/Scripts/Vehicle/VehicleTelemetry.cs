@@ -46,10 +46,19 @@ namespace ZoomZoom.Vehicle
         private GUIStyle _style;
         private GUIStyle _shadow;
 
+        private SkidMarks _skidMarks;
+
         private void Awake()
         {
             if (car == null) car = GetComponent<VehicleController>();
             if (car == null) enabled = false;
+        }
+
+        private void Start()
+        {
+            // Looked up in Start rather than Awake because TyreEffects may build the marks object in
+            // its own Awake, and the order the two Awakes run in is not defined.
+            _skidMarks = FindAnyObjectByType<SkidMarks>();
         }
 
         private void Update()
@@ -91,7 +100,7 @@ namespace ZoomZoom.Vehicle
                 $"THROTTLE    {Bar(car.Drive.throttle)}  {car.Drive.throttle:+0.00;-0.00; 0.00}\n" +
                 $"STEER       {Bar(car.Drive.steer)}  {car.Drive.steer:+0.00;-0.00; 0.00}\n" +
                 $"BRAKE       {Bar(car.Drive.brake)}  {car.Drive.brake:0.00}\n" +
-                $"HANDBRAKE   {(car.Drive.handbrake ? "ON" : "off")}\n" +
+                $"HANDBRAKE   {(car.Drive.handbrake ? "ON  rear locked" : "off")}\n" +
                 $"BOOST       {(car.IsBoosting ? "ON " : "off")} {car.BoostRemaining:0}%" +
                 $"{(car.IsSupersonic ? "   SUPERSONIC" : "")}\n" +
                 "\n" +
@@ -99,6 +108,8 @@ namespace ZoomZoom.Vehicle
                 $"{(overGrip ? ">>> SLIDING <<<" : "within grip")}\n" +
                 $"  long dmd  {car.LongitudinalDemand:0.0} m/s2 " +
                 $"{(tuning != null && tuning.useFrictionCircle ? "(eating lateral grip)" : "(circle OFF)")}\n" +
+                $"BALANCE     front {car.FrontAxleGrip:0.0} / rear {car.RearAxleGrip:0.0} m/s2   " +
+                $"{BalanceText()}\n" +
                 $"SLIP ANGLE  {car.SlipAngle:0.0} deg   {(car.IsDrifting ? "DRIFTING" : "")}\n" +
                 "\n" +
                 $"YAW RATE    {car.YawRate:+0.00;-0.00; 0.00} rad/s\n" +
@@ -106,7 +117,9 @@ namespace ZoomZoom.Vehicle
                 $"TURN RADIUS {TurnRadiusText()}\n" +
                 "\n" +
                 $"GROUNDED    {car.WheelsOnGround}/4 wheels\n" +
-                $"SURFACE     {car.Surface.kind}  grip x{car.Surface.gripMultiplier:0.00}\n" +
+                $"SURFACE     {car.Surface.kind}  grip x{car.Surface.gripMultiplier:0.00}  " +
+                $"mark x{car.Surface.markStrength:0.00}\n" +
+                $"MARKS       {MarksText()}\n" +
                 $"COM         {(tuning != null ? tuning.centreOfMassOffset.ToString("0.00") : "-")}\n" +
                 $"SUSPENSION  {CompressionText()}\n" +
                 "\n" +
@@ -131,11 +144,49 @@ namespace ZoomZoom.Vehicle
             return v * v * Mathf.Abs(car.SteerCurvature);
         }
 
+        /// <summary>
+        /// Which end is giving up first, in words. "The car did not rotate" and "the car would not
+        /// turn in" feel similar at the wheel and have opposite fixes, so naming which one is
+        /// happening saves tuning the wrong number.
+        /// </summary>
+        private string BalanceText()
+        {
+            float front = car.FrontAxleGrip;
+            float rear = car.RearAxleGrip;
+
+            if (front <= 0f && rear <= 0f) return "-";
+
+            // A tenth of a m/s2 either way is not a handling characteristic, it is arithmetic noise.
+            if (Mathf.Abs(front - rear) < 0.1f) return "neutral";
+
+            return front > rear ? "rear lets go first (oversteer)" : "front lets go first (understeer)";
+        }
+
         private string TurnRadiusText()
         {
             float curvature = Mathf.Abs(car.SteerCurvature);
             if (curvature < 0.0005f) return "straight";
             return $"{1f / curvature:0.0} m";
+        }
+
+        /// <summary>
+        /// State of the skid mark system, because "the marks do not show" has four different causes
+        /// that look identical from the driving seat:
+        ///
+        ///   no SkidMarks object   nothing is recording at all
+        ///   laid 0                marks are never being offered, so the slip threshold or the
+        ///                         grounded check is the problem, not the drawing
+        ///   laid &gt; 0, drawn 0     every ribbon is being broken before two segments can connect
+        ///   drawn &gt; 0, not visible  the geometry is right and the material or renderer is wrong
+        ///
+        /// Reading this line while driving settles which one it is immediately.
+        /// </summary>
+        private string MarksText()
+        {
+            if (_skidMarks == null) return "no SkidMarks in the scene";
+
+            return $"laid {_skidMarks.SegmentsLaid}  drawn {_skidMarks.SegmentsDrawn}  " +
+                   $"{(_skidMarks.IsRenderable ? "renderable" : "NOT RENDERABLE")}";
         }
 
         private string CompressionText()

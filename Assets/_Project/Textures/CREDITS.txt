@@ -1,0 +1,35 @@
+THIRD PARTY ART IN THIS FOLDER
+==============================
+
+FX_Smoke.png       (originally scorch_02.png)
+FX_SkidStreak.png  (originally trace_01.png)
+
+Source   Particle Pack 1.1 by Kenney Vleugels
+         https://kenney.nl/assets/particle-pack
+Licence  Creative Commons Zero (CC0 1.0 Universal, public domain dedication)
+         http://creativecommons.org/publicdomain/zero/1.0/
+
+CC0 permits use in personal and commercial projects with no obligation.
+Kenney asks that credit is given where convenient but does not require it,
+so this file exists to record where the art came from rather than to satisfy
+a licence condition. The pack also credits Indigo Ray, Craig Nisbet, Zoltan
+Erdokovy, Heliagon, ThreeDee, Killst4r and Tim2501 for filter templates.
+
+Renamed on import so the filenames say what they are used for in this
+project rather than what they were called in the pack. Nothing else about
+them was altered.
+
+WHY THESE ARE HERE AT ALL
+The tyre smoke was rendering as plain squares because the particle material
+had no texture, so every particle was an untextured quad. A soft-edged
+grayscale puff is the entire fix, and there is no reason to draw one by hand
+when a public domain pack of them exists.
+
+The tyre marks use FX_SkidStreak sampled as a horizontal band rather than
+the whole image, which is what gives a mark soft edges across the tyre width
+while tiling seamlessly along its length. See markTextureUInset and
+markTextureV on the SkidMarks component.
+
+The rest of the pack, 99 sprites including dirt, flame, scorch, trace, light
+and muzzle variants, is at the URL above under the same licence if more are
+needed.

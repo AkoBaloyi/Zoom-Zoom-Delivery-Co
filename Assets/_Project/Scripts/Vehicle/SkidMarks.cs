@@ -63,7 +63,23 @@ namespace ZoomZoom.Vehicle
         [Header("Look")]
         [Tooltip("Width of a mark, metres. Should be a touch narrower than the tyre so the mark reads " +
                  "as coming from under the wheel rather than from beside it.")]
-        [SerializeField] private float markWidth = 0.24f;
+        [SerializeField] private float markWidth = 0.3f;
+
+        [Tooltip("Slice of the mark texture sampled across the width of the tyre, as a pair of U " +
+                 "coordinates. FX_SkidStreak is a soft vertical streak, so the middle of it is the " +
+                 "part that reads as a tyre mark. Widen this to take in more of the soft halo.")]
+        [SerializeField] private Vector2 markTextureURange = new Vector2(0.42f, 0.58f);
+
+        [Tooltip("Height up the mark texture that every segment samples. Held constant along the " +
+                 "length of the mark on purpose, so consecutive segments tile with no visible seam.")]
+        [Range(0f, 1f)]
+        [SerializeField] private float markTextureV = 0.5f;
+
+        [Tooltip("Opacity of the very faintest mark, before the slide has built up. Without a floor " +
+                 "here a light scuff computes an alpha near zero and simply cannot be seen, which " +
+                 "reads as the marks being broken rather than as a gentle corner.")]
+        [Range(0f, 1f)]
+        [SerializeField] private float minimumOpacity = 0.45f;
 
         [Tooltip("How far the mark is lifted off the ground, metres. Without a small lift the mark " +
                  "and the road occupy the same plane and fight over which one is drawn, which flickers.")]
@@ -125,40 +141,151 @@ namespace ZoomZoom.Vehicle
             // costs one always-visible draw call and removes the problem.
             _mesh.bounds = new Bounds(Vector3.zero, Vector3.one * 10000f);
 
-            GetComponent<MeshFilter>().sharedMesh = _mesh;
+            // Fetched rather than assumed. RequireComponent covers the inspector's Add Component
+            // flow, but this object is also built in code by TyreEffects, and if the attribute ever
+            // fails to fire there the next line is a null dereference inside Awake, which aborts the
+            // component silently and takes the marks with it.
+            MeshFilter filter = GetComponent<MeshFilter>();
+            if (filter == null) filter = gameObject.AddComponent<MeshFilter>();
+            filter.sharedMesh = _mesh;
 
             MeshRenderer renderer = GetComponent<MeshRenderer>();
+            if (renderer == null) renderer = gameObject.AddComponent<MeshRenderer>();
 
             // Saved asset first, then whatever is already on the renderer, then a generated fallback.
             if (markMaterialAsset != null) renderer.sharedMaterial = markMaterialAsset;
-            else if (renderer.sharedMaterial == null) renderer.sharedMaterial = CreateMarkMaterial();
+            else if (renderer.sharedMaterial == null)
+                renderer.sharedMaterial = CreateVertexColouredTransparent("Skid mark");
 
             // Marks lie on the floor and cannot meaningfully cast or receive shadows, and turning
             // both off avoids a shadow pass over a large always-visible mesh.
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             renderer.receiveShadows = false;
+
+            _renderer = renderer;
+
+            // Says out loud what it ended up with. "No skid marks" has several possible causes that
+            // look identical on screen: no material, an opaque material, a missing shader, or marks
+            // never being offered at all. This line separates the first three from the last one
+            // without anyone having to attach a debugger.
+            Material inUse = renderer.sharedMaterial;
+
+            // Whether a texture is bound is called out explicitly, because an untextured particle or
+            // decal material does not fail, it draws a plain quad. That is what made the tyre smoke
+            // look like flying squares, and it is invisible as a cause unless something says so.
+            bool hasTexture = inUse != null
+                              && inUse.HasProperty("_BaseMap")
+                              && inUse.GetTexture("_BaseMap") != null;
+
+            Debug.Log(
+                $"[SkidMarks] Ready. Budget {maxMarks} segments. " +
+                $"Material '{(inUse != null ? inUse.name : "NONE")}' " +
+                $"shader '{(inUse != null && inUse.shader != null ? inUse.shader.name : "NONE")}' " +
+                $"queue {(inUse != null ? inUse.renderQueue : -1)} " +
+                $"texture {(hasTexture ? inUse.GetTexture("_BaseMap").name : "NONE, marks will be hard-edged quads")} " +
+                $"{(markMaterialAsset != null ? "(saved asset)" : "(generated at runtime)")}. " +
+                $"Marks need at least {minimumSlipToMark:0.0} m/s of sideways slide, " +
+                $"and the telemetry overlay counts them on the MARKS line.", this);
         }
+
+        /// <summary>How many segments have been laid since the last Clear. Diagnostics only.</summary>
+        public int SegmentsLaid { get; private set; }
+
+        /// <summary>
+        /// How many segments actually produced drawable triangles, as opposed to the degenerate first
+        /// segment of each slide. If this is zero while SegmentsLaid is not, the marks are being
+        /// recorded but every ribbon is being broken before it can connect, which points at the slip
+        /// threshold or the grounded check rather than at the material.
+        /// </summary>
+        public int SegmentsDrawn { get; private set; }
+
+        /// <summary>Whether the mesh is currently attached to a renderer that could draw it.</summary>
+        public bool IsRenderable =>
+            _renderer != null && _renderer.enabled && _renderer.sharedMaterial != null;
+
+        private MeshRenderer _renderer;
 
         /// <summary>
         /// Vertex-coloured, alpha-blended, unlit. Vertex colour is the important part: it is how one
-        /// mesh carries black rubber on tarmac and pale dust on dirt at the same time. The fallback
-        /// chain covers a project where the URP particle shader is not present.
+        /// mesh carries black rubber on tarmac and pale dust on dirt at the same time.
+        ///
+        /// WHY THIS SETS THE BLEND STATE BY HAND
+        /// The obvious way to make a URP material transparent is SetFloat("_Surface", 1), and that
+        /// does nothing. _Surface, _Blend and _Mode are inputs to URP's material EDITOR, which reads
+        /// them and then writes the real state: _SrcBlend, _DstBlend, _ZWrite, the
+        /// _SURFACE_TYPE_TRANSPARENT keyword and the render queue. Nothing runs that editor code for a
+        /// material built with new Material(), so a runtime material that only sets _Surface keeps the
+        /// shader's defaults of One/Zero and throws the alpha away.
+        ///
+        /// That is what was wrong with the marks. The mesh was correct and the colours were correct,
+        /// and every quad was drawn with its alpha ignored.
+        ///
+        /// The saved FX_SkidMark.mat asset is still the better source, because it was written by that
+        /// editor code and is therefore right by construction. This is the fallback for a car dropped
+        /// into a scene that has no such asset.
         /// </summary>
-        private static Material CreateMarkMaterial()
+        public static Material CreateVertexColouredTransparent(string materialName)
         {
             Shader shader =
                 Shader.Find("Universal Render Pipeline/Particles/Unlit")
+                ?? Shader.Find("Universal Render Pipeline/Unlit")
                 ?? Shader.Find("Sprites/Default")
                 ?? Shader.Find("Legacy Shaders/Particles/Alpha Blended");
 
-            Material material = new Material(shader) { name = "Skid mark" };
+            if (shader == null)
+            {
+                Debug.LogError(
+                    "[SkidMarks] Found no usable shader for tyre marks. Marks will not be visible. " +
+                    "This normally means the URP particle shaders were stripped from the build.");
+                return null;
+            }
 
-            if (material.HasProperty("_Surface")) material.SetFloat("_Surface", 1f);   // transparent
-            if (material.HasProperty("_Blend")) material.SetFloat("_Blend", 0f);       // alpha blend
+            var material = new Material(shader) { name = materialName };
+
+            // The editor-facing hints, kept so the material reads correctly if anyone opens it.
+            if (material.HasProperty("_Surface")) material.SetFloat("_Surface", 1f);
+            if (material.HasProperty("_Blend")) material.SetFloat("_Blend", 0f);
+            if (material.HasProperty("_Mode")) material.SetFloat("_Mode", 0f);
+
+            // The state that actually decides how the pixel lands. Straight alpha blending:
+            // result = source * sourceAlpha + destination * (1 - sourceAlpha).
+            if (material.HasProperty("_SrcBlend"))
+                material.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            if (material.HasProperty("_DstBlend"))
+                material.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+
+            // Newer URP splits the alpha channel's blend out separately. Absent on older versions,
+            // hence the guard rather than an unconditional set.
+            if (material.HasProperty("_SrcBlendAlpha"))
+                material.SetFloat("_SrcBlendAlpha", (float)UnityEngine.Rendering.BlendMode.One);
+            if (material.HasProperty("_DstBlendAlpha"))
+                material.SetFloat("_DstBlendAlpha", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+
+            // Marks lie flat on the road and overlap each other constantly. Writing depth would make
+            // them occlude one another and flicker where two trails cross.
             if (material.HasProperty("_ZWrite")) material.SetFloat("_ZWrite", 0f);
-            if (material.HasProperty("_Cull")) material.SetFloat("_Cull", 0f);         // double sided
+            if (material.HasProperty("_Cull"))
+                material.SetFloat("_Cull", (float)UnityEngine.Rendering.CullMode.Off);
+            if (material.HasProperty("_AlphaClip")) material.SetFloat("_AlphaClip", 0f);
 
-            material.renderQueue = 3000;
+            // The keyword is what selects the transparent variant of the shader. Without it the
+            // opaque variant is compiled and used no matter what the blend floats say.
+            material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            material.DisableKeyword("_ALPHATEST_ON");
+
+            // Queue and tag put the marks in the transparent pass, after the road they sit on.
+            material.SetOverrideTag("RenderType", "Transparent");
+            material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+
+            // No shadow or depth contribution from a decal lying on the floor.
+            material.SetShaderPassEnabled("ShadowCaster", false);
+            material.SetShaderPassEnabled("DepthOnly", false);
+
+            // White base colour and no texture, so the vertex colour is the only thing tinting the
+            // mark. A tint here would multiply against every surface's mark colour.
+            if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", Color.white);
+            if (material.HasProperty("_Color")) material.SetColor("_Color", Color.white);
+
             return material;
         }
 
@@ -212,8 +339,13 @@ namespace ZoomZoom.Vehicle
 
             // Harder slide, darker mark. Multiplied by how well the surface takes a mark at all, so
             // ice records almost nothing and tarmac records everything.
-            float opacity = Mathf.Clamp01(slip / Mathf.Max(0.01f, slipForFullOpacity))
-                            * surface.markStrength;
+            //
+            // Ramped from minimumOpacity rather than from zero. The old version multiplied straight
+            // by slip/slipForFullOpacity, so a mark laid at the 1.2 m/s threshold came out at 0.2 of
+            // the surface colour's alpha, which on a grey floor is invisible. A mark worth recording
+            // at all is worth being able to see.
+            float slip01 = Mathf.Clamp01(slip / Mathf.Max(0.01f, slipForFullOpacity));
+            float opacity = Mathf.Lerp(minimumOpacity, 1f, slip01) * surface.markStrength;
 
             Color colour = surface.markColour;
             colour.a *= opacity;
@@ -237,6 +369,9 @@ namespace ZoomZoom.Vehicle
 
             _lastMarkPerWheel[wheelIndex] = index;
             _lastPositionPerWheel[wheelIndex] = position;
+
+            SegmentsLaid++;
+            if (_marks[index].previous >= 0) SegmentsDrawn++;
 
             _writeIndex = (_writeIndex + 1) % maxMarks;
             _markCount = Mathf.Min(_markCount + 1, maxMarks);
@@ -299,10 +434,17 @@ namespace ZoomZoom.Vehicle
             _colours[v + 2] = mark.colour;
             _colours[v + 3] = mark.colour;
 
-            _uvs[v + 0] = new Vector2(0f, 0f);
-            _uvs[v + 1] = new Vector2(1f, 0f);
-            _uvs[v + 2] = new Vector2(0f, 1f);
-            _uvs[v + 3] = new Vector2(1f, 1f);
+            // U runs across the tyre, V runs along the mark. V is deliberately the SAME at both ends
+            // of the quad, so every segment samples one horizontal line of the texture and the
+            // ribbon tiles with no seam no matter how the segments are spaced.
+            //
+            // The old version used the full 0..1 square. With no texture assigned that looked like a
+            // hard-edged strip, and with a texture assigned it stretched the whole image over every
+            // single segment, which beads the trail instead of softening its edges.
+            _uvs[v + 0] = new Vector2(markTextureURange.x, markTextureV);
+            _uvs[v + 1] = new Vector2(markTextureURange.y, markTextureV);
+            _uvs[v + 2] = new Vector2(markTextureURange.x, markTextureV);
+            _uvs[v + 3] = new Vector2(markTextureURange.y, markTextureV);
 
             if (mark.previous >= 0)
             {
@@ -335,7 +477,13 @@ namespace ZoomZoom.Vehicle
             _mesh.uv = _uvs;
             _mesh.triangles = _triangles;
 
-            // Recalculating bounds would undo the large fixed bounds set in Awake, so it is not done.
+            // Restated, not skipped. Assigning vertices or triangles makes Unity recompute the bounds
+            // itself, so the large fixed volume set in Awake is gone by this point every frame. The
+            // recomputed box spans the world origin, because most of the buffer is still zeroed, out
+            // to the newest mark, which happens to contain everything and hides the problem. Setting
+            // it back keeps culling independent of how much of the buffer has been used.
+            _mesh.bounds = new Bounds(Vector3.zero, Vector3.one * 10000f);
+
             _dirty = false;
         }
 
@@ -347,6 +495,8 @@ namespace ZoomZoom.Vehicle
 
             _writeIndex = 0;
             _markCount = 0;
+            SegmentsLaid = 0;
+            SegmentsDrawn = 0;
 
             for (int i = 0; i < MaxWheels; i++) _lastMarkPerWheel[i] = -1;
 
