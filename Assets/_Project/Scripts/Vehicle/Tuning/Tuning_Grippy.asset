@@ -42,7 +42,7 @@ MonoBehaviour:
   groundMask:
     serializedVersion: 2
     m_Bits: 4294967295
-  topSpeed: 25
+  topSpeed: 32
   accelerationBySpeed:
     serializedVersion: 2
     m_Curve:
@@ -161,7 +161,7 @@ MonoBehaviour:
     m_RotationOrder: 4
   steerInputSmoothTime: 0.05
   maxYawAcceleration: 22
-  lateralGripAcceleration: 18
+  lateralGripAcceleration: 17
   handbrakeGripMultiplier: 0.35
   jumpSpeed: 6.5
   jumpHoldTime: 0.18
@@ -192,16 +192,41 @@ MonoBehaviour:
   rimColour: {r: 0.86, g: 0.88, b: 0.9, a: 1}
   brakeLightOffColour: {r: 0.22, g: 0.03, b: 0.03, a: 1}
   brakeLightOnColour: {r: 3, g: 0.15, b: 0.1, a: 1}
-  cameraDistance: 6.5
-  cameraHeight: 2.7
+  cameraDistance: 4.2
+  cameraHeight: 1.7
   cameraFollowSmoothTime: 0.09
-  cameraLookAhead: 13
+  cameraLookAhead: 28
   cameraLookAtHeight: 1.3
   cameraExtraPitch: 4
-  cameraFieldOfView: 60
+  cameraFieldOfView: 98
   cameraExtraDistanceAtTopSpeed: 2
   cameraExtraHeightAtTopSpeed: 0.6
   cameraVelocityInfluence: 0.15
   cameraRotationSmoothTime: 0.1
   cameraSwivelSpeed: 120
   cameraSwivelRecentreDelay: 1.2
+  accelerationFromFormula: 1
+  launchAcceleration: 22
+  accelerationFalloffPower: 1.7
+  boostEnabled: 1
+  boostTopSpeed: 40
+  boostAcceleration: 16
+  boostCapacity: 100
+  boostConsumptionRate: 33.3
+  boostRechargeRate: 12
+  boostRechargeDelay: 1
+  supersonicThreshold: 38
+  handbrakeDeceleration: 9.5
+  useFrictionCircle: 1
+  frictionCircleStrength: 0.8
+  longitudinalGripReference: 16
+  steerFromGripBudget: 1
+  steerOverdriveAtLowSpeed: 0.6
+  steerOverdriveAtTopSpeed: 1.15
+  maximumCurvature: 0.35
+  perAxleGrip: 1
+  gripBalance: 0.58
+  handbrakeRearGripMultiplier: 0.22
+  driftYawAuthority: 0.55
+  driftSlipAngleThreshold: 12
+  driftMinimumSpeed: 4
