@@ -9,7 +9,7 @@ EditorBuildSettings:
     path: Assets/Scenes/SampleScene.unity
     guid: 99c9720ab356a0642a771bea13969a05
   - enabled: 0
-    path: Assets/_Project/Scenes/VehicleLab.unity
+    path: Assets/Project/Scenes/VehicleLab.unity
     guid: 1a2b3c4d5e6f708192a3b4c5d6e7f814
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
