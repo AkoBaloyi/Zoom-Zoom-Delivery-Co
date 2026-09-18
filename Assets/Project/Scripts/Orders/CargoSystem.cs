@@ -4,23 +4,27 @@ using UnityEngine;
 namespace ZoomZoom.Orders
 {
     /// <summary>
-    /// The cargo hold: accepts orders up to Capacity, refusing a pickup once full. This used to be
-    /// a single nullable slot; it's now a list, since capacity is 3, not 1, per direct request.
+    /// The cargo hold: accepts orders up to Capacity, refusing a pickup once full. Internally this
+    /// is a list rather than one nullable order, since Capacity will genuinely change as the group
+    /// reaches Tasks 19 and 25 (two-slot, then three-slot), and a list scales to that without
+    /// needing to be rewritten, unlike a single field would.
     ///
-    /// A NOTE ON SCOPE
-    /// The Design Document's Scope section describes the MVP starting at one slot, with two and
-    /// three slots arriving later as an XP/money-gated upgrade (Tasks 19 and 25). Setting capacity
-    /// to 3 here skips that gating entirely rather than building toward it. That's a fine call to
-    /// make deliberately for prototyping and testing the core loop with more pressure, it's a
-    /// different thing from having decided the progression system isn't needed. Worth a line in
-    /// Changes either way, since it's a real, visible divergence from what's written down.
+    /// CURRENT CAPACITY: 1, matching Task 8 and the pre-alpha milestone. It was briefly set to 3
+    /// directly, skipping past Tasks 19 and 25 (scheduled after Milestone 1 and Milestone 2
+    /// respectively) and past the XP/money gating Scope describes for those upgrades. Reverted:
+    /// representing capacity that hasn't been earned through any system that exists yet
+    /// misrepresents where the build actually is, not just the design intent.
     /// </summary>
     [DisallowMultipleComponent]
     public class CargoSystem : MonoBehaviour
     {
         [Header("Capacity")]
-        [Tooltip("How many orders can be carried at once.")]
-        [SerializeField] private int capacity = 3;
+        [Tooltip("How many orders can be carried at once. MVP/pre-alpha scope is 1, per Task 8. " +
+                 "Do not raise this until the task it actually belongs to is reached: Task 19 " +
+                 "(two-slot, scheduled after Milestone 1) or Task 25 (three-slot, scheduled after " +
+                 "Milestone 2), since raising it earlier represents progression the player hasn't " +
+                 "earned through any system that exists yet.")]
+        [SerializeField] private int capacity = 1;
 
         [Header("Debug")]
         [SerializeField] private bool logActivity = true;
