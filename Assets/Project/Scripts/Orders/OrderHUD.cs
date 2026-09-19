@@ -189,7 +189,7 @@ namespace ZoomZoom.Orders.UI
             panelRect.sizeDelta = panelSize;
 
             float y = -12f;
-            const float lineHeight = 30f;
+            const float lineHeight = 45f;
 
             _timerLine = CreateLine(panelRect, "Timer", ref y, lineHeight, fontSize + 4, normalColour);
             _timerLine.fontStyle = FontStyle.Bold;
