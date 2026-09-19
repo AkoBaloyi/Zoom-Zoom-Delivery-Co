@@ -104,30 +104,39 @@ namespace ZoomZoom.Orders.UI
         /// screen) or clamps it to the screen edge with a rotated arrow (off screen, including
         /// straight behind the camera, which needs its own flip before the normal clamp math works).
         /// </summary>
+        /// <summary>
+        /// Projects target into screen space when it's genuinely in front of and within the
+        /// camera's view, otherwise computes the clamp direction from the camera's own local axes
+        /// rather than from the projected screen position.
+        ///
+        /// WHY NOT JUST USE WorldToScreenPoint'S z SIGN
+        /// The original version flipped screenPoint through the centre whenever z was negative,
+        /// the usual trick for a point behind the camera. That works exactly at and past 180
+        /// degrees from forward, but perspective projection has a genuine singularity at 90
+        /// degrees to either side, tan(90) is undefined, so screenPoint.x shoots toward infinity
+        /// there while z is still technically positive. The arrow would jump or fail to clamp
+        /// sensibly right around "directly to the side", which is exactly the case reported:
+        /// arrows not appearing correctly whenever the player wasn't already facing the target.
+        /// Camera-local direction (right/up relative to the camera, from InverseTransformDirection)
+        /// has no such singularity in any direction, including straight behind.
+        /// </summary>
         private void PlaceMarker(MarkerSlot slot, Vector3 target, Color colour, float timeRemaining)
         {
             slot.Root.gameObject.SetActive(true);
 
-            Vector3 screenPoint = targetCamera.WorldToScreenPoint(target);
-            bool behindCamera = screenPoint.z < 0f;
+            Vector3 toTarget = target - targetCamera.transform.position;
+            Vector3 localDir = targetCamera.transform.InverseTransformDirection(toTarget);
 
-            if (behindCamera)
-            {
-                // A point behind the camera projects to the correct screen position mirrored
-                // through the centre; flipping it here is what stops the arrow from briefly
-                // pointing the wrong way as a target passes behind the player.
-                screenPoint.x = Screen.width - screenPoint.x;
-                screenPoint.y = Screen.height - screenPoint.y;
-            }
+            bool inFront = localDir.z > 0.01f;
 
             float halfW = Screen.width * 0.5f;
             float halfH = Screen.height * 0.5f;
 
-            bool onScreen = !behindCamera
+            Vector3 screenPoint = inFront ? targetCamera.WorldToScreenPoint(target) : Vector3.zero;
+
+            bool onScreen = inFront
                              && screenPoint.x >= 0f && screenPoint.x <= Screen.width
                              && screenPoint.y >= 0f && screenPoint.y <= Screen.height;
-
-            Vector2 fromCentre = new Vector2(screenPoint.x - halfW, screenPoint.y - halfH);
 
             Vector2 finalScreenPos;
             float rotationDegrees;
@@ -141,7 +150,13 @@ namespace ZoomZoom.Orders.UI
             }
             else
             {
-                Vector2 dir = fromCentre.sqrMagnitude > 0.001f ? fromCentre.normalized : Vector2.up;
+                // Camera-local right (x) and up (y). Directly behind the camera both approach
+                // zero, an inherent ambiguity, "which side is directly behind me" has no real
+                // answer, so a stable default direction is used rather than letting floating
+                // point noise pick unpredictably.
+                Vector2 dir = new Vector2(localDir.x, localDir.y);
+                if (dir.sqrMagnitude < 0.0001f) dir = Vector2.up;
+                dir.Normalize();
 
                 float availableW = halfW - edgeMargin;
                 float availableH = halfH - edgeMargin;
@@ -153,8 +168,6 @@ namespace ZoomZoom.Orders.UI
                 Vector2 clamped = dir * scale;
                 finalScreenPos = new Vector2(halfW + clamped.x, halfH + clamped.y);
 
-                // Sprite's tip points up (0 degrees) before rotation, atan2 measures from the
-                // positive X axis, so subtracting 90 aligns "up" with the actual direction.
                 rotationDegrees = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg - 90f;
                 showArrowRotated = true;
             }

@@ -3429,8 +3429,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2ffffd6a82600ce4bb4230174cba75ba, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.OrderFlowTestHarness
-  orderManager: {fileID: 816895044}
-  cargoSystem: {fileID: 935175481}
 --- !u!4 &451147751
 Transform:
   m_ObjectHideFlags: 0
@@ -4400,7 +4398,7 @@ GameObject:
   - component: {fileID: 592668313}
   - component: {fileID: 592668314}
   - component: {fileID: 592668315}
-  - component: {fileID: 592668330}
+  - component: {fileID: 592668316}
   m_Layer: 0
   m_Name: Car
   m_TagString: Player
@@ -4595,6 +4593,25 @@ MonoBehaviour:
   show: 1
   toggleKey: 103
   drawVectors: 1
+--- !u!114 &592668316
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 592668305}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6c6239d78dc6b374daa7df0491bd32e7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.ZoneDetection
+  orderManager: {fileID: 816895044}
+  cargoSystem: {fileID: 935175481}
+  pickupRadius: 6
+  dropOffRadius: 6
+  checkInterval: 0.1
+  logActivity: 1
+  drawGizmos: 1
 --- !u!1 &592668320
 GameObject:
   m_ObjectHideFlags: 0
@@ -6760,8 +6777,10 @@ Material:
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
   m_CustomRenderQueue: -1
-  stringTagMap: {}
-  disabledShaderPasses: []
+  stringTagMap:
+    RenderType: Opaque
+  disabledShaderPasses:
+  - MOTIONVECTORS
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
@@ -6858,7 +6877,7 @@ Material:
     - _ZWrite: 1
     m_Colors:
     - _BaseColor: {r: 0.75, g: 0.2, b: 0.2, a: 1}
-    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _Color: {r: 0.75, g: 0.19999996, b: 0.19999996, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
   m_BuildTextureStacks: []
@@ -7492,9 +7511,7 @@ GameObject:
   m_Component:
   - component: {fileID: 816895045}
   - component: {fileID: 816895044}
-  - component: {fileID: 816895050}
-  - component: {fileID: 816895051}
-  - component: {fileID: 816895052}
+  - component: {fileID: 816895046}
   m_Layer: 0
   m_Name: OrderManager
   m_TagString: Untagged
@@ -7502,88 +7519,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &592668330
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 592668305}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6c6239d78dc6b374daa7df0491bd32e7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.ZoneDetection
-  orderManager: {fileID: 816895044}
-  cargoSystem: {fileID: 935175481}
-  pickupRadius: 6
-  dropOffRadius: 6
-  checkInterval: 0.1
-  logActivity: 1
-  drawGizmos: 1
---- !u!114 &816895050
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 816895043}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a2178eaf0ce505243821b0c26ff71a13, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.ShiftTimer
-  orderManager: {fileID: 816895044}
-  shiftDurationSeconds: 300
-  startAutomatically: 1
-  logActivity: 1
---- !u!114 &816895051
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 816895043}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 051cd210914a68e42b68cbbfd39ed9f3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.UI.OrderHUD
-  orderManager: {fileID: 816895044}
-  cargoSystem: {fileID: 935175481}
-  shiftTimer: {fileID: 816895050}
-  panelPosition: {x: 24, y: -24}
-  panelSize: {x: 420, y: 340}
-  fontSize: 34
-  headerFontSize: 20
-  orderLineSlots: 6
-  normalColour: {r: 1, g: 1, b: 1, a: 1}
-  warningColour: {r: 1, g: 0.75, b: 0.2, a: 1}
-  carriedColour: {r: 0.45, g: 0.85, b: 1, a: 1}
-  panelColour: {r: 0, g: 0, b: 0, a: 0.55}
-  warningThreshold: 10
---- !u!114 &816895052
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 816895043}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 93313f7b5e1d2cd4c9e54e7265b637a8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.UI.DestinationMarker
-  orderManager: {fileID: 816895044}
-  targetCamera: {fileID: 0}
-  markerPoolSize: 6
-  markerSize: 64
-  edgeMargin: 60
-  distanceFontSize: 22
-  pickupColour: {r: 0.3, g: 0.65, b: 1, a: 0.95}
-  dropOffColour: {r: 0.35, g: 0.95, b: 0.45, a: 0.95}
-  urgentColour: {r: 1, g: 0.25, b: 0.2, a: 0.95}
-  urgentBelowSeconds: 8
 --- !u!114 &816895044
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7618,6 +7553,22 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &816895046
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 816895043}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a2178eaf0ce505243821b0c26ff71a13, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.ShiftTimer
+  orderManager: {fileID: 0}
+  shiftDurationSeconds: 300
+  startAutomatically: 1
+  logActivity: 1
 --- !u!1 &825032467
 GameObject:
   m_ObjectHideFlags: 0
@@ -9603,6 +9554,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 250347cebb58b514babc1e4b307d187f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.CargoSystem
+  capacity: 1
   logActivity: 1
 --- !u!4 &935175482
 Transform:
@@ -9709,6 +9661,86 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 967445326}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &1027706768
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1027706771}
+  - component: {fileID: 1027706770}
+  - component: {fileID: 1027706769}
+  m_Layer: 0
+  m_Name: OrderHUD
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1027706769
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1027706768}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 93313f7b5e1d2cd4c9e54e7265b637a8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.UI.DestinationMarker
+  orderManager: {fileID: 816895044}
+  targetCamera: {fileID: 1222278761}
+  markerPoolSize: 6
+  markerSize: 64
+  edgeMargin: 60
+  distanceFontSize: 22
+  pickupColour: {r: 0.3, g: 0.65, b: 1, a: 0.95}
+  dropOffColour: {r: 0.35, g: 0.95, b: 0.45, a: 0.95}
+  urgentColour: {r: 1, g: 0.25, b: 0.2, a: 0.95}
+  urgentBelowSeconds: 8
+--- !u!114 &1027706770
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1027706768}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 051cd210914a68e42b68cbbfd39ed9f3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.UI.OrderHUD
+  orderManager: {fileID: 816895044}
+  cargoSystem: {fileID: 935175481}
+  shiftTimer: {fileID: 0}
+  panelPosition: {x: 24, y: -450}
+  panelSize: {x: 420, y: 340}
+  fontSize: 26
+  headerFontSize: 29
+  orderLineSlots: 6
+  normalColour: {r: 1, g: 1, b: 1, a: 1}
+  warningColour: {r: 1, g: 0.75, b: 0.2, a: 1}
+  carriedColour: {r: 0.45, g: 0.85, b: 1, a: 1}
+  panelColour: {r: 0, g: 0, b: 0, a: 0.55}
+  warningThreshold: 10
+--- !u!4 &1027706771
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1027706768}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.71429, y: 0.5, z: 0.71429}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1035867310
 GameObject:
   m_ObjectHideFlags: 0
@@ -20318,3 +20350,4 @@ SceneRoots:
   - {fileID: 451147751}
   - {fileID: 935175482}
   - {fileID: 592668321}
+  - {fileID: 1027706771}
