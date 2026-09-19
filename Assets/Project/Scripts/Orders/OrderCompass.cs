@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using ZoomZoom.Orders.UI;
 
 namespace ZoomZoom.Orders
 {
@@ -49,6 +50,24 @@ namespace ZoomZoom.Orders
             OrderManager manager = Object.FindAnyObjectByType<OrderManager>();
             if (manager == null) return;
             if (manager.GetComponent<OrderCompass>() != null) return;
+
+            // Stand down if the real HUD is present.
+            //
+            // This was written as a development view while there was no UI at all, and it says so at
+            // the top of the file. DestinationMarker now does the same job through a proper Canvas, so
+            // attaching anyway would put two sets of arrows on screen pointing at the same places,
+            // which is worse than either alone and reads as a bug rather than as two systems.
+            //
+            // Checked by type rather than by a serialised toggle so nobody has to remember to switch
+            // this off, and so it comes back on its own if the real marker is ever removed.
+            if (Object.FindAnyObjectByType<DestinationMarker>() != null)
+            {
+                Debug.Log(
+                    "[OrderCompass] DestinationMarker is in the scene, so the development compass is " +
+                    "standing down to avoid drawing a second set of arrows. Delete or disable " +
+                    "DestinationMarker if you want this one back.");
+                return;
+            }
 
             manager.gameObject.AddComponent<OrderCompass>();
 

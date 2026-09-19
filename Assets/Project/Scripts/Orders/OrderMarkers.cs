@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using ZoomZoom.Orders.UI;
 
 namespace ZoomZoom.Orders
 {
@@ -35,13 +36,25 @@ namespace ZoomZoom.Orders
 
             if (manager.GetComponent<OrderMarkers>() != null) return;
 
-            manager.gameObject.AddComponent<OrderMarkers>();
+            OrderMarkers markers = manager.gameObject.AddComponent<OrderMarkers>();
+
+            // The ground rings stay, because nothing else draws them and they are what tells the
+            // player where to STOP. The on-screen order list does not: OrderHUD now does that job
+            // through a real Canvas, and two lists of the same orders in two corners is clutter.
+            //
+            // So the world-space half of this component survives and the screen-space half retires,
+            // decided by what is actually in the scene rather than by a setting somebody has to
+            // remember. The reference to OrderFlowTestHarness is gone from the message too: real zone
+            // detection exists now, and the C and V keys it described were removed with it.
+            bool realHudPresent = Object.FindAnyObjectByType<OrderHUD>() != null;
+            if (realHudPresent) markers.orderList = false;
 
             Debug.Log(
-                "[OrderMarkers] Attached to the order system. F11 hides the beacons and the order list. " +
-                "Cargo pickup and delivery are still driven by OrderFlowTestHarness until real zone " +
-                "detection exists: C collects the oldest active order, V delivers what is carried, " +
-                "L logs every order's state.");
+                "[OrderMarkers] Attached to the order system. Rings are painted on the ground at the " +
+                "pickup and drop-off points, and F11 hides them. " +
+                (realHudPresent
+                    ? "OrderHUD is present, so the built-in order list is switched off and the HUD owns it."
+                    : "No OrderHUD found, so the built-in order list is being drawn as a fallback."));
         }
 
         [Header("Wiring")]
