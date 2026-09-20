@@ -1373,7 +1373,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 397b3941cef52cb45a0b28cdc8ca273d, type: 3}
       propertyPath: m_Name
-      value: Group 18 Greybox draft 1
+      value: Group 15 Greybox real one
       objectReference: {fileID: 0}
     - target: {fileID: 997999052853938494, guid: 397b3941cef52cb45a0b28cdc8ca273d, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
