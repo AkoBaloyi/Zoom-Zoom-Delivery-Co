@@ -3409,7 +3409,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 451147751}
-  - component: {fileID: 451147750}
   m_Layer: 0
   m_Name: OrderFlow
   m_TagString: Untagged
@@ -3417,18 +3416,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &451147750
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 451147749}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2ffffd6a82600ce4bb4230174cba75ba, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.OrderFlowTestHarness
 --- !u!4 &451147751
 Transform:
   m_ObjectHideFlags: 0
@@ -15089,7 +15076,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: -1, z: 180}
-  m_LocalScale: {x: 504, y: 2, z: 440}
+  m_LocalScale: {x: 1008, y: 2, z: 1008}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 501700933}

@@ -202,3 +202,16 @@ Packages/packages-lock.json linguist-generated
 *.OTF                   lfs
 *.CUBEMAP               lfs
 *.UNITYPACKAGE          lfs
+
+# Local addition: the measurement log is append-only, so union-merge it.
+#
+# Every branch runs the vehicle lab and every branch appends rows to this one
+# file, which made it conflict on four separate merges in a row. There is no
+# real disagreement to resolve: each row is a reading somebody took, and the
+# correct answer is always "keep both sides". Union tells git that directly
+# instead of stopping to ask a human who will only ever say the same thing.
+#
+# Safe here precisely because the file is append-only. Do NOT copy this to a
+# file where two people edit the same line, because union keeps both versions
+# of it and produces nonsense rather than a conflict.
+VehicleLab_Measurements/*.csv   text eol=lf merge=union
