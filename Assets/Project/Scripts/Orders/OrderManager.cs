@@ -24,6 +24,16 @@ namespace ZoomZoom.Orders
         [SerializeField] private Transform[] dropOffPoints;
 
         [Header("Test points (used only if the arrays above are empty)")]
+        [Tooltip("Constrain generated test points to this collider's world bounds, e.g. the " +
+                 "Floor's Box Collider. If assigned, this takes priority over the ring below, " +
+                 "since it keeps orders spawning inside the actual level rather than a shape " +
+                 "guessed at before the level existed.")]
+        [SerializeField] private Collider floorBounds;
+
+        [Tooltip("Keep generated points this far in from the floor's edge, so an order never " +
+                 "spawns inside a wall or right at the boundary.")]
+        [SerializeField] private float floorEdgeMargin = 5f;
+
         [SerializeField] private bool generateTestPointsIfEmpty = true;
         [SerializeField] private int testPointCount = 6;
         [SerializeField] private float testPointRadius = 60f;
@@ -87,6 +97,12 @@ namespace ZoomZoom.Orders
                 return;
             }
 
+            if (floorBounds != null)
+            {
+                GenerateBoundedTestPoints();
+                return;
+            }
+
             if (!generateTestPointsIfEmpty)
             {
                 Debug.LogError(
@@ -116,6 +132,53 @@ namespace ZoomZoom.Orders
             Debug.Log($"[OrderManager] No real points assigned. Generated {count} placeholder " +
                       $"pickup/drop-off pairs on a {testPointRadius:0} m ring. Replace with real " +
                       "greybox points once the route exists.");
+        }
+
+        /// <summary>
+        /// Scatters test points inside floorBounds instead of the origin-centred ring, so orders
+        /// only ever spawn inside the actual greybox rather than a shape guessed at before it
+        /// existed. Reads the collider's real world bounds, so this stays correct if the floor is
+        /// moved or resized later, nothing here is a hardcoded coordinate.
+        /// </summary>
+        private void GenerateBoundedTestPoints()
+        {
+            Bounds bounds = floorBounds.bounds;
+
+            float minX = bounds.min.x + floorEdgeMargin;
+            float maxX = bounds.max.x - floorEdgeMargin;
+            float minZ = bounds.min.z + floorEdgeMargin;
+            float maxZ = bounds.max.z - floorEdgeMargin;
+
+            if (minX >= maxX || minZ >= maxZ)
+            {
+                Debug.LogError(
+                    "[OrderManager] floorBounds is too small for the current floorEdgeMargin, " +
+                    "there is no room left to place a point inside it. Falling back to the ring.",
+                    this);
+                floorBounds = null;
+                ResolvePickupAndDropOffPoints();
+                return;
+            }
+
+            float groundY = bounds.max.y + 0.1f;
+            int count = Mathf.Max(2, testPointCount);
+
+            _pickupPositions = new Vector3[count];
+            _dropOffPositions = new Vector3[count];
+
+            for (int i = 0; i < count; i++)
+            {
+                _pickupPositions[i] = new Vector3(
+                    UnityEngine.Random.Range(minX, maxX), groundY, UnityEngine.Random.Range(minZ, maxZ));
+
+                _dropOffPositions[i] = new Vector3(
+                    UnityEngine.Random.Range(minX, maxX), groundY, UnityEngine.Random.Range(minZ, maxZ));
+            }
+
+            Debug.Log($"[OrderManager] No real points assigned. Generated {count} pickup and " +
+                      $"{count} drop-off points inside {floorBounds.name}'s bounds " +
+                      $"({floorEdgeMargin:0}m edge margin). Replace with real greybox points once " +
+                      "specific delivery locations exist.");
         }
 
         private void TrySpawn(float dt)
