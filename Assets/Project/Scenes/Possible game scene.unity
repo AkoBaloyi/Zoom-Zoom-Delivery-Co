@@ -249,37 +249,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1148610072}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &451147749
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 451147751}
-  m_Layer: 0
-  m_Name: OrderFlow
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &451147751
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 451147749}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.9, y: 0.63, z: 0.9}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &501700932
 GameObject:
   m_ObjectHideFlags: 0
@@ -782,7 +751,7 @@ MonoBehaviour:
   pickupPoints: []
   dropOffPoints: []
   floorBounds: {fileID: 1551314018}
-  floorEdgeMargin: 5
+  floorEdgeMargin: 7
   generateTestPointsIfEmpty: 1
   testPointCount: 6
   testPointRadius: 60
@@ -814,10 +783,70 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a2178eaf0ce505243821b0c26ff71a13, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.ShiftTimer
-  orderManager: {fileID: 0}
+  orderManager: {fileID: 816895044}
   shiftDurationSeconds: 300
   startAutomatically: 1
   logActivity: 1
+--- !u!1 &839860372
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 839860374}
+  - component: {fileID: 839860373}
+  m_Layer: 0
+  m_Name: OrderMarkers
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &839860373
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 839860372}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b953786236e6dcf43b8de7a63baa5080, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.OrderMarkers
+  orderManager: {fileID: 816895044}
+  show: 1
+  toggleKey: 104
+  worldMarkers: 0
+  orderList: 1
+  orderListFontSize: 22
+  orderListWidth: 400
+  ringRadius: 6
+  ringThickness: 0.9
+  ringGroundOffset: 0.06
+  ringSegments: 64
+  pillarHeight: 9
+  pickupColour: {r: 0.2, g: 0.75, b: 1, a: 0.55}
+  dropOffColour: {r: 0.3, g: 1, b: 0.4, a: 0.7}
+  urgentColour: {r: 1, g: 0.25, b: 0.15, a: 0.85}
+  urgentBelowSeconds: 8
+--- !u!4 &839860374
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 839860372}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 40.41641, y: 11.61642, z: -75.87012}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &935175480
 GameObject:
   m_ObjectHideFlags: 0
@@ -875,6 +904,7 @@ GameObject:
   - component: {fileID: 1027706771}
   - component: {fileID: 1027706770}
   - component: {fileID: 1027706769}
+  - component: {fileID: 1027706772}
   m_Layer: 0
   m_Name: OrderHUD
   m_TagString: Untagged
@@ -900,10 +930,13 @@ MonoBehaviour:
   markerSize: 64
   edgeMargin: 60
   distanceFontSize: 22
+  idFontSize: 30
   pickupColour: {r: 0.3, g: 0.65, b: 1, a: 0.95}
   dropOffColour: {r: 0.35, g: 0.95, b: 0.45, a: 0.95}
   urgentColour: {r: 1, g: 0.25, b: 0.2, a: 0.95}
   urgentBelowSeconds: 8
+  pulseSpeed: 4
+  pulseScaleAmount: 0.12
 --- !u!114 &1027706770
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -918,7 +951,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.UI.OrderHUD
   orderManager: {fileID: 816895044}
   cargoSystem: {fileID: 935175481}
-  shiftTimer: {fileID: 0}
+  shiftTimer: {fileID: 816895046}
   panelPosition: {x: 24, y: -450}
   panelSize: {x: 420, y: 340}
   fontSize: 26
@@ -944,6 +977,31 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1027706772
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1027706768}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b534c076f784b914eb8bdc8e98ca9fa8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.UI.OrderBeacon
+  orderManager: {fileID: 816895044}
+  poolSize: 6
+  beamHeight: 14
+  beamRadius: 0.55
+  numberFontSize: 64
+  numberCharacterSize: 0.3
+  numberHeightAboveBeam: 1.5
+  pickupColour: {r: 0.15, g: 0.55, b: 1, a: 1}
+  dropOffColour: {r: 0.1, g: 1, b: 0.25, a: 1}
+  urgentColour: {r: 1, g: 0.05, b: 0.05, a: 1}
+  urgentBelowSeconds: 8
+  pulseSpeed: 3
+  pulseScaleAmount: 0.18
 --- !u!1 &1148610071
 GameObject:
   m_ObjectHideFlags: 0
@@ -12112,8 +12170,8 @@ SceneRoots:
   - {fileID: 1222278762}
   - {fileID: 228251578}
   - {fileID: 816895045}
-  - {fileID: 451147751}
   - {fileID: 935175482}
   - {fileID: 592668321}
   - {fileID: 1027706771}
   - {fileID: 5346108521098718522}
+  - {fileID: 839860374}
