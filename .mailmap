@@ -1,0 +1,17 @@
+# Maps git author names onto one identity per person.
+#
+# WHY THIS EXISTS
+# Ako's commits are split across two author names, "AkoBaloyi" and "Ako Baloyi", both from the
+# same email address. git shortlog therefore reports four contributors for a team of three,
+# which misrepresents the contribution split in a submission that is partly marked on
+# contribution. The real split is Ako 37, Zubuhle 21, Kyuri 7.
+#
+# A mailmap fixes the reporting without rewriting any commit. History is untouched; git simply
+# canonicalises the name when it reports. Rewriting history to fix a display name would have
+# changed every commit hash on every branch for all three of us, which is a far worse trade.
+#
+# Applies to git shortlog, git log and git blame automatically.
+
+Ako Baloyi <Akobaloyi01@gmail.com> AkoBaloyi <Akobaloyi01@gmail.com>
+Zubuhle Nel <Zubuhle01@gmail.com> Za <Zubuhle01@gmail.com>
+Kyuri Reddy <kyuri.reddy@gmail.com> Kyuri <kyuri.reddy@gmail.com>

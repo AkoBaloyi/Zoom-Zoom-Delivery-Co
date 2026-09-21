@@ -114,14 +114,7 @@ InitTestScene*.unity*
 # The upstream template ignores *.sln but predates *.slnx.
 *.slnx
 
-# Teammate-local editor settings.
-.vscode/
-.idea/
-
-# Documentation and repository tooling are not part of the game snapshot.
-docs/
-
-# AI development tooling output.
+# Local addition: AI development tooling output. Requirement 2.1.
 .kiro/
 .cursor/
 .claude/
@@ -131,17 +124,21 @@ docs/
 CLAUDE.md
 AGENTS.md
 
-# Planning-only material, not part of the game snapshot.
+# Local addition: planning-only material, not part of the submission.
+# Requirement 2.2. Spec documents, steering files and hooks live under
+# .kiro/ and are covered by the pattern above.
 planning/
 notes/
 *.plan.md
 
-# Python and test-tool caches.
-__pycache__/
-*.py[cod]
-.pytest_cache/
-.hypothesis/
-.mypy_cache/
-.ruff_cache/
-.coverage
-htmlcov/
+# Local addition: docs/ is submission material and is tracked, with one exception.
+#
+# Requirement 2.6 names README.md, docs/CREDITS.md, docs/BUILD-LOG.md and docs/GIT-RULES.md as
+# submission material that must be tracked, and the README links to the last three. While docs/
+# was ignored wholesale those three links resolved to nothing for anyone who cloned, which made
+# the entire technical documentation layer invisible to a marker.
+#
+# The prompt pack is the exception. It is a set of AI prompts and rubric notes, which is exactly
+# the planning and AI-tooling material Requirements 2.1 and 2.2 exclude. It is working material
+# for writing the submission, not part of it.
+docs/M1-GEMINI-PROMPT-PACK.md

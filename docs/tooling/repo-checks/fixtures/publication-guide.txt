@@ -1,0 +1,67 @@
+Publication_Guide
+=================
+
+This guide is copy-ready text for Ako to run by hand. The setup process performed no remote repository creation, push, invitation, credential use, or other remote operation.
+
+Detected GitHub CLI version: 2.91.0. The GitHub CLI path applies. Replace each angle-bracketed placeholder with the real account or teammate username before running a command.
+
+Private repository creation, origin, and main
+
+Run these three commands in this order. Private visibility is explicit in the creation command:
+
+gh repo create zoom-zoom-delivery-co --private
+git remote add origin https://github.com/<owner>/zoom-zoom-delivery-co.git
+git push -u origin main
+
+Feature branches
+
+After the main push succeeds, push each feature branch with upstream tracking:
+
+git push -u origin feature/vehicle-camera
+git push -u origin feature/orders-cargo
+git push -u origin feature/greybox-ui
+
+Write invitations
+
+Send exactly one write invitation to each teammate:
+
+gh api -X PUT repos/<owner>/zoom-zoom-delivery-co/collaborators/<kyuri-username> -f permission=push
+gh api -X PUT repos/<owner>/zoom-zoom-delivery-co/collaborators/<zubuhle-username> -f permission=push
+
+Each invitation stays pending until the invitee accepts it and expires 7 days after it is sent.
+
+Verification
+
+After Ako runs the publication commands, run:
+
+gh repo view <owner>/zoom-zoom-delivery-co --json visibility,defaultBranchRef
+git ls-remote --heads origin
+gh api repos/<owner>/zoom-zoom-delivery-co/invitations
+
+The expected evidence is private visibility with main as the default branch, four remote heads (main, feature/vehicle-camera, feature/orders-cargo, and feature/greybox-ui), and two collaborator invitations pending or accepted.
+
+Failure paths
+
+First check authentication with:
+
+gh auth status
+
+If that reports no authenticated account, run:
+
+gh auth login
+
+Do not run the remaining publication commands until GitHub CLI reports a signed-in account name.
+
+If zoom-zoom-delivery-co is already taken on the account, either choose another repository name and use that name consistently in the creation and remote URL, or attach the existing private repository as origin and continue with the pushes only after confirming it is the intended repository. A failed creation attempt leaves the local repository and all four local branches unchanged.
+
+github.com fallback when GitHub CLI is unavailable
+
+On github.com, create a new repository and explicitly select Private visibility. Then use the same origin command, main push, and three feature-branch push commands above so main and every feature branch receive upstream tracking. In the repository, open Settings > Collaborators and issue one invitation with the write role to Kyuri and one with the write role to Zubuhle.
+
+Git LFS allowance
+
+A Git LFS enabled repository draws on the account's storage and bandwidth allowance. The free allowance is 1 GB of storage and 1 GB of bandwidth per month. Exceeding either allowance requires purchasing additional capacity before further LFS pushes or clones succeed.
+
+Private visibility
+
+No command in this guide changes repository visibility from private to public. Public visibility can occur only if Ako changes the visibility setting by hand in the GitHub repository settings.

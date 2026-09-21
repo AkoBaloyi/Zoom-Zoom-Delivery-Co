@@ -1,0 +1,47 @@
+Editor_Setup_Guide
+==================
+
+Current settings report (read-only)
+
+Setting | File read | Current | Required | Verdict
+Asset Serialization | ProjectSettings/EditorSettings.asset | Force Text (m_SerializationMode: 2) | Force Text | already correct
+Version Control Mode | ProjectSettings/VersionControlSettings.asset | Visible Meta Files | Visible Meta Files | already correct
+
+Both settings files were read and left unchanged.
+
+Manual settings and reasons
+
+At Edit > Project Settings > Editor, set Asset Serialization to Force Text. Force Text stores scenes and prefabs as line-diffable YAML that the Merge_Tool can combine.
+
+At Edit > Project Settings > Version Control, set Mode to Visible Meta Files. Visible .meta files carry the asset GUIDs that keep scene and prefab references intact on every machine.
+
+If ProjectSettings/EditorSettings.asset or ProjectSettings/VersionControlSettings.asset cannot be read, report the path that failed, leave both files unchanged, and have Ako confirm Force Text and Visible Meta Files by hand in the Unity Editor before the first commit.
+
+Unity Smart Merge
+
+Unity version: 6000.5.4f1
+UnityYAMLMerge.exe path: C:\Program Files\Unity\Hub\Editor\6000.5.4f1\Editor\Data\Tools\UnityYAMLMerge.exe
+Existence-check verdict: present
+
+Run these three commands once in each teammate's own clone:
+
+git config merge.unityyamlmerge.name "Unity Smart Merge"
+git config merge.unityyamlmerge.driver "'C:/Program Files/Unity/Hub/Editor/6000.5.4f1/Editor/Data/Tools/UnityYAMLMerge.exe' merge -p --force %O %B %A %A"
+git config merge.unityyamlmerge.recursive binary
+
+The tool path is quoted because it contains spaces. Forward slashes are used because Git invokes the driver through its bundled shell. In %O %B %A %A, the arguments are base, theirs, mine, and output, in that order. The *.unity and *.prefab patterns are assigned to unityyamlmerge by .gitattributes, not by these commands.
+
+Each teammate runs the three git config commands once in that teammate's own clone because the merge driver is stored in local Git configuration and is not carried by any committed file. A teammate who installed Unity outside C:\Program Files\Unity\Hub\Editor substitutes that machine's UnityYAMLMerge.exe path into the same commands and changes no other part of them.
+
+Absent-tool fallback
+
+If the existence-check verdict is absent, search <Unity Hub editor install root>\<Unity_Version>\Editor\Data\Tools for UnityYAMLMerge.exe. Ako must keep the merge-driver commands unrun until a supplied path passes the existence check.
+
+Verification
+
+Run these commands after the driver is registered:
+
+git config --local --get-regexp "^merge\.unityyamlmerge\."
+git check-attr merge -- Assets/Scenes/SampleScene.unity
+
+Both commands report unityyamlmerge once the driver is registered and .gitattributes is in place.

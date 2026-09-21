@@ -1,0 +1,13 @@
+1 Added *.slnx to .gitignore and unstaged 3 generated project files, so Unity's rebuildable files stay out of Git
+2 Ignored .kiro/ .cursor/ .claude/ .windsurf/ .continue/ .aider* CLAUDE.md AGENTS.md planning/ notes/ *.plan.md; 0 unstaged, none can ship
+3 Enabled Git LFS 3.7.1 and routed 14 binary extensions to LFS in .gitattributes, so clones stay small
+4 Created 8 folders under Assets/_Project with .gitkeep, so every teammate has a known place to work
+5 Wrote README.md with the design question, Unity 6000.5.4f1 open steps, owners and controls, so a marker can play it
+6 Wrote docs/CREDITS.md with the five-column table and one example row, so attribution starts before any download
+7 Wrote docs/BUILD-LOG.md with its five columns and one example row, so every checkpoint build has a record
+8 Wrote docs/GIT-RULES.md covering session start, branch ownership, scene claims and merges, so nobody guesses
+9 Created feature/vehicle-camera, feature/orders-cargo and feature/greybox-ui at the first commit, so main stays playable
+10 Committed 75 tracked paths as the root commit on main, so history starts from a clean working project
+11 Reported Force Text and Visible Meta Files as already correct and gave the unityyamlmerge commands, so scenes merge
+12 Presented the private GitHub creation, push and two write invites as copy-ready commands, so Ako controls release
+13 Confirmed no licence file at the repository root and a rights note in README.md, so the team keeps all rights
