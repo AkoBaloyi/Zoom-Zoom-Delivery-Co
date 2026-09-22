@@ -32,27 +32,21 @@ namespace ZoomZoom.Orders.UI
 
         [Header("Markers")]
         [SerializeField] private int markerPoolSize = 6;
-        [SerializeField] private float markerSize = 96f;
+        [SerializeField] private float markerSize = 64f;
         [SerializeField] private float edgeMargin = 60f;
         [SerializeField] private int distanceFontSize = 22;
-        [SerializeField] private int idFontSize = 30;
 
-        [Header("Colours (bright and saturated on purpose, these need to grab attention)")]
-        [SerializeField] private Color pickupColour = new Color(0.15f, 0.6f, 1f, 1f);
-        [SerializeField] private Color dropOffColour = new Color(0.15f, 1f, 0.3f, 1f);
-        [SerializeField] private Color urgentColour = new Color(1f, 0.05f, 0.05f, 1f);
+        [Header("Colours")]
+        [SerializeField] private Color pickupColour = new Color(0.3f, 0.65f, 1f, 0.95f);
+        [SerializeField] private Color dropOffColour = new Color(0.35f, 0.95f, 0.45f, 0.95f);
+        [SerializeField] private Color urgentColour = new Color(1f, 0.25f, 0.2f, 0.95f);
         [SerializeField] private float urgentBelowSeconds = 8f;
-
-        [Header("Pulse, so an arrow demands attention rather than sitting static")]
-        [SerializeField] private float pulseSpeed = 4f;
-        [SerializeField] private float pulseScaleAmount = 0.12f;
 
         private struct MarkerSlot
         {
             public RectTransform Root;
             public Image Arrow;
             public Text Distance;
-            public Text IdLabel;
         }
 
         private readonly List<MarkerSlot> _slots = new List<MarkerSlot>();
@@ -97,7 +91,7 @@ namespace ZoomZoom.Orders.UI
                 float urgency = 1f - Mathf.Clamp01(order.TimeRemaining / Mathf.Max(0.01f, urgentBelowSeconds));
                 Color colour = Color.Lerp(baseColour, urgentColour, urgency);
 
-                PlaceMarker(_slots[used], target, colour, order.Id);
+                PlaceMarker(_slots[used], target, colour, order.TimeRemaining);
                 used++;
             }
 
@@ -126,7 +120,7 @@ namespace ZoomZoom.Orders.UI
         /// Camera-local direction (right/up relative to the camera, from InverseTransformDirection)
         /// has no such singularity in any direction, including straight behind.
         /// </summary>
-        private void PlaceMarker(MarkerSlot slot, Vector3 target, Color colour, int orderId)
+        private void PlaceMarker(MarkerSlot slot, Vector3 target, Color colour, float timeRemaining)
         {
             slot.Root.gameObject.SetActive(true);
 
@@ -184,17 +178,8 @@ namespace ZoomZoom.Orders.UI
                 ? Quaternion.Euler(0f, 0f, rotationDegrees)
                 : Quaternion.identity;
 
-            // A constant, unchanging arrow is easy to tune out. A slight breathing scale on the
-            // arrow itself, distinct from the marker's fixed-size root and label, is what actually
-            // keeps catching the eye without needing to grow the whole thing.
-            float pulse = 1f + Mathf.Sin(Time.time * pulseSpeed) * pulseScaleAmount;
-            slot.Arrow.rectTransform.localScale = Vector3.one * pulse;
-
             slot.Arrow.color = colour;
             slot.Distance.color = colour;
-
-            slot.IdLabel.text = $"#{orderId}";
-            slot.IdLabel.color = colour;
 
             float distance = Vector3.Distance(targetCamera.transform.position, target);
             slot.Distance.text = onScreen ? $"{distance:0}m" : $"{distance:0}m \u2192";
@@ -257,31 +242,9 @@ namespace ZoomZoom.Orders.UI
                 labelRect.anchoredPosition = new Vector2(0f, -markerSize * 0.5f - 4f);
                 labelRect.sizeDelta = new Vector2(140f, 28f);
 
-                // The order's own number, distinct from the distance readout below, since without
-                // it two active orders look identical apart from where they happen to be pointing.
-                var idGO = new GameObject("Order Id");
-                idGO.transform.SetParent(rootGO.transform, false);
-                Text idLabel = idGO.AddComponent<Text>();
-                idLabel.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-                idLabel.fontSize = idFontSize;
-                idLabel.fontStyle = FontStyle.Bold;
-                idLabel.alignment = TextAnchor.LowerCenter;
-                idLabel.horizontalOverflow = HorizontalWrapMode.Overflow;
-                idLabel.verticalOverflow = VerticalWrapMode.Overflow;
-                RectTransform idRect = idLabel.rectTransform;
-                idRect.anchorMin = new Vector2(0.5f, 0f);
-                idRect.anchorMax = new Vector2(0.5f, 0f);
-                idRect.pivot = new Vector2(0.5f, 0f);
-                idRect.anchoredPosition = new Vector2(0f, markerSize * 0.5f + 4f);
-                idRect.sizeDelta = new Vector2(140f, 36f);
-
-                var outline = idGO.AddComponent<Outline>();
-                outline.effectColor = new Color(0f, 0f, 0f, 0.9f);
-                outline.effectDistance = new Vector2(2f, -2f);
-
                 rootGO.SetActive(false);
 
-                _slots.Add(new MarkerSlot { Root = root, Arrow = arrow, Distance = label, IdLabel = idLabel });
+                _slots.Add(new MarkerSlot { Root = root, Arrow = arrow, Distance = label });
             }
         }
 

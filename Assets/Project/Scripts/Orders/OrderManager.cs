@@ -51,7 +51,7 @@ namespace ZoomZoom.Orders
         private Vector3[] _pickupPositions;
         private Vector3[] _dropOffPositions;
         private float _timeUntilNextSpawn;
-        private int _nextOrderId = 1; // orders read as #1, #2... not #0, #1, matching how a person actually counts
+        private int _nextOrderId;
 
         private void Awake()
         {
