@@ -11,7 +11,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Project/Scenes/Possible game scene.unity
     guid: 553626d0237d7af42b0bcb6b968487be
-  - enabled: 1
+  - enabled: 0
     path: Assets/Project/Scenes/VehicleLab.unity
     guid: 1a2b3c4d5e6f708192a3b4c5d6e7f814
   - enabled: 0

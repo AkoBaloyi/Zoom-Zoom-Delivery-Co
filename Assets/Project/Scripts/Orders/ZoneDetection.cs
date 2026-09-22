@@ -21,8 +21,17 @@ namespace ZoomZoom.Orders
         [SerializeField] private float pickupRadius = 6f;
         [SerializeField] private float dropOffRadius = 6f;
 
-        [Tooltip("How often to run the distance checks, in seconds. 0 means every frame.")]
-        [SerializeField] private float checkInterval = 0.1f;
+        /// <summary>Read by OrderBeacon so its ground disc always matches the actual trigger
+        /// radius exactly, rather than being a second, independent number that can drift out of
+        /// sync with this one.</summary>
+        public float PickupRadius => pickupRadius;
+        public float DropOffRadius => dropOffRadius;
+
+        [Tooltip("How often to run the distance checks, in seconds. 0 means every frame. Was 0.1, " +
+                 "which let a fast-moving car clip through a small radius in less time than that " +
+                 "and miss the check entirely, so this defaults to every frame now, the cost of a " +
+                 "few distance comparisons a frame is not worth trading away for that.")]
+        [SerializeField] private float checkInterval = 0f;
 
         [Header("Debug")]
         [SerializeField] private bool logActivity = true;

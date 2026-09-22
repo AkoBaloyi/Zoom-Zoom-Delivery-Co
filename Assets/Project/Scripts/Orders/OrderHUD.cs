@@ -18,9 +18,9 @@ namespace ZoomZoom.Orders.UI
         [SerializeField] private ShiftTimer shiftTimer;
 
         [Header("Layout")]
-        [SerializeField] private Vector2 panelPosition = new Vector2(24f, -24f);
+        [SerializeField] private Vector2 panelPosition = new Vector2(-8f, -8f); // offset from the top-right corner
         [SerializeField] private Vector2 panelSize = new Vector2(420f, 340f);
-        [SerializeField] private int fontSize = 34;
+        [SerializeField] private int fontSize = 24;
         [SerializeField] private int headerFontSize = 20;
         [SerializeField] private int orderLineSlots = 6;
 
@@ -182,14 +182,16 @@ namespace ZoomZoom.Orders.UI
             panelImage.color = panelColour;
 
             RectTransform panelRect = panelGO.GetComponent<RectTransform>();
-            panelRect.anchorMin = new Vector2(0f, 1f);
-            panelRect.anchorMax = new Vector2(0f, 1f);
-            panelRect.pivot = new Vector2(0f, 1f);
+            // Anchored to the screen's top-right corner rather than top-left, so it doesn't sit
+            // where OrderMarkers' own corner text used to be.
+            panelRect.anchorMin = new Vector2(1f, 1f);
+            panelRect.anchorMax = new Vector2(1f, 1f);
+            panelRect.pivot = new Vector2(1f, 1f);
             panelRect.anchoredPosition = panelPosition;
             panelRect.sizeDelta = panelSize;
 
             float y = -12f;
-            const float lineHeight = 45f;
+            const float lineHeight = 30f;
 
             _timerLine = CreateLine(panelRect, "Timer", ref y, lineHeight, fontSize + 4, normalColour);
             _timerLine.fontStyle = FontStyle.Bold;
