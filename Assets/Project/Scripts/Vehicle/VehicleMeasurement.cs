@@ -188,6 +188,12 @@ namespace ZoomZoom.Vehicle
 
         private void Update()
         {
+            // Editor only. F1 to F9 run measurement routines that reposition the car, hold the
+            // throttle and drive it into a wall, which is exactly right in the lab and indefensible
+            // in a build a marker is playing. The harness stays fully usable in the editor, where
+            // every reading in VehicleLab_Measurements came from.
+            if (!Application.isEditor) return;
+
             Keyboard keyboard = Keyboard.current;
             if (keyboard == null) return;
 
@@ -1090,6 +1096,7 @@ namespace ZoomZoom.Vehicle
 
         private void OnGUI()
         {
+            if (!Application.isEditor) return;
             if (!showDeveloperOverlay || car == null || Tuning == null) return;
 
             if (_overlayStyle == null)

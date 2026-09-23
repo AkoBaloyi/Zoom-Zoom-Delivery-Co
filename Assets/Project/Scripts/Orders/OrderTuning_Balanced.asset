@@ -12,10 +12,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 417c175362a0ec543944003b60e08110, type: 3}
   m_Name: OrderTuning_Balanced
   m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.OrderTuning
-  profileName: Unnamed
-  whyThisSetup: 
+  profileName: Balanced
+  whyThisSetup: 'Order time limit for the current build. Delivery points are not hand-placed
+    yet, so OrderManager generates them inside the Floor collider bounds and the budget
+    is derived from those bounds rather than from a route. The Floor spans 504 by 440
+    units centred on x 0 z 180, and the generator holds a 5 m edge margin, leaving
+    a 494 by 430 area. Worst case is a pickup in one corner with the drop-off in the
+    opposite one, about 655 m, plus up to 466 m to reach that pickup from the start
+    point, because the countdown in Order begins at spawn and not at pickup. That is
+    roughly 1121 m in total. Measured top speed is 32 m/s but it cannot be held through
+    junctions on the measured sideways grip of 13 m/s2, so 20 m/s is the working average
+    and the worst case needs about 56 s. 75 s covers that with roughly a quarter spare
+    for mistakes. Was 45 s, which only worked while points were generated on a 60 m
+    ring around the origin. Re-derive this once real delivery points are placed in
+    the district.'
   spawnInterval: 12
   maxActiveOrders: 3
-  orderTimeLimit: 45
+  orderTimeLimit: 75
   baseDeliveryValue: 10
   latePenaltyPerSecond: 1

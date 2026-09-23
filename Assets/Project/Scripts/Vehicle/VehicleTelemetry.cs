@@ -63,6 +63,14 @@ namespace ZoomZoom.Vehicle
 
         private void Update()
         {
+            // Editor only. This is a lab instrument, not a game control, so a player build must not
+            // expose the key or draw the readout: `show` defaults to true, which in a build would
+            // mean a diagnostic panel over the game with no way to dismiss it. Everything still
+            // works in the editor, which is where every reading in VehicleLab_Measurements was
+            // taken. Application.isEditor rather than #if UNITY_EDITOR so the fields stay read and
+            // written in both builds and the compiler has nothing to warn about.
+            if (!Application.isEditor) return;
+
             // Device read rather than UnityEngine.Input: active input handling is the Input System
             // package, and the legacy class throws on every call under that setting.
             Keyboard keyboard = Keyboard.current;
@@ -82,6 +90,7 @@ namespace ZoomZoom.Vehicle
 
         private void OnGUI()
         {
+            if (!Application.isEditor) return;
             if (!show || car == null) return;
 
             BuildStyles();
