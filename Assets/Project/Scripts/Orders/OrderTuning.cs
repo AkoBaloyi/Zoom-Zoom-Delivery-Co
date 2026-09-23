@@ -29,7 +29,7 @@ namespace ZoomZoom.Orders
 
         [Header("Timing per order")]
         [Tooltip("Seconds an order stays Active before it becomes Late, if not Delivered first.")]
-        public float orderTimeLimit = 45f;
+        public float orderTimeLimit = 50f;
 
         [Header("Reward")]
         public float baseDeliveryValue = 10f;
