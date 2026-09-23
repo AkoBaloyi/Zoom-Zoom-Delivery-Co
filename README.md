@@ -24,40 +24,48 @@ A marker should open the `main` branch.
 
 This is also the first scene in Build Settings, so a built player opens it directly.
 
-`Assets/Project/Scenes/VehicleLab.unity` is a second scene, kept deliberately. It is the
-instrumented test track used to measure the handling, not the game. Open it if you want to run
-the measurement tests described under Controls below.
+`VehicleLab`, the second scene in Build Settings, is kept deliberately. It is the instrumented
+test track used to measure the handling, not the game. Open it from the same Scenes folder if you
+want to re-run the measurement tests, which are editor-only and described under Display Toggles
+below.
 
 ## Controls
 
 The `Vehicle` action map in `Assets/Project/Scripts/Vehicle/VehicleControls.inputactions` is the
 source of truth. Both a keyboard and a gamepad drive the same actions.
 
-| Game control | Keyboard | Gamepad | Action |
-| --- | --- | --- | --- |
-| Throttle and reverse | `W` / `S` | Right / left trigger | `Throttle` |
-| Steer | `A` / `D` | Left stick X | `Steer` |
-| Brake without reversing | `Left Ctrl` | `B` | `Brake` |
-| Handbrake, cuts rear grip only | `Space` | `LB` | `Handbrake` |
-| Boost | `Left Alt` | `RB` | `Boost` |
-| Jump | `Left Shift` | `A` | `Jump` |
-| Flip, directional | `Q` + `WASD` | `X` + left stick | `Flip` / `FlipDirection` |
-| Camera | Mouse movement | Right stick | `CameraLook` |
+| Game control | Input binding | Player action |
+| --- | --- | --- |
+| Throttle and reverse | `W` and `S`, or `Up Arrow` and `Down Arrow`, or the right and left gamepad triggers | `Throttle` |
+| Steer left and right | `A` and `D`, or `Left Arrow` and `Right Arrow`, or the left stick | `Steer` |
+| Brake without reversing | `Left Ctrl`, or gamepad B | `Brake` |
+| Handbrake, cuts rear grip only | `Space`, or gamepad LB | `Handbrake` |
+| Boost | `Left Alt`, or gamepad RB | `Boost` |
+| Jump | `Left Shift`, or gamepad A | `Jump` |
+| Flip, directional | `Q` held with `W` `A` `S` `D` or the arrow keys, or gamepad X with the left stick | `Flip` and `FlipDirection` |
+| Look around | `Mouse` movement, or the right stick | `CameraLook` |
+
+Code spans in the binding column are keyboard keys and the mouse; gamepad buttons are named in
+plain text because a gamepad `A` and a keyboard `A` are not the same input.
 
 There is no pick-up or drop-off key. Driving into a pickup ring collects the order and driving
 into its drop-off ring delivers it, provided the cargo slot allows it. `ZoneDetection` handles
 this automatically, so arriving *is* the action.
 
-### Developer overlays
+## Display Toggles
 
-Not part of the game, but useful to a marker who wants to see the systems working.
+Two keys change what the order system draws. Both work in a build.
 
 | Key | What it shows |
 | --- | --- |
-| `F10` | Vehicle telemetry: speed, grip budget, front/rear balance, slip angle, surface |
-| `F11` | Order ground rings and the fallback order list |
+| `F11` | Order ground rings, which mark where to stop |
 | `F12` | Order compass arrow |
-| `F1`–`F6` | Measurement tests, `VehicleLab` scene only. `F6` runs all of them |
+
+The vehicle telemetry readout and the measurement harness that produced
+`VehicleLab_Measurements/vehicle_measurements.csv` are lab instruments and are now editor-only.
+They were on `F10` and `F1` to `F9`; in a build those keys do nothing, because a measurement
+routine repositions the car and drives it into a wall, which belongs in the test scene and not in
+something a marker is playing. Open the project in the editor to use them.
 
 ## Ownership
 
@@ -65,9 +73,14 @@ Not part of the game, but useful to a marker who wants to see the systems workin
 
 | System | Owner |
 | --- | --- |
-| Vehicle, camera, and shared-build integration | Ako |
-| Orders, timers, cargo, and zone detection | Kyuri |
+| Vehicle and camera | Ako |
+| Orders, timers and cargo | Kyuri |
 | Greybox level and UI | Zubuhle |
+
+Ako also owns shared-build integration, which is the wiring between these three systems rather
+than a system of its own: build settings, the delivery points the order queue draws from, and
+whichever scene the README names. Zone detection belongs to the order system but lives on the car,
+because it measures distance from the vehicle's own transform.
 
 ### Branch Ownership
 

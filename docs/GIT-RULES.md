@@ -34,7 +34,7 @@ Follow these eleven rules for every work session and merge.
 
 8. **Keep `main` playable.** `main` holds only a version that opens in Unity `6000.5.4f1` and plays with zero Unity console errors.
 
-9. **Complete the pre-merge check.** Before pushing a merge to `main`, the merging owner opens the merged project in Unity `6000.5.4f1`, loads the scene named in `README.md`—`Assets/Scenes/SampleScene.unity`—plays for at least 60 seconds, and confirms that the Unity console reports zero errors.
+9. **Complete the pre-merge check.** Before pushing a merge to `main`, the merging owner opens the merged project in Unity `6000.5.4f1`, loads the scene named in `README.md`—`Assets/Project/Scenes/Possible game scene.unity`—plays for at least 60 seconds, and confirms that the Unity console reports zero errors.
 
 10. **Keep failed checks local.** If the pre-merge check reports one or more console errors, do not push the merge to `main`. Leave the merge unpushed on a local branch so that no work is lost, and report the failing check to the team member who owns the affected system within 24 hours.
 

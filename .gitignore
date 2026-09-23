@@ -138,7 +138,8 @@ notes/
 # was ignored wholesale those three links resolved to nothing for anyone who cloned, which made
 # the entire technical documentation layer invisible to a marker.
 #
-# The prompt pack is the exception. It is a set of AI prompts and rubric notes, which is exactly
-# the planning and AI-tooling material Requirements 2.1 and 2.2 exclude. It is working material
+# The prompt packs are the exception. They are AI prompts and rubric notes, which is exactly
+# the planning and AI-tooling material Requirements 2.1 and 2.2 exclude. They are working material
 # for writing the submission, not part of it.
 docs/M1-GEMINI-PROMPT-PACK.md
+docs/M1-INDIVIDUAL-GDD-AGENT-PROMPT.md

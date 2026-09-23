@@ -612,82 +612,120 @@ def test_readme_document_links_resolve_and_are_tracked(
 def test_readme_controls_have_required_actions_and_bindings(
     repo_root: Path, readme_document: MarkdownDocument
 ) -> None:
-    """Requirement 5.10: every playable control has its action and binding."""
+    """Requirement 5.10: every playable control has its action and binding.
 
-    controls_table = require_single_table(readme_document.require_section("Controls"))
+    Rewritten against the input asset the game actually uses. This test previously
+    checked README.md against the ``Player`` map in
+    ``Assets/InputSystem_Actions.inputactions``, which is the unmodified Unity
+    template: it binds ``Move``, ``Jump``, ``Interact`` and ``Look``, and nothing in
+    the project ever enables it. ``VehicleInput`` enables the ``Vehicle`` map in
+    ``Assets/Project/Scripts/Vehicle/VehicleControls.inputactions``, so that map is
+    the only thing a marker's keypress reaches and the only honest subject for a
+    contract test. The shape of the table is unchanged; the expectations now come
+    from the asset rather than being hard-coded, which also means a control added to
+    the asset and left out of the table fails this test.
+    """
+    controls_section = readme_document.require_section("Controls")
+    controls_table = require_single_table(controls_section)
     assert tuple(_normalise_text(cell) for cell in controls_table.header) == (
         "game control",
         "input binding",
         "player action",
     )
-    assert len(controls_table.rows) == 5
 
-    expectations = {
-        frozenset({"drive", "forward", "backward"}): (
-            "move",
-            (r"\bw\b", r"\bs\b", r"\bup\s+arrow\b", r"\bdown\s+arrow\b"),
-        ),
-        frozenset({"steer", "left", "right"}): (
-            "move",
-            (r"\ba\b", r"\bd\b", r"\bleft\s+arrow\b", r"\bright\s+arrow\b"),
-        ),
-        frozenset({"handbrake"}): ("jump", (r"\bspace\b",)),
-        frozenset({"pick", "up", "drop", "off", "order"}): (
-            "interact",
-            (r"\be\b",),
-        ),
-        frozenset({"camera"}): ("look", (r"\bmouse\b",)),
+    asset_path = PurePosixPath(
+        "Assets/Project/Scripts/Vehicle/VehicleControls.inputactions"
+    )
+    named = repository_path_occurrences(
+        controls_section.body, suffix=".inputactions"
+    )
+    assert named == (str(asset_path),), (
+        "The Controls section must name the input asset the vehicle actually uses, "
+        f"and only that one; found {named}"
+    )
+
+    controls = json.loads((repo_root / asset_path).read_text(encoding="utf-8"))
+    vehicle_maps = [item for item in controls["maps"] if item["name"] == "Vehicle"]
+    assert len(vehicle_maps) == 1
+    vehicle_map = vehicle_maps[0]
+
+    asset_actions = {item["name"] for item in vehicle_map["actions"]}
+    binding_paths: dict[str, set[str]] = {name: set() for name in asset_actions}
+    for binding in vehicle_map["bindings"]:
+        if binding.get("isComposite"):
+            continue
+        binding_paths[binding["action"]].add(binding["path"].casefold())
+
+    # How the table writes an input, against how the Input System spells its path.
+    # Only keyboard keys and the mouse are code spans in the table: a gamepad face
+    # button written as `A` is indistinguishable from the keyboard's A, so gamepad
+    # buttons are plain text there and are not checked here.
+    key_paths = {
+        "w": "<keyboard>/w",
+        "a": "<keyboard>/a",
+        "s": "<keyboard>/s",
+        "d": "<keyboard>/d",
+        "q": "<keyboard>/q",
+        "space": "<keyboard>/space",
+        "left ctrl": "<keyboard>/leftctrl",
+        "left alt": "<keyboard>/leftalt",
+        "left shift": "<keyboard>/leftshift",
+        "up arrow": "<keyboard>/uparrow",
+        "down arrow": "<keyboard>/downarrow",
+        "left arrow": "<keyboard>/leftarrow",
+        "right arrow": "<keyboard>/rightarrow",
+        "mouse": "<mouse>/delta",
     }
 
-    seen_controls: set[frozenset[str]] = set()
+    documented: set[str] = set()
     for control, binding, action in controls_table.rows:
-        assert _plain_markdown(control)
+        assert _plain_markdown(control), "Control row has no name"
         assert _plain_markdown(binding), f"Control has no binding: {control}"
         assert _plain_markdown(action), f"Control has no Input System action: {control}"
 
-        control_key = _semantic_words(control)
-        assert control_key in expectations, f"Unexpected control row: {control}"
-        assert control_key not in seen_controls, f"Duplicate control row: {control}"
-        seen_controls.add(control_key)
+        row_actions = tuple(_INLINE_CODE_RE.findall(action))
+        assert row_actions, (
+            f"The Player action cell for {control!r} must name the action in a code "
+            "span so it can be checked against the asset"
+        )
+        for name in row_actions:
+            assert name in asset_actions, (
+                f"{control!r} names action {name!r}, which is not in the Vehicle map. "
+                f"The map defines {sorted(asset_actions)}"
+            )
+            assert name not in documented, f"Action {name!r} is documented twice"
+            documented.add(name)
 
-        expected_action, binding_patterns = expectations[control_key]
-        assert _normalise_text(action) == expected_action
-        normalised_binding = _normalise_text(binding)
-        for pattern in binding_patterns:
-            assert re.search(pattern, normalised_binding), (
-                f"{control!r} binding must match {pattern!r}: {binding!r}"
+        row_paths: set[str] = set()
+        for name in row_actions:
+            row_paths |= binding_paths[name]
+        assert row_paths, f"{control!r} names actions with no bindings at all"
+
+        keys = {
+            key.casefold()
+            for key in _INLINE_CODE_RE.findall(binding)
+            if key.casefold() in key_paths
+        }
+        assert keys, (
+            f"The Input binding cell for {control!r} must name at least one keyboard "
+            "key or the mouse in a code span"
+        )
+        for key in sorted(keys):
+            assert key_paths[key] in row_paths, (
+                f"{control!r} documents {key!r}, but {key_paths[key]} is not bound to "
+                f"{list(row_actions)} in the asset"
             )
 
-    assert seen_controls == set(expectations)
-
-    input_actions = json.loads(
-        (repo_root / "Assets" / "InputSystem_Actions.inputactions").read_text(
-            encoding="utf-8"
-        )
+    assert documented == asset_actions, (
+        "Every action in the Vehicle map must appear in the Controls table. Missing: "
+        f"{sorted(asset_actions - documented)}"
     )
-    player_maps = [item for item in input_actions["maps"] if item["name"] == "Player"]
-    assert len(player_maps) == 1
-    player_map = player_maps[0]
-    action_names = {item["name"].casefold() for item in player_map["actions"]}
-    assert {expected[0] for expected in expectations.values()} <= action_names
 
-    binding_paths: dict[str, set[str]] = {}
-    for binding in player_map["bindings"]:
-        action_name = binding["action"].casefold()
-        binding_paths.setdefault(action_name, set()).add(binding["path"].casefold())
-    assert {
-        "<keyboard>/w",
-        "<keyboard>/s",
-        "<keyboard>/uparrow",
-        "<keyboard>/downarrow",
-        "<keyboard>/a",
-        "<keyboard>/d",
-        "<keyboard>/leftarrow",
-        "<keyboard>/rightarrow",
-    } <= binding_paths["move"]
-    assert "<keyboard>/space" in binding_paths["jump"]
-    assert "<keyboard>/e" in binding_paths["interact"]
-    assert "<pointer>/delta" in binding_paths["look"]
+    # Guard the regression this test used to encode: the template asset is not the
+    # game's input, and there is no interact key for pickup or drop-off.
+    prose = _markdown_prose(controls_section.body).casefold()
+    assert "interact" not in prose
+    assert "inputsystem_actions" not in controls_section.body.casefold()
 
 
 def test_readme_rights_contract(readme_document: MarkdownDocument) -> None:
