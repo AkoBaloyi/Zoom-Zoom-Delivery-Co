@@ -54,18 +54,26 @@ this automatically, so arriving *is* the action.
 
 ## Display Toggles
 
-Two keys change what the order system draws. Both work in a build.
+There are none. Nothing needs switching on to play, and no function key does anything in the game
+scene. This section exists because the code contains four overlays that look like they should be
+reachable, and they are not.
 
-| Key | What it shows |
-| --- | --- |
-| `F11` | Order ground rings, which mark where to stop |
-| `F12` | Order compass arrow |
+Orders are shown by `OrderBeacon`, `OrderHUD` and `DestinationMarker`: a beam and a numbered ground
+disc at each pickup and drop-off, a list of live orders, and an on-screen arrow. None of them has a
+toggle, because none of them is optional.
 
-The vehicle telemetry readout and the measurement harness that produced
-`VehicleLab_Measurements/vehicle_measurements.csv` are lab instruments and are now editor-only.
-They were on `F10` and `F1` to `F9`; in a build those keys do nothing, because a measurement
-routine repositions the car and drives it into a wall, which belongs in the test scene and not in
-something a marker is playing. Open the project in the editor to use them.
+`OrderMarkers` and `OrderCompass` are earlier fallbacks for the same job, on `F11` and `F12`. Each
+one inspects the scene at startup and declines to attach when the component that replaced it is
+present, so that two systems never draw the same thing twice. Both decline in the game scene, which
+is why their keys are dead there. Delete `OrderBeacon`, `OrderHUD` or `DestinationMarker` and the
+matching fallback returns on its own, with its key.
+
+`VehicleTelemetry` on `F10` and the `VehicleMeasurement` harness on `F1` to `F9` are lab
+instruments. They are editor-only and off by default, and in a build those keys do nothing. A
+measurement routine repositions the car, holds the throttle and drives it into a wall, which belongs
+in `VehicleLab` and not in something a marker is playing. Open `VehicleLab` in the editor to run
+them; `F6` runs the whole set and writes
+`VehicleLab_Measurements/vehicle_measurements.csv`.
 
 ## Ownership
 
