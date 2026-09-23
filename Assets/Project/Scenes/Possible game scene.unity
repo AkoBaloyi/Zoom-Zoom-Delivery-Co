@@ -916,7 +916,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &614877043
 RectTransform:
   m_ObjectHideFlags: 0
@@ -1432,6 +1432,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 250347cebb58b514babc1e4b307d187f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.CargoSystem
+  orderManager: {fileID: 0}
   capacity: 1
   logActivity: 1
 --- !u!4 &935175482
@@ -1617,10 +1618,11 @@ MonoBehaviour:
   headerFontSize: 29
   orderLineSlots: 6
   normalColour: {r: 1, g: 1, b: 1, a: 1}
-  warningColour: {r: 1, g: 0.75, b: 0.2, a: 1}
-  carriedColour: {r: 0.45, g: 0.85, b: 1, a: 1}
+  pickupColour: {r: 0.15, g: 0.6, b: 1, a: 1}
+  dropOffColour: {r: 0.15, g: 1, b: 0.3, a: 1}
+  urgentColour: {r: 1, g: 0.05, b: 0.05, a: 1}
   panelColour: {r: 0, g: 0, b: 0, a: 0.55}
-  warningThreshold: 10
+  urgentBelowSeconds: 8
 --- !u!4 &1027706771
 Transform:
   m_ObjectHideFlags: 0

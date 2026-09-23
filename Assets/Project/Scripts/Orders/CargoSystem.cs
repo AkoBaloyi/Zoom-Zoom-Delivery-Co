@@ -18,6 +18,12 @@ namespace ZoomZoom.Orders
     [DisallowMultipleComponent]
     public class CargoSystem : MonoBehaviour
     {
+        [Header("Wiring")]
+        [Tooltip("Found automatically if left empty. Used only to subscribe to OrderResolved so " +
+                 "a Late-while-carried order always frees its slot, without needing any other " +
+                 "script to wire that up.")]
+        [SerializeField] private OrderManager orderManager;
+
         [Header("Capacity")]
         [Tooltip("How many orders can be carried at once. MVP/pre-alpha scope is 1, per Task 8. " +
                  "Do not raise this until the task it actually belongs to is reached: Task 19 " +
@@ -35,6 +41,35 @@ namespace ZoomZoom.Orders
         public bool HasCapacity => _carriedOrders.Count < capacity;
         public int Capacity => capacity;
         public int SlotsUsed => _carriedOrders.Count;
+
+        private void Awake()
+        {
+            if (orderManager == null) orderManager = FindAnyObjectByType<OrderManager>();
+
+            if (orderManager == null)
+            {
+                Debug.LogError(
+                    "[CargoSystem] No OrderManager found. A Late order that was still carried " +
+                    "will NOT free its slot, since there is nothing to read the resolution from.",
+                    this);
+                return;
+            }
+
+            // This used to be the job of a temporary test harness. Moving it here means the
+            // slot is guaranteed to free correctly regardless of what else exists in the scene,
+            // rather than depending on some other script remembering to wire it up.
+            orderManager.OrderResolved += HandleOrderResolved;
+        }
+
+        private void OnDestroy()
+        {
+            if (orderManager != null) orderManager.OrderResolved -= HandleOrderResolved;
+        }
+
+        private void HandleOrderResolved(Order order, float value)
+        {
+            ClearIfResolved(order);
+        }
 
         public bool TryCollect(Order order)
         {

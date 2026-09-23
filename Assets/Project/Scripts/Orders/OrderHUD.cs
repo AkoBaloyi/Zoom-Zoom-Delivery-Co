@@ -18,18 +18,20 @@ namespace ZoomZoom.Orders.UI
         [SerializeField] private ShiftTimer shiftTimer;
 
         [Header("Layout")]
-        [SerializeField] private Vector2 panelPosition = new Vector2(-8f, -8f); // offset from the top-right corner
+        [SerializeField] private Vector2 panelPosition = new Vector2(-24f, -24f); // offset from the top-right corner
         [SerializeField] private Vector2 panelSize = new Vector2(420f, 340f);
         [SerializeField] private int fontSize = 24;
         [SerializeField] private int headerFontSize = 20;
         [SerializeField] private int orderLineSlots = 6;
 
-        [Header("Colours")]
+        [Header("Colours (matches DestinationMarker and OrderBeacon exactly, so all three " +
+                "channels agree)")]
         [SerializeField] private Color normalColour = Color.white;
-        [SerializeField] private Color warningColour = new Color(1f, 0.75f, 0.2f);
-        [SerializeField] private Color carriedColour = new Color(0.45f, 0.85f, 1f);
+        [SerializeField] private Color pickupColour = new Color(0.15f, 0.6f, 1f, 1f);
+        [SerializeField] private Color dropOffColour = new Color(0.15f, 1f, 0.3f, 1f);
+        [SerializeField] private Color urgentColour = new Color(1f, 0.05f, 0.05f, 1f);
         [SerializeField] private Color panelColour = new Color(0f, 0f, 0f, 0.55f);
-        [SerializeField] private float warningThreshold = 10f;
+        [SerializeField] private float urgentBelowSeconds = 8f;
 
         private Text _timerLine;
         private Text _cargoLine;
@@ -101,15 +103,16 @@ namespace ZoomZoom.Orders.UI
                 }
 
                 Order order = active[i];
-                bool carried = order.State == OrderState.Carried || order.State == OrderState.Collected;
+                bool goingToDropOff = order.State == OrderState.Carried || order.State == OrderState.Collected;
 
                 _orderLines[i].text = $"Order {order.Id}   {order.State}   {order.TimeRemaining:0.0}s";
 
-                _orderLines[i].color = carried
-                    ? carriedColour
-                    : order.TimeRemaining <= warningThreshold
-                        ? warningColour
-                        : normalColour;
+                // Exactly the same blend DestinationMarker and OrderBeacon use: base colour by
+                // pickup/drop-off, shifted toward red as the timer runs out. A player should
+                // never see a different colour for the same order across the three channels.
+                Color baseColour = goingToDropOff ? dropOffColour : pickupColour;
+                float urgency = 1f - Mathf.Clamp01(order.TimeRemaining / Mathf.Max(0.01f, urgentBelowSeconds));
+                _orderLines[i].color = Color.Lerp(baseColour, urgentColour, urgency);
             }
 
             if (active.Count > _orderLines.Count)
@@ -141,7 +144,7 @@ namespace ZoomZoom.Orders.UI
             foreach (Order o in cargoSystem.CarriedOrders) ids.Add(o.Id.ToString());
 
             _cargoLine.text = $"Cargo: {cargoSystem.SlotsUsed}/{cargoSystem.Capacity} (orders {string.Join(", ", ids)})";
-            _cargoLine.color = carriedColour;
+            _cargoLine.color = dropOffColour; // matches the "carried" colour everywhere else
         }
 
         private void RefreshScoreLine()
@@ -157,7 +160,7 @@ namespace ZoomZoom.Orders.UI
             if (_timerLine == null || shiftTimer == null) return;
 
             _timerLine.text = $"Shift  {shiftTimer.FormattedTimeRemaining}";
-            _timerLine.color = shiftTimer.TimeRemaining <= 30f ? warningColour : normalColour;
+            _timerLine.color = shiftTimer.TimeRemaining <= 30f ? urgentColour : normalColour;
         }
 
         private void BuildCanvas()

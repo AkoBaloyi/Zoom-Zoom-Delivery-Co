@@ -162,7 +162,7 @@ namespace ZoomZoom.Orders.UI
             slot.GroundDisc.localScale = new Vector3(discDiameter, 0.02f, discDiameter);
 
             Color discColour = colour;
-            discColour.a = 0.35f;
+            discColour.a = 0.6f; // was 0.35, too faint to register as the actual interactive boundary
             slot.DiscBlock.SetColor("_BaseColor", discColour);
             slot.DiscBlock.SetColor("_Color", discColour);
             slot.GroundDiscRenderer.SetPropertyBlock(slot.DiscBlock);

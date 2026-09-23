@@ -195,8 +195,8 @@ namespace ZoomZoom.Orders
 
         private void SpawnOrder()
         {
-            int pickupIndex = UnityEngine.Random.Range(0, _pickupPositions.Length);
-            int dropIndex = UnityEngine.Random.Range(0, _dropOffPositions.Length);
+            int pickupIndex = PickIndexAvoidingCollisions(_pickupPositions, o => o.PickupPoint);
+            int dropIndex = PickIndexAvoidingCollisions(_dropOffPositions, o => o.DropOffPoint);
 
             Order order = new Order(
                 id: _nextOrderId++,
@@ -215,6 +215,46 @@ namespace ZoomZoom.Orders
             }
 
             OrderSpawned?.Invoke(order);
+        }
+
+        /// <summary>
+        /// Picks a random index into pool, but avoids landing on a point already in use by another
+        /// currently active order's own pickup or drop-off, so two orders can't spawn stacked on
+        /// top of each other. With a small point pool and several orders active at once, a purely
+        /// random pick collides often enough to be a regular occurrence, not a rare edge case, this
+        /// is what actually stops that.
+        /// </summary>
+        private int PickIndexAvoidingCollisions(Vector3[] pool, Func<Order, Vector3> selector)
+        {
+            const int maxAttempts = 8;
+            const float sameSpotThreshold = 0.5f;
+
+            for (int attempt = 0; attempt < maxAttempts; attempt++)
+            {
+                int candidate = UnityEngine.Random.Range(0, pool.Length);
+                Vector3 candidatePos = pool[candidate];
+
+                bool collides = false;
+                foreach (Order existing in _activeOrders)
+                {
+                    if (Vector3.Distance(selector(existing), candidatePos) < sameSpotThreshold)
+                    {
+                        collides = true;
+                        break;
+                    }
+                }
+
+                if (!collides) return candidate;
+            }
+
+            // Every attempt collided. This almost always means there are fewer distinct points
+            // than the number of orders that can be active at once, worth surfacing rather than
+            // silently spawning on top of an existing order.
+            Debug.LogWarning(
+                "[OrderManager] Could not find a pickup/drop-off point not already in use by " +
+                "another active order after several attempts. testPointCount (or the number of " +
+                "real points assigned) may be too small relative to maxActiveOrders.", this);
+            return UnityEngine.Random.Range(0, pool.Length);
         }
 
         private void TickAllOrders(float dt)
