@@ -1708,7 +1708,7 @@ MonoBehaviour:
   cameraSampleCount: 200
   stageTimeout: 30
   csvFileName: vehicle_measurements.csv
-  showDeveloperOverlay: 1
+  showDeveloperOverlay: 0
 --- !u!4 &228251578
 Transform:
   m_ObjectHideFlags: 0
@@ -4577,7 +4577,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.VehicleTelemetry
   car: {fileID: 592668308}
-  show: 1
+  show: 0
   toggleKey: 103
   drawVectors: 1
 --- !u!114 &592668316

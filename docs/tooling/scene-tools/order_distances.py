@@ -1,75 +1,68 @@
-"""Work out what order time limit the real district needs.
+"""Check the order time limit against the delivery points that are actually in the scene.
 
-The 45 s limit in OrderTuning_Balanced was set against the placeholder 60 m ring, where the
-worst case was a 120 m hop. With real points the worst case is much longer, and the timer runs
-from spawn, not from pickup, so the drive TO the pickup is inside the budget too.
+Order starts its countdown at spawn, not at pickup, so the drive to the pickup is inside
+the same budget and has to be costed with the job.
+
+Usage:
+    python docs/tooling/scene-tools/order_distances.py [time_limit_seconds]
 """
 import math
+import sys
+from pathlib import Path
 
-SPAWN = (0.0, 0.0)  # Car transform in the game scene
+sys.path.insert(0, str(Path(__file__).parent))
 
-PICKUPS = {
-    "P1 West Main": (-95.37, 159.57),
-    "P2 Centre Cross": (-1.61, 159.82),
-    "P3 East Mid": (98.95, 265.78),
-    "P4 North West": (-205.03, 371.76),
-    "P5 North East": (208.96, 372.00),
-    "P6 South Gate": (98.98, 53.61),
-}
-DROPOFFS = {
-    "D1 West Mid": (-95.26, 265.93),
-    "D2 North Centre": (-1.81, 370.69),
-    "D3 North East": (108.00, 364.70),
-    "D4 West Gate": (-205.20, 159.82),
-    "D5 East Gate": (209.34, 158.31),
-    "D6 North Inner": (-95.90, 364.70),
-}
-
-TOP_SPEED = 32.0     # m/s, measured, Balanced profile
-AVG_SPEED = 20.0     # m/s, conservative average on a junction-heavy grid
+from delivery_points import (  # noqa: E402
+    DROPOFFS, PICKUPS, START, TOP_SPEED, WORKING_AVERAGE,
+)
 
 
-def manhattan(a, b):
-    """Roads run north-south and east-west, so grid distance is the honest lower bound."""
+def grid(a, b):
+    """Streets run north-south and east-west, so grid distance is the honest cost."""
     return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
 
-def report():
-    print(f"{'pair':34s} {'straight':>9s} {'grid':>8s} {'+approach':>10s} "
-          f"{'s @32':>7s} {'s @20':>7s}")
+def main(limit=75.0):
     rows = []
-    for pn, p in PICKUPS.items():
-        approach = manhattan(SPAWN, p)
-        for dn, d in DROPOFFS.items():
-            straight = math.dist(p, d)
-            grid = manhattan(p, d)
-            total = approach + grid
-            rows.append((total, pn, dn, straight, grid, total))
+    for pn, px, pz, _ in PICKUPS:
+        approach = grid(START, (px, pz))
+        for dn, dx, dz, _ in DROPOFFS:
+            job = grid((px, pz), (dx, dz))
+            straight = math.dist((px, pz), (dx, dz))
+            rows.append((approach + job, pn, dn, straight, job, approach))
 
     rows.sort()
-    for _, pn, dn, straight, grid, total in rows:
-        print(f"{pn + ' -> ' + dn:34s} {straight:9.0f} {grid:8.0f} {total:10.0f} "
-              f"{total / TOP_SPEED:7.1f} {total / AVG_SPEED:7.1f}")
+    print(f"{'pair':52s} {'straight':>9s} {'job':>6s} {'+approach':>10s} "
+          f"{'s@32':>6s} {'s@20':>6s}")
+    for total, pn, dn, straight, job, _ in rows:
+        flag = "" if total / WORKING_AVERAGE <= limit else "  OVER"
+        print(f"{pn + ' -> ' + dn:52s} {straight:9.0f} {job:6.0f} {total:10.0f} "
+              f"{total / TOP_SPEED:6.1f} {total / WORKING_AVERAGE:6.1f}{flag}")
 
-    worst = rows[-1]
-    best = rows[0]
-    print()
-    print(f"approach to nearest pickup: {min(manhattan(SPAWN, p) for p in PICKUPS.values()):.0f} m")
-    print(f"approach to furthest pickup: {max(manhattan(SPAWN, p) for p in PICKUPS.values()):.0f} m")
-    print(f"shortest job: {best[1]} -> {best[2]}, {best[5]:.0f} m grid incl. approach, "
-          f"{best[5] / AVG_SPEED:.0f} s at {AVG_SPEED:.0f} m/s")
-    print(f"longest job:  {worst[1]} -> {worst[2]}, {worst[5]:.0f} m grid incl. approach, "
-          f"{worst[5] / AVG_SPEED:.0f} s at {AVG_SPEED:.0f} m/s")
-    print()
+    worst, best = rows[-1], rows[0]
     mean = sum(r[0] for r in rows) / len(rows)
-    print(f"mean job length incl. approach: {mean:.0f} m -> {mean / AVG_SPEED:.0f} s at "
-          f"{AVG_SPEED:.0f} m/s, {mean / TOP_SPEED:.0f} s at top speed")
-    print(f"orders solvable inside 45 s at {AVG_SPEED:.0f} m/s: "
-          f"{sum(1 for r in rows if r[0] / AVG_SPEED <= 45)}/{len(rows)}")
-    for limit in (60, 75, 90, 105, 120):
-        n = sum(1 for r in rows if r[0] / AVG_SPEED <= limit)
-        print(f"  at {limit:3d} s: {n:2d}/{len(rows)} solvable")
+    solvable = sum(1 for r in rows if r[0] / WORKING_AVERAGE <= limit)
+    print()
+    print(f"approach to the nearest pickup:  "
+          f"{min(grid(START, (p[1], p[2])) for p in PICKUPS):.0f} m")
+    print(f"approach to the furthest pickup: "
+          f"{max(grid(START, (p[1], p[2])) for p in PICKUPS):.0f} m")
+    print(f"shortest job: {best[1]} to {best[2]}, {best[0]:.0f} m, "
+          f"{best[0] / WORKING_AVERAGE:.0f} s at {WORKING_AVERAGE:.0f} m/s")
+    print(f"longest job:  {worst[1]} to {worst[2]}, {worst[0]:.0f} m, "
+          f"{worst[0] / WORKING_AVERAGE:.0f} s at {WORKING_AVERAGE:.0f} m/s")
+    print(f"mean job:     {mean:.0f} m, {mean / WORKING_AVERAGE:.0f} s at "
+          f"{WORKING_AVERAGE:.0f} m/s, {mean / TOP_SPEED:.0f} s at top speed")
+    print()
+    print(f"At a {limit:.0f} s limit, {solvable} of {len(rows)} pairs are completable "
+          f"at the {WORKING_AVERAGE:.0f} m/s working average.")
+    if solvable < len(rows):
+        need = max(r[0] for r in rows) / WORKING_AVERAGE
+        print(f"The worst pair needs {need:.0f} s. Raise the limit or move a point.")
+    for candidate in (45, 60, 75, 90, 105):
+        n = sum(1 for r in rows if r[0] / WORKING_AVERAGE <= candidate)
+        print(f"  at {candidate:3d} s: {n:2d}/{len(rows)}")
 
 
 if __name__ == "__main__":
-    report()
+    main(float(sys.argv[1]) if len(sys.argv) > 1 else 75.0)

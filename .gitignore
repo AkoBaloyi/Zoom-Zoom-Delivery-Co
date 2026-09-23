@@ -143,3 +143,22 @@ notes/
 # for writing the submission, not part of it.
 docs/M1-GEMINI-PROMPT-PACK.md
 docs/M1-INDIVIDUAL-GDD-AGENT-PROMPT.md
+
+# Local addition: Assets/_Project/ is dead and must never be reported as untracked.
+#
+# It is the husk left behind when the source folder was renamed to Assets/Project. All code and
+# assets live under Assets/Project now; nothing references anything in here.
+#
+# Leaving it untracked was actively harmful, not just untidy. It holds Models/Group18_Greybox.fbx
+# at 304 MB, and .gitattributes routes *.fbx through filter=lfs. The editor's source control
+# integration polls `git status --untracked-files=normal` and then calls `git hash-object
+# --stdin-paths` on what it finds, and that call runs with the LFS filters live, so every poll
+# pushed the whole 304 MB through a temp file in .git/lfs/tmp. That directory reached 96.95 GB
+# across 831 files in under an hour on 23 September 2026 and filled a 464 GB disk, which stopped
+# Unity from being able to build at all.
+#
+# Ignoring the path takes it out of the untracked set, so it is never hashed and the loop cannot
+# start again. The folder itself should be deleted once someone confirms the 304 MB export is not
+# the only copy of anything; Assets/Aside/Art/Blender holds the same greybox at 192 MB, and the
+# district has since moved to the Group 15 prefab.
+Assets/_Project/

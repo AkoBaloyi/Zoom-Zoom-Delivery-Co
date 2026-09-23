@@ -26,8 +26,11 @@ namespace ZoomZoom.Vehicle
         [SerializeField] private VehicleController car;
 
         [Header("Display")]
-        [Tooltip("Show the readout. Toggled at runtime with the key below.")]
-        [SerializeField] private bool show = true;
+        [Tooltip("Show the readout. Off by default, and toggled in the editor with the key below. " +
+                 "This was on by default, which put a diagnostic panel over the game every time " +
+                 "anyone pressed Play. It is a lab instrument: it should cost a keypress to see, " +
+                 "not a keypress to get rid of.")]
+        [SerializeField] private bool show = false;
 
         // F10 rather than F9, because VehicleMeasurement already uses F9 for its own developer
         // overlay. One key toggling two overlays meant you could never see one without the other.

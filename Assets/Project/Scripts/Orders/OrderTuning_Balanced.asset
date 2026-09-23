@@ -13,21 +13,22 @@ MonoBehaviour:
   m_Name: OrderTuning_Balanced
   m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.OrderTuning
   profileName: Balanced
-  whyThisSetup: 'Order time limit for the current build. Delivery points are not hand-placed
-    yet, so OrderManager generates them inside the Floor collider bounds and the budget
-    is derived from those bounds rather than from a route. The Floor spans 504 by 440
-    units centred on x 0 z 180, and the generator holds a 5 m edge margin, leaving
-    a 494 by 430 area. Worst case is a pickup in one corner with the drop-off in the
-    opposite one, about 655 m, plus up to 466 m to reach that pickup from the start
-    point, because the countdown in Order begins at spawn and not at pickup. That is
-    roughly 1121 m in total. Measured top speed is 32 m/s but it cannot be held through
-    junctions on the measured sideways grip of 13 m/s2, so 20 m/s is the working average
-    and the worst case needs about 56 s. 75 s covers that with roughly a quarter spare
-    for mistakes. Was 45 s, which only worked while points were generated on a 60 m
-    ring around the origin. Re-derive this once real delivery points are placed in
-    the district.'
+  whyThisSetup: 'Kept at 45 s by the group''s decision. Recorded here so the tradeoff
+    is visible rather than forgotten. The countdown in Order begins at spawn and not at
+    pickup, so the drive to the pickup is inside the same budget and is costed with the
+    job. Across the 36 pairs formed by the twelve hand-placed delivery points, the shortest
+    job is 260 m of grid driving including the approach, the mean is 557 m and the longest
+    is 954 m, from the North East Corner to the South West Yard. Measured top speed is
+    32 m/s but cannot be held through junctions on the measured sideways grip of 13 m/s2,
+    so jobs are costed at a 20 m/s working average: 13 s for the shortest, 28 s for the
+    mean, 48 s for the longest. At 45 s that leaves 35 of the 36 pairs completable and
+    the longest one about 3 s short, so that single combination is expected to run late
+    unless the player drives it above the 20 m/s average. Everything else has room. If
+    that one pair turns out to matter in play, the cheaper fix is moving one drop-off
+    rather than raising the limit; run docs/tooling/scene-tools/order_distances.py 45
+    to re-check after any change to the point set.'
   spawnInterval: 12
   maxActiveOrders: 3
-  orderTimeLimit: 75
+  orderTimeLimit: 45
   baseDeliveryValue: 10
   latePenaltyPerSecond: 1
