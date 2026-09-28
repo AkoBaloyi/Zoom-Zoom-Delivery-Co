@@ -324,6 +324,7 @@ MonoBehaviour:
   numberHeightAboveBeam: 1.5
   pickupColour: {r: 0.15, g: 0.55, b: 1, a: 1}
   dropOffColour: {r: 0.1, g: 1, b: 0.25, a: 1}
+  transferColour: {r: 1, g: 0.75, b: 0.1, a: 1}
   urgentColour: {r: 1, g: 0.05, b: 0.05, a: 1}
   urgentBelowSeconds: 8
   pulseSpeed: 3
@@ -572,6 +573,7 @@ GameObject:
   - component: {fileID: 592668314}
   - component: {fileID: 592668315}
   - component: {fileID: 592668316}
+  - component: {fileID: 592668317}
   m_Layer: 0
   m_Name: Car
   m_TagString: Player
@@ -782,9 +784,31 @@ MonoBehaviour:
   cargoSystem: {fileID: 935175481}
   pickupRadius: 6
   dropOffRadius: 6
+  transferRadius: 6
   checkInterval: 0.1
   logActivity: 1
   drawGizmos: 1
+--- !u!114 &592668317
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 592668305}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 16e9cf224d36390429f2c52d9ea8c763, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.CargoCondition
+  enableCondition: 1
+  cargoSystem: {fileID: 935175481}
+  vehicleBody: {fileID: 592668309}
+  hardBrakeDecelThreshold: 18
+  hardBrakeDamage: 12
+  hardBrakeCooldown: 0.5
+  collisionImpactThreshold: 6
+  collisionDamagePerMps: 4
+  logActivity: 1
 --- !u!1 &592668320
 GameObject:
   m_ObjectHideFlags: 0
@@ -1859,7 +1883,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 250347cebb58b514babc1e4b307d187f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.CargoSystem
-  orderManager: {fileID: 0}
+  orderManager: {fileID: 816895044}
+  cargoCondition: {fileID: 592668317}
   capacity: 1
   logActivity: 1
 --- !u!4 &935175482
@@ -2020,6 +2045,7 @@ MonoBehaviour:
   idFontSize: 30
   pickupColour: {r: 0.3, g: 0.65, b: 1, a: 0.95}
   dropOffColour: {r: 0.35, g: 0.95, b: 0.45, a: 0.95}
+  transferColour: {r: 1, g: 0.75, b: 0.1, a: 1}
   urgentColour: {r: 1, g: 0.25, b: 0.2, a: 0.95}
   urgentBelowSeconds: 8
   pulseSpeed: 4
@@ -2039,6 +2065,7 @@ MonoBehaviour:
   orderManager: {fileID: 816895044}
   cargoSystem: {fileID: 935175481}
   shiftTimer: {fileID: 816895046}
+  cargoCondition: {fileID: 0}
   panelPosition: {x: -8, y: -8}
   panelSize: {x: 420, y: 340}
   fontSize: 26
@@ -2047,6 +2074,7 @@ MonoBehaviour:
   normalColour: {r: 1, g: 1, b: 1, a: 1}
   pickupColour: {r: 0.15, g: 0.6, b: 1, a: 1}
   dropOffColour: {r: 0.15, g: 1, b: 0.3, a: 1}
+  transferColour: {r: 1, g: 0.75, b: 0.1, a: 1}
   urgentColour: {r: 1, g: 0.05, b: 0.05, a: 1}
   panelColour: {r: 0, g: 0, b: 0, a: 0.55}
   urgentBelowSeconds: 8

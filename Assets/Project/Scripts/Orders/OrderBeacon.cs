@@ -55,6 +55,10 @@ namespace ZoomZoom.Orders.UI
         [Header("Colours, bright and saturated on purpose")]
         [SerializeField] private Color pickupColour = new Color(0.15f, 0.55f, 1f, 1f);
         [SerializeField] private Color dropOffColour = new Color(0.1f, 1f, 0.25f, 1f);
+        [Tooltip("Colour used for an intermediate transfer point on a multi-leg order, distinct " +
+                 "from both pickup blue and final drop-off green so a player can tell 'one more " +
+                 "stop after this' apart from 'this is the last one' at a glance.")]
+        [SerializeField] private Color transferColour = new Color(1f, 0.75f, 0.1f, 1f);
         [SerializeField] private Color urgentColour = new Color(1f, 0.05f, 0.05f, 1f);
         [SerializeField] private float urgentBelowSeconds = 8f;
 
@@ -114,20 +118,29 @@ namespace ZoomZoom.Orders.UI
                 Order order = active[i];
                 if (order.IsTerminal) continue;
 
-                bool goingToDropOff = order.State == OrderState.Carried
-                                     || order.State == OrderState.Collected;
+                bool carrying = order.State == OrderState.Carried || order.State == OrderState.Collected;
+                Vector3 target = order.CurrentTarget;
 
-                Vector3 target = goingToDropOff ? order.DropOffPoint : order.PickupPoint;
-                Color baseColour = goingToDropOff ? dropOffColour : pickupColour;
+                Color baseColour = !carrying
+                    ? pickupColour
+                    : (order.IsOnFinalCarryLeg ? dropOffColour : transferColour);
 
                 float urgency = 1f - Mathf.Clamp01(order.TimeRemaining / Mathf.Max(0.01f, urgentBelowSeconds));
                 Color colour = Color.Lerp(baseColour, urgentColour, urgency);
 
-                float discRadius = zoneDetection != null
-                    ? (goingToDropOff ? zoneDetection.DropOffRadius : zoneDetection.PickupRadius)
-                    : fallbackGroundDiscRadius;
+                float discRadius = fallbackGroundDiscRadius;
+                if (zoneDetection != null)
+                {
+                    discRadius = !carrying ? zoneDetection.PickupRadius
+                               : order.IsOnFinalCarryLeg ? zoneDetection.DropOffRadius
+                               : zoneDetection.TransferRadius;
+                }
 
-                PlaceBeacon(_slots[used], target, colour, order.Id, discRadius);
+                string label = order.TotalCarryLegs > 1 && carrying
+                    ? $"#{order.Id} ({order.CurrentCarryLegNumber}/{order.TotalCarryLegs})"
+                    : $"#{order.Id}";
+
+                PlaceBeacon(_slots[used], target, colour, label, discRadius);
                 used++;
             }
 
@@ -137,7 +150,7 @@ namespace ZoomZoom.Orders.UI
             }
         }
 
-        private void PlaceBeacon(BeaconSlot slot, Vector3 groundPosition, Color colour, int orderId,
+        private void PlaceBeacon(BeaconSlot slot, Vector3 groundPosition, Color colour, string label,
             float discRadius)
         {
             if (!slot.Root.activeSelf) slot.Root.SetActive(true);
@@ -167,7 +180,7 @@ namespace ZoomZoom.Orders.UI
             slot.DiscBlock.SetColor("_Color", discColour);
             slot.GroundDiscRenderer.SetPropertyBlock(slot.DiscBlock);
 
-            slot.Number.text = $"#{orderId}";
+            slot.Number.text = label;
             slot.Number.color = colour;
 
             Vector3 numberPos = groundPosition + Vector3.up * (beamHeight + numberHeightAboveBeam);
