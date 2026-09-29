@@ -198,19 +198,36 @@ namespace ZoomZoom.Orders
             int pickupIndex = PickIndexAvoidingCollisions(_pickupPositions, o => o.PickupPoint);
             int dropIndex = PickIndexAvoidingCollisions(_dropOffPositions, o => o.DropOffPoint);
 
+            Vector3 pickupPos = _pickupPositions[pickupIndex];
+            Vector3 dropPos = _dropOffPositions[dropIndex];
+
+            List<Vector3> transferPoints = null;
+            if (tuning.enableMultiLegOrders && UnityEngine.Random.value < tuning.multiLegChance)
+            {
+                int legCount = UnityEngine.Random.Range(tuning.minTransferLegs, tuning.maxTransferLegs + 1);
+                transferPoints = PickTransferPoints(legCount, pickupPos, dropPos);
+            }
+
+            float timeLimit = tuning.orderTimeLimit
+                             + (transferPoints?.Count ?? 0) * tuning.extraTimePerTransferLeg;
+
             Order order = new Order(
                 id: _nextOrderId++,
-                pickupPoint: _pickupPositions[pickupIndex],
-                dropOffPoint: _dropOffPositions[dropIndex],
-                timeLimit: tuning.orderTimeLimit);
+                pickupPoint: pickupPos,
+                dropOffPoint: dropPos,
+                timeLimit: timeLimit,
+                transferPoints: transferPoints);
 
             order.Activate();
             _activeOrders.Add(order);
 
             if (logActivity)
             {
+                string legInfo = transferPoints != null && transferPoints.Count > 0
+                    ? $", {transferPoints.Count} transfer leg(s)"
+                    : "";
                 Debug.Log($"[OrderManager] Order {order.Id} spawned: {order.DesignedDistance:0.0} m, " +
-                          $"{tuning.orderTimeLimit:0} s to deliver. " +
+                          $"{timeLimit:0} s to deliver{legInfo}. " +
                           $"{_activeOrders.Count}/{tuning.maxActiveOrders} active.");
             }
 
@@ -257,6 +274,61 @@ namespace ZoomZoom.Orders
             return UnityEngine.Random.Range(0, pool.Length);
         }
 
+        /// <summary>
+        /// Picks up to count distinct transfer points for a multi-leg order, drawn from the same
+        /// pickup/drop-off pool rather than a dedicated point type. A transfer stop in this
+        /// prototype is just "somewhere else on the map to swing by", which is enough to prove
+        /// the structural change (more than one leg while carried) without needing bespoke
+        /// transfer-point geometry before that structure is even confirmed as the right direction.
+        /// Excludes points too close to the order's own pickup, its own drop-off, or another
+        /// transfer point already chosen for it, using the same threshold as spawn-collision
+        /// avoidance above.
+        /// </summary>
+        private List<Vector3> PickTransferPoints(int count, Vector3 excludePickup, Vector3 excludeDropOff)
+        {
+            var result = new List<Vector3>(Mathf.Max(0, count));
+            if (count <= 0) return result;
+
+            var candidates = new List<Vector3>(_pickupPositions.Length + _dropOffPositions.Length);
+            candidates.AddRange(_pickupPositions);
+            candidates.AddRange(_dropOffPositions);
+
+            const float sameSpotThreshold = 0.5f;
+            int maxAttempts = count * 6;
+
+            for (int attempt = 0; attempt < maxAttempts && result.Count < count; attempt++)
+            {
+                Vector3 candidate = candidates[UnityEngine.Random.Range(0, candidates.Count)];
+
+                bool tooClose = Vector3.Distance(candidate, excludePickup) < sameSpotThreshold
+                              || Vector3.Distance(candidate, excludeDropOff) < sameSpotThreshold;
+
+                if (!tooClose)
+                {
+                    foreach (Vector3 chosen in result)
+                    {
+                        if (Vector3.Distance(candidate, chosen) < sameSpotThreshold)
+                        {
+                            tooClose = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!tooClose) result.Add(candidate);
+            }
+
+            if (result.Count < count)
+            {
+                Debug.LogWarning(
+                    $"[OrderManager] Could only find {result.Count}/{count} distinct transfer " +
+                    "points for a multi-leg order. testPointCount may be too small relative to " +
+                    "maxTransferLegs.", this);
+            }
+
+            return result;
+        }
+
         private void TickAllOrders(float dt)
         {
             for (int i = _activeOrders.Count - 1; i >= 0; i--)
@@ -268,8 +340,13 @@ namespace ZoomZoom.Orders
         }
 
         /// <summary>Call from zone detection once the vehicle has driven into a Carried order's
-        /// drop-off zone. The only entry point that can turn an order into Delivered.</summary>
-        public void ResolveDelivery(Order order)
+        /// drop-off zone on its final leg. The only entry point that can turn an order into
+        /// Delivered.</summary>
+        /// <param name="order">The order being delivered.</param>
+        /// <param name="conditionMultiplier">0 to 1, scaling baseDeliveryValue. Defaults to 1
+        /// (full value) so callers that don't track cargo condition, or have it turned off, need
+        /// no changes. Supplied by CargoSystem when a CargoCondition component is present.</param>
+        public void ResolveDelivery(Order order, float conditionMultiplier = 1f)
         {
             if (order == null || order.State != OrderState.Carried)
             {
@@ -279,10 +356,17 @@ namespace ZoomZoom.Orders
                 return;
             }
 
+            if (!order.IsOnFinalCarryLeg)
+            {
+                Debug.LogWarning(
+                    $"[OrderManager] ResolveDelivery called on order {order.Id} before its final " +
+                    "leg. Ignored, zone detection should have advanced the leg instead.", this);
+                return;
+            }
+
             order.MarkDelivered();
 
-            // Flat value for the MVP. Scaling by DesignedDistance into XP/money is Milestone 2 work.
-            float value = tuning.baseDeliveryValue;
+            float value = tuning.baseDeliveryValue * Mathf.Clamp01(conditionMultiplier);
 
             Resolve(order, value, wasLate: false);
         }

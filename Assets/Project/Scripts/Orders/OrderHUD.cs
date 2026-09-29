@@ -16,6 +16,9 @@ namespace ZoomZoom.Orders.UI
         [SerializeField] private OrderManager orderManager;
         [SerializeField] private CargoSystem cargoSystem;
         [SerializeField] private ShiftTimer shiftTimer;
+        [Tooltip("Optional. Found automatically if present. When assigned and its own toggle is " +
+                 "on, the cargo line shows a condition percentage instead of just slot counts.")]
+        [SerializeField] private CargoCondition cargoCondition;
 
         [Header("Layout")]
         [SerializeField] private Vector2 panelPosition = new Vector2(-24f, -24f); // offset from the top-right corner
@@ -29,6 +32,9 @@ namespace ZoomZoom.Orders.UI
         [SerializeField] private Color normalColour = Color.white;
         [SerializeField] private Color pickupColour = new Color(0.15f, 0.6f, 1f, 1f);
         [SerializeField] private Color dropOffColour = new Color(0.15f, 1f, 0.3f, 1f);
+        [Tooltip("Colour used for an order currently heading to an intermediate transfer point, " +
+                 "matching DestinationMarker and OrderBeacon's transfer colour.")]
+        [SerializeField] private Color transferColour = new Color(1f, 0.75f, 0.1f, 1f);
         [SerializeField] private Color urgentColour = new Color(1f, 0.05f, 0.05f, 1f);
         [SerializeField] private Color panelColour = new Color(0f, 0f, 0f, 0.55f);
         [SerializeField] private float urgentBelowSeconds = 8f;
@@ -48,6 +54,7 @@ namespace ZoomZoom.Orders.UI
             if (orderManager == null) orderManager = FindAnyObjectByType<OrderManager>();
             if (cargoSystem == null) cargoSystem = FindAnyObjectByType<CargoSystem>();
             if (shiftTimer == null) shiftTimer = FindAnyObjectByType<ShiftTimer>();
+            if (cargoCondition == null) cargoCondition = FindAnyObjectByType<CargoCondition>();
 
             if (orderManager == null)
             {
@@ -103,14 +110,21 @@ namespace ZoomZoom.Orders.UI
                 }
 
                 Order order = active[i];
-                bool goingToDropOff = order.State == OrderState.Carried || order.State == OrderState.Collected;
+                bool carrying = order.State == OrderState.Carried || order.State == OrderState.Collected;
 
-                _orderLines[i].text = $"Order {order.Id}   {order.State}   {order.TimeRemaining:0.0}s";
+                string legSuffix = order.TotalCarryLegs > 1 && carrying
+                    ? $" (leg {order.CurrentCarryLegNumber}/{order.TotalCarryLegs})"
+                    : "";
+
+                _orderLines[i].text =
+                    $"Order {order.Id}   {order.State}{legSuffix}   {order.TimeRemaining:0.0}s";
 
                 // Exactly the same blend DestinationMarker and OrderBeacon use: base colour by
-                // pickup/drop-off, shifted toward red as the timer runs out. A player should
-                // never see a different colour for the same order across the three channels.
-                Color baseColour = goingToDropOff ? dropOffColour : pickupColour;
+                // pickup/transfer/drop-off, shifted toward red as the timer runs out. A player
+                // should never see a different colour for the same order across the three channels.
+                Color baseColour = !carrying
+                    ? pickupColour
+                    : (order.IsOnFinalCarryLeg ? dropOffColour : transferColour);
                 float urgency = 1f - Mathf.Clamp01(order.TimeRemaining / Mathf.Max(0.01f, urgentBelowSeconds));
                 _orderLines[i].color = Color.Lerp(baseColour, urgentColour, urgency);
             }
@@ -141,10 +155,31 @@ namespace ZoomZoom.Orders.UI
             }
 
             var ids = new List<string>(cargoSystem.SlotsUsed);
-            foreach (Order o in cargoSystem.CarriedOrders) ids.Add(o.Id.ToString());
+            bool showCondition = cargoCondition != null && cargoCondition.ConditionEnabled;
+
+            foreach (Order o in cargoSystem.CarriedOrders)
+            {
+                ids.Add(showCondition
+                    ? $"{o.Id} @ {cargoCondition.GetConditionPercent(o):0}%"
+                    : o.Id.ToString());
+            }
 
             _cargoLine.text = $"Cargo: {cargoSystem.SlotsUsed}/{cargoSystem.Capacity} (orders {string.Join(", ", ids)})";
-            _cargoLine.color = dropOffColour; // matches the "carried" colour everywhere else
+
+            // Worst condition among carried orders pulls the line toward the urgent colour, so a
+            // deteriorating delivery is visible here even before the player checks the beacon.
+            if (showCondition && cargoSystem.SlotsUsed > 0)
+            {
+                float worst = 100f;
+                foreach (Order o in cargoSystem.CarriedOrders)
+                    worst = Mathf.Min(worst, cargoCondition.GetConditionPercent(o));
+
+                _cargoLine.color = Color.Lerp(urgentColour, dropOffColour, worst / 100f);
+            }
+            else
+            {
+                _cargoLine.color = dropOffColour; // matches the "carried" colour everywhere else
+            }
         }
 
         private void RefreshScoreLine()

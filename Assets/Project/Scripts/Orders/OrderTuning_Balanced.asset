@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: OrderTuning_Balanced
   m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.OrderTuning
   profileName: Balanced
-  whyThisSetup: '50 s, set for the Milestone 1 build on 23 September. The countdown
+whyThisSetup: '50 s, set for the Milestone 1 build on 23 September. The countdown
     in Order begins at spawn and not at pickup, so the drive to the pickup is inside
     the same budget and is costed with the job. Across the 36 pairs formed by the
     twelve hand-placed delivery points, the shortest job is 260 m of grid driving
@@ -33,3 +33,8 @@ MonoBehaviour:
   orderTimeLimit: 50
   baseDeliveryValue: 10
   latePenaltyPerSecond: 1
+  enableMultiLegOrders: 1
+  multiLegChance: 0.5
+  minTransferLegs: 1
+  maxTransferLegs: 2
+  extraTimePerTransferLeg: 15
