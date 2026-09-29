@@ -1992,6 +1992,7 @@ GameObject:
   - component: {fileID: 1027706771}
   - component: {fileID: 1027706770}
   - component: {fileID: 1027706769}
+  - component: {fileID: 700100040}
   m_Layer: 0
   m_Name: OrderHUD
   m_TagString: Untagged
@@ -13949,6 +13950,29 @@ Transform:
   m_Children: []
   m_Father: {fileID: 5346108521098718522}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &700100040
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1027706768}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8f3e2a1c9b7d4e6fa05c1d2e3f4a5b6c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.UI.ShiftResults
+  shiftTimer: {fileID: 816895046}
+  orderManager: {fileID: 816895044}
+  panelSize: {x: 620, y: 400}
+  titleFontSize: 48
+  fontSize: 30
+  buttonFontSize: 26
+  panelColour: {r: 0, g: 0, b: 0, a: 0.82}
+  textColour: {r: 1, g: 1, b: 1, a: 1}
+  deliveredColour: {r: 0.15, g: 1, b: 0.3, a: 1}
+  lateColour: {r: 1, g: 0.05, b: 0.05, a: 1}
+  buttonColour: {r: 0.16, g: 0.16, b: 0.16, a: 1}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
