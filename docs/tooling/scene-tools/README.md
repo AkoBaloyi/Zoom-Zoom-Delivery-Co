@@ -50,13 +50,12 @@ approach, the longest is 954 m, and the mean is 557 m. Measured top speed is 32 
 held through junctions on the measured sideways grip of 13 m/s^2, so jobs are costed at a 20 m/s
 working average: 13 s for the shortest, 28 s for the mean, 48 s for the longest.
 
-`orderTimeLimit` in `OrderTuning_Balanced.asset` is 45 s, which is what it was set to while points
-were still generated on a 60 m ring around the origin. Against the real point set that clears 35 of
-the 36 pairs; the longest, North East Corner to South West Yard, needs about 48 s and is expected to
-run late unless it is driven above the working average. The group chose to keep 45 s rather than
-raise it. If that pair proves annoying in play, moving one drop-off costs less than loosening the
-timer for every job.
+`orderTimeLimit` in `OrderTuning_Balanced.asset` is 50 s, set for the Milestone 1 build. Against the
+real point set that clears all 36 pairs at the working average, with about 2 s spare on the longest
+(North East Corner to South West Yard, 48 s), so a clean run of the worst job makes it and a wrong
+turn on it does not. The previous 45 s left that one pair about 3 s short. If real laps come in
+slower than 20 m/s, moving one drop-off costs less than loosening the timer for every job.
 
 `order_distances.py` takes the limit as an argument, so
-`python docs/tooling/scene-tools/order_distances.py 45` re-checks the whole set in one command after
+`python docs/tooling/scene-tools/order_distances.py 50` re-checks the whole set in one command after
 any change to the points or the limit.
