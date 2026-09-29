@@ -609,6 +609,20 @@ namespace ZoomZoom.Vehicle
                  "auto-recentre.")]
         public float cameraSwivelRecentreDelay = 1.2f;
 
+        [Tooltip("Radius, metres, of the sphere swept from the car to the camera every frame to find " +
+                 "walls. Anything solid in the way pulls the camera in to the near side of it, so the " +
+                 "player is never looking at the inside of a building.\n\n" +
+                 "Must be larger than the camera's near clip plane, 0.3 m, or the wall still cuts the " +
+                 "corner of the frame. 0 switches the check off, which is correct on the open lab " +
+                 "floor and wrong anywhere with geometry.")]
+        public float cameraCollisionRadius = 0.4f;
+
+        [Tooltip("Seconds for the camera to ease back out to its normal distance once the wall is " +
+                 "behind it. Pulling IN is instant, because seeing through a wall for even one frame " +
+                 "reads as a bug. Easing OUT is slow, because snapping back reads as a jump cut.")]
+        [Range(0f, 1.5f)]
+        public float cameraCollisionRecoverTime = 0.35f;
+
         // ==================================================================
         // HELPERS
         // These let the measurement script compare what the car ACTUALLY did
@@ -815,6 +829,7 @@ namespace ZoomZoom.Vehicle
             wheelWidth = Mathf.Max(0.02f, wheelWidth);
             flipDuration = Mathf.Max(0.05f, flipDuration);
             cameraDistance = Mathf.Max(0.5f, cameraDistance);
+            cameraCollisionRadius = Mathf.Max(0f, cameraCollisionRadius);
 
             if (string.IsNullOrWhiteSpace(profileName))
                 profileName = name;

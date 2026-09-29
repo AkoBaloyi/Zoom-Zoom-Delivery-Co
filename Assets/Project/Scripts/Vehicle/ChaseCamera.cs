@@ -23,6 +23,20 @@ namespace ZoomZoom.Vehicle
     /// height, follow smoothing and look-ahead, can be dragged while driving and the change is
     /// immediate. Because they live on a ScriptableObject the change is also KEPT when play mode
     /// stops, which is the only sane way to find these numbers.
+    ///
+    /// WHY THE CAMERA PULLS IN AT WALLS
+    /// Everything above was built and measured on an open floor. The district is not open: streets
+    /// are about 20 m kerb to kerb and the camera sits up to 6.5 m behind the car, so the first
+    /// time the car turns a corner the camera swings wide into the building on the inside of the
+    /// turn and the player is looking at the back of a wall. So every frame a sphere is swept from
+    /// a point just above the car out to where the camera wants to be, and if it touches anything
+    /// solid the camera is placed on the near side of it instead.
+    ///
+    /// Two asymmetries are deliberate. Pulling in is instant and easing back out is slow, because
+    /// one frame of seeing through a wall reads as a bug while a slow return reads as nothing at
+    /// all. And the clamp is applied AFTER the follow smoothing, never to the smoothing target,
+    /// so a wall cannot lag through the easing and the follow state is untouched when the wall
+    /// ends. The car's own colliders are ignored the same way the wheel raycasts ignore them.
     /// </summary>
     [RequireComponent(typeof(Camera))]
     [DisallowMultipleComponent]
@@ -39,6 +53,11 @@ namespace ZoomZoom.Vehicle
         [Tooltip("Optional. Used for the manual look-around stick. Not required.")]
         [SerializeField] private VehicleInput input;
 
+        [Tooltip("What counts as a wall for the camera. Defaults to everything except Ignore Raycast. " +
+                 "The car is excluded by identity, not by layer, so it can share a layer with the " +
+                 "buildings, which it does.")]
+        [SerializeField] private LayerMask collisionLayers = Physics.DefaultRaycastLayers;
+
         private Camera _camera;
 
         // Smoothing state.
@@ -46,6 +65,13 @@ namespace ZoomZoom.Vehicle
         private Vector3 _positionVelocity;
         private Quaternion _rotation = Quaternion.identity;
         private Vector3 _smoothedHeading = Vector3.forward;
+
+        // Wall avoidance. Fraction of the pivot-to-camera distance actually in use: 1 is clear,
+        // smaller means a wall has pulled the camera in. Kept separately from _position so the
+        // follow smoothing never learns about walls.
+        private float _wallPullIn = 1f;
+        private Vector3 _renderPosition;
+        private readonly RaycastHit[] _wallHits = new RaycastHit[8];
 
         // Manual look-around.
         private float _yawOffset;
@@ -97,11 +123,14 @@ namespace ZoomZoom.Vehicle
             _positionVelocity = Vector3.zero;
             _yawOffset = 0f;
             _pitchOffset = 0f;
+            _wallPullIn = 1f;
 
             _position = ComputeDesiredPosition(_smoothedHeading);
-            _rotation = ComputeDesiredRotation(_position, _smoothedHeading);
+            // dt of zero: any wall in the way pulls in immediately, nothing eases.
+            _renderPosition = KeepOutOfWalls(_position, 0f);
+            _rotation = ComputeDesiredRotation(_renderPosition, _smoothedHeading);
 
-            transform.SetPositionAndRotation(_position, _rotation);
+            transform.SetPositionAndRotation(_renderPosition, _rotation);
             ApplyLens();
         }
 
@@ -128,13 +157,83 @@ namespace ZoomZoom.Vehicle
             _position = Vector3.SmoothDamp(_position, desiredPosition, ref _positionVelocity,
                 Tuning.cameraFollowSmoothTime, Mathf.Infinity, dt);
 
-            // 3. Aim at the look-ahead point.
-            Quaternion desiredRotation = ComputeDesiredRotation(_position, _smoothedHeading);
+            // 3. If a wall is between the car and that point, stop short of it. Applied to the
+            //    smoothed result, not the target, so the wall never lags through the easing.
+            _renderPosition = KeepOutOfWalls(_position, dt);
+
+            // 4. Aim at the look-ahead point from where the camera actually is.
+            Quaternion desiredRotation = ComputeDesiredRotation(_renderPosition, _smoothedHeading);
             _rotation = SmoothRotation(_rotation, desiredRotation,
                 Tuning.cameraRotationSmoothTime, dt);
 
-            transform.SetPositionAndRotation(_position, _rotation);
+            transform.SetPositionAndRotation(_renderPosition, _rotation);
             ApplyLens();
+        }
+
+        // ==================================================================
+        // WALL AVOIDANCE
+        // ==================================================================
+
+        /// <summary>
+        /// Sweeps a sphere from just above the car to <paramref name="wanted"/> and returns the
+        /// nearest point along that line the camera can sit without a wall between it and the car.
+        ///
+        /// The sweep starts at the look-at height rather than the car's centre so it clears the
+        /// car's own roof, and it ends where the camera wants to be, so the check covers exactly
+        /// the line of sight the player needs. A hit distance is where the sphere's CENTRE stopped,
+        /// which already leaves one radius of clearance from the wall, and the radius is bigger
+        /// than the near clip plane, so the wall cannot cut into the frame.
+        /// </summary>
+        private Vector3 KeepOutOfWalls(Vector3 wanted, float dt)
+        {
+            float radius = Tuning.cameraCollisionRadius;
+            if (radius <= 0f)
+            {
+                _wallPullIn = 1f;
+                return wanted;
+            }
+
+            Vector3 pivot = target.transform.position + Vector3.up * Tuning.cameraLookAtHeight;
+            Vector3 offset = wanted - pivot;
+            float fullDistance = offset.magnitude;
+            if (fullDistance < 0.001f) return wanted;
+            Vector3 direction = offset / fullDistance;
+
+            float clear = 1f;
+            int count = Physics.SphereCastNonAlloc(pivot, radius, direction, _wallHits,
+                fullDistance, collisionLayers, QueryTriggerInteraction.Ignore);
+
+            float nearest = float.PositiveInfinity;
+            for (int i = 0; i < count; i++)
+            {
+                RaycastHit hit = _wallHits[i];
+                if (IsPartOfCar(hit.collider)) continue;
+                if (hit.distance < nearest) nearest = hit.distance;
+            }
+
+            if (!float.IsPositiveInfinity(nearest))
+                clear = Mathf.Clamp01(nearest / fullDistance);
+
+            // In: instant. Out: eased. See the class comment for why they differ.
+            if (clear < _wallPullIn)
+                _wallPullIn = clear;
+            else
+                _wallPullIn = Mathf.Lerp(_wallPullIn, clear,
+                    SmoothingFactor(Tuning.cameraCollisionRecoverTime, dt));
+
+            return pivot + direction * (fullDistance * _wallPullIn);
+        }
+
+        /// <summary>
+        /// The sweep starts inside the car, so without this the camera would treat the car's roof
+        /// as a wall and pull in to nothing. Checked by identity rather than layer because the car
+        /// and the buildings share the Default layer.
+        /// </summary>
+        private bool IsPartOfCar(Collider c)
+        {
+            if (c == null) return true;
+            if (target.Body != null && c.attachedRigidbody == target.Body) return true;
+            return c.transform.IsChildOf(target.transform);
         }
 
         // ==================================================================
@@ -316,6 +415,17 @@ namespace ZoomZoom.Vehicle
             Vector3 stopPoint = carPos + heading * stopping;
             Gizmos.color = Tuning.cameraLookAhead >= stopping ? Color.green : Color.red;
             Gizmos.DrawLine(stopPoint + Vector3.up * 0.1f, stopPoint + Vector3.up * 2.5f);
+
+            // Wall avoidance, only meaningful while running. Yellow while a wall is holding the
+            // camera in, with the sweep sphere drawn where the camera actually is.
+            if (!Application.isPlaying || Tuning.cameraCollisionRadius <= 0f) return;
+
+            Vector3 pivot = carPos + Vector3.up * Tuning.cameraLookAtHeight;
+            bool heldIn = _wallPullIn < 0.999f;
+            Gizmos.color = heldIn ? Color.yellow : new Color(1f, 1f, 1f, 0.25f);
+            Gizmos.DrawLine(pivot, _renderPosition);
+            Gizmos.DrawWireSphere(_renderPosition, Tuning.cameraCollisionRadius);
+            if (heldIn) Gizmos.DrawLine(_renderPosition, _position);
         }
     }
 }
