@@ -40,6 +40,9 @@ namespace ZoomZoom.Orders.UI
         [Header("Colours (bright and saturated on purpose, these need to grab attention)")]
         [SerializeField] private Color pickupColour = new Color(0.15f, 0.6f, 1f, 1f);
         [SerializeField] private Color dropOffColour = new Color(0.15f, 1f, 0.3f, 1f);
+        [Tooltip("Colour used while heading to an intermediate transfer point on a multi-leg " +
+                 "order, distinct from pickup blue and final drop-off green.")]
+        [SerializeField] private Color transferColour = new Color(1f, 0.75f, 0.1f, 1f);
         [SerializeField] private Color urgentColour = new Color(1f, 0.05f, 0.05f, 1f);
         [SerializeField] private float urgentBelowSeconds = 8f;
 
@@ -88,16 +91,21 @@ namespace ZoomZoom.Orders.UI
                 Order order = active[i];
                 if (order.IsTerminal) continue;
 
-                bool goingToDropOff = order.State == OrderState.Carried
-                                     || order.State == OrderState.Collected;
+                bool carrying = order.State == OrderState.Carried || order.State == OrderState.Collected;
+                Vector3 target = order.CurrentTarget;
 
-                Vector3 target = goingToDropOff ? order.DropOffPoint : order.PickupPoint;
-                Color baseColour = goingToDropOff ? dropOffColour : pickupColour;
+                Color baseColour = !carrying
+                    ? pickupColour
+                    : (order.IsOnFinalCarryLeg ? dropOffColour : transferColour);
 
                 float urgency = 1f - Mathf.Clamp01(order.TimeRemaining / Mathf.Max(0.01f, urgentBelowSeconds));
                 Color colour = Color.Lerp(baseColour, urgentColour, urgency);
 
-                PlaceMarker(_slots[used], target, colour, order.Id);
+                string label = order.TotalCarryLegs > 1 && carrying
+                    ? $"#{order.Id} ({order.CurrentCarryLegNumber}/{order.TotalCarryLegs})"
+                    : $"#{order.Id}";
+
+                PlaceMarker(_slots[used], target, colour, label);
                 used++;
             }
 
@@ -126,7 +134,7 @@ namespace ZoomZoom.Orders.UI
         /// Camera-local direction (right/up relative to the camera, from InverseTransformDirection)
         /// has no such singularity in any direction, including straight behind.
         /// </summary>
-        private void PlaceMarker(MarkerSlot slot, Vector3 target, Color colour, int orderId)
+        private void PlaceMarker(MarkerSlot slot, Vector3 target, Color colour, string label)
         {
             slot.Root.gameObject.SetActive(true);
 
@@ -193,7 +201,7 @@ namespace ZoomZoom.Orders.UI
             slot.Arrow.color = colour;
             slot.Distance.color = colour;
 
-            slot.IdLabel.text = $"#{orderId}";
+            slot.IdLabel.text = label;
             slot.IdLabel.color = colour;
 
             float distance = Vector3.Distance(targetCamera.transform.position, target);

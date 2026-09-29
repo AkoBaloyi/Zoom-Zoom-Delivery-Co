@@ -17,9 +17,6 @@ namespace ZoomZoom.Orders
         [Header("Profile identity")]
         public string profileName = "Unnamed";
 
-        [TextArea(4, 12)]
-        public string whyThisSetup = "";
-
         [Header("Spawning")]
         [Tooltip("Seconds between one order spawning and the next becoming eligible to spawn.")]
         public float spawnInterval = 12f;
@@ -37,12 +34,41 @@ namespace ZoomZoom.Orders
         [Range(0f, 1f)]
         public float latePenaltyPerSecond = 1f;
 
+        [Header("Multi-leg orders (Milestone 2 exploration)")]
+        [Tooltip("Off by default, so the queue spawns exactly the Milestone 1 direct pickup-to-" +
+                 "drop-off order until this is deliberately turned on. This is the single switch " +
+                 "for demoing the M1 loop versus the proposed M2 loop from the same build.")]
+        public bool enableMultiLegOrders = false;
+
+        [Range(0f, 1f)]
+        [Tooltip("Chance an individual spawned order gets transfer points at all, once multi-leg " +
+                 "orders are enabled. Keeping some orders direct even with the feature on means " +
+                 "not every delivery demands the same amount of driving, which matters for the " +
+                 "\"which order first\" prioritisation the hypothesis relies on.")]
+        public float multiLegChance = 0.5f;
+
+        [Tooltip("Minimum number of transfer points a multi-leg order can get.")]
+        public int minTransferLegs = 1;
+
+        [Tooltip("Maximum number of transfer points a multi-leg order can get.")]
+        public int maxTransferLegs = 2;
+
+        [Tooltip("Extra seconds added to orderTimeLimit per transfer point, so a multi-leg order " +
+                 "is not simply a direct order made harder by the same clock. Without this, " +
+                 "turning multi-leg orders on would silently make every order tighter, which is a " +
+                 "balance change, not the structural one this feature is meant to test.")]
+        public float extraTimePerTransferLeg = 15f;
+
         private void OnValidate()
         {
             spawnInterval = Mathf.Max(0.5f, spawnInterval);
             maxActiveOrders = Mathf.Max(1, maxActiveOrders);
             orderTimeLimit = Mathf.Max(1f, orderTimeLimit);
             baseDeliveryValue = Mathf.Max(0f, baseDeliveryValue);
+
+            minTransferLegs = Mathf.Max(0, minTransferLegs);
+            maxTransferLegs = Mathf.Max(minTransferLegs, maxTransferLegs);
+            extraTimePerTransferLeg = Mathf.Max(0f, extraTimePerTransferLeg);
 
             if (string.IsNullOrWhiteSpace(profileName))
                 profileName = name;

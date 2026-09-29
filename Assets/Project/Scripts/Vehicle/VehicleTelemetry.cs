@@ -26,8 +26,11 @@ namespace ZoomZoom.Vehicle
         [SerializeField] private VehicleController car;
 
         [Header("Display")]
-        [Tooltip("Show the readout. Toggled at runtime with the key below.")]
-        [SerializeField] private bool show = true;
+        [Tooltip("Show the readout. Off by default, and toggled in the editor with the key below. " +
+                 "This was on by default, which put a diagnostic panel over the game every time " +
+                 "anyone pressed Play. It is a lab instrument: it should cost a keypress to see, " +
+                 "not a keypress to get rid of.")]
+        [SerializeField] private bool show = false;
 
         // F10 rather than F9, because VehicleMeasurement already uses F9 for its own developer
         // overlay. One key toggling two overlays meant you could never see one without the other.
@@ -63,6 +66,14 @@ namespace ZoomZoom.Vehicle
 
         private void Update()
         {
+            // Editor only. This is a lab instrument, not a game control, so a player build must not
+            // expose the key or draw the readout: `show` defaults to true, which in a build would
+            // mean a diagnostic panel over the game with no way to dismiss it. Everything still
+            // works in the editor, which is where every reading in VehicleLab_Measurements was
+            // taken. Application.isEditor rather than #if UNITY_EDITOR so the fields stay read and
+            // written in both builds and the compiler has nothing to warn about.
+            if (!Application.isEditor) return;
+
             // Device read rather than UnityEngine.Input: active input handling is the Input System
             // package, and the legacy class throws on every call under that setting.
             Keyboard keyboard = Keyboard.current;
@@ -82,6 +93,7 @@ namespace ZoomZoom.Vehicle
 
         private void OnGUI()
         {
+            if (!Application.isEditor) return;
             if (!show || car == null) return;
 
             BuildStyles();

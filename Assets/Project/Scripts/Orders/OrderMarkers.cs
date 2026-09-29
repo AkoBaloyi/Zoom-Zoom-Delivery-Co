@@ -36,25 +36,43 @@ namespace ZoomZoom.Orders
 
             if (manager.GetComponent<OrderMarkers>() != null) return;
 
-            OrderMarkers markers = manager.gameObject.AddComponent<OrderMarkers>();
-
-            // The ground rings stay, because nothing else draws them and they are what tells the
-            // player where to STOP. The on-screen order list does not: OrderHUD now does that job
-            // through a real Canvas, and two lists of the same orders in two corners is clutter.
+            // This component has two halves, and each one retires independently the moment
+            // something better is in the scene. The decision is made by looking at the scene, not
+            // by a setting somebody has to remember to flip, so removing the real UI restores the
+            // fallback automatically.
             //
-            // So the world-space half of this component survives and the screen-space half retires,
-            // decided by what is actually in the scene rather than by a setting somebody has to
-            // remember. The reference to OrderFlowTestHarness is gone from the message too: real zone
-            // detection exists now, and the C and V keys it described were removed with it.
-            bool realHudPresent = Object.FindAnyObjectByType<OrderHUD>() != null;
-            if (realHudPresent) markers.orderList = false;
+            // The order list retires to OrderHUD, which draws the same information through a real
+            // Canvas. Two lists of the same orders in two corners is clutter.
+            //
+            // The ground rings retire to OrderBeacon, which is strictly better at the same job: it
+            // reads its disc radius from ZoneDetection every frame, so the footprint cannot drift
+            // out of step with the real trigger, where the ring below duplicates the 6 m as a second
+            // number to keep in sync by hand. It also numbers each beacon and stands a taller beam.
+            bool listCovered = Object.FindAnyObjectByType<OrderHUD>() != null;
+            bool ringsCovered = Object.FindAnyObjectByType<OrderBeacon>() != null;
+
+            if (listCovered && ringsCovered)
+            {
+                Debug.Log(
+                    "[OrderMarkers] Not attaching. OrderHUD owns the order list and OrderBeacon owns " +
+                    "the ground markers, so there is nothing left for this to draw. Delete either of " +
+                    "those and this comes back on its own.");
+                return;
+            }
+
+            OrderMarkers markers = manager.gameObject.AddComponent<OrderMarkers>();
+            if (listCovered) markers.orderList = false;
+            if (ringsCovered) markers.worldMarkers = false;
 
             Debug.Log(
-                "[OrderMarkers] Attached to the order system. Rings are painted on the ground at the " +
-                "pickup and drop-off points, and F11 hides them. " +
-                (realHudPresent
-                    ? "OrderHUD is present, so the built-in order list is switched off and the HUD owns it."
-                    : "No OrderHUD found, so the built-in order list is being drawn as a fallback."));
+                "[OrderMarkers] Attached as a fallback. " +
+                (ringsCovered
+                    ? "OrderBeacon is present, so the ground rings are off and it owns them. "
+                    : "No OrderBeacon found, so rings are painted on the ground at the pickup and " +
+                      "drop-off points and F11 hides them. ") +
+                (listCovered
+                    ? "OrderHUD is present, so the built-in order list is off and the HUD owns it."
+                    : "No OrderHUD found, so the built-in order list is being drawn."));
         }
 
         [Header("Wiring")]

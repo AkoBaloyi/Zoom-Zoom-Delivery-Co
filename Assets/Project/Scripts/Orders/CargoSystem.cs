@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -24,6 +25,11 @@ namespace ZoomZoom.Orders
                  "script to wire that up.")]
         [SerializeField] private OrderManager orderManager;
 
+        [Tooltip("Optional. Found automatically if present on this GameObject. When assigned, a " +
+                 "delivery's payout is scaled by the order's condition at the moment it's " +
+                 "delivered instead of always paying full value.")]
+        [SerializeField] private CargoCondition cargoCondition;
+
         [Header("Capacity")]
         [Tooltip("How many orders can be carried at once. MVP/pre-alpha scope is 1, per Task 8. " +
                  "Do not raise this until the task it actually belongs to is reached: Task 19 " +
@@ -42,9 +48,20 @@ namespace ZoomZoom.Orders
         public int Capacity => capacity;
         public int SlotsUsed => _carriedOrders.Count;
 
+        /// <summary>Fires the moment an order is actually accepted into the cargo slot (after
+        /// TryCollect succeeds). CargoCondition subscribes to this to start tracking that order's
+        /// condition from 100.</summary>
+        public event Action<Order> OrderCarried;
+
+        /// <summary>Fires the moment an order leaves the cargo slot for any reason: delivered,
+        /// gone Late while still carried, or otherwise cleared. CargoCondition subscribes to this
+        /// to stop tracking an order that no longer occupies a slot.</summary>
+        public event Action<Order> OrderReleased;
+
         private void Awake()
         {
             if (orderManager == null) orderManager = FindAnyObjectByType<OrderManager>();
+            if (cargoCondition == null) cargoCondition = GetComponent<CargoCondition>();
 
             if (orderManager == null)
             {
@@ -90,6 +107,7 @@ namespace ZoomZoom.Orders
             order.MarkCollected();
             order.MarkCarried();
             _carriedOrders.Add(order);
+            OrderCarried?.Invoke(order);
 
             if (logActivity)
                 Debug.Log($"[CargoSystem] Order {order.Id} collected and now carried. " +
@@ -108,11 +126,24 @@ namespace ZoomZoom.Orders
                 return false;
             }
 
+            if (!expectedOrder.IsOnFinalCarryLeg)
+            {
+                Refuse($"order {expectedOrder.Id}: not on its final leg yet " +
+                       $"({expectedOrder.CurrentCarryLegNumber}/{expectedOrder.TotalCarryLegs})");
+                return false;
+            }
+
+            float conditionMultiplier = cargoCondition != null
+                ? cargoCondition.GetConditionMultiplier(expectedOrder)
+                : 1f;
+
             _carriedOrders.Remove(expectedOrder);
-            orderManager.ResolveDelivery(expectedOrder);
+            OrderReleased?.Invoke(expectedOrder);
+            orderManager.ResolveDelivery(expectedOrder, conditionMultiplier);
 
             if (logActivity)
-                Debug.Log($"[CargoSystem] Order {expectedOrder.Id} delivered. " +
+                Debug.Log($"[CargoSystem] Order {expectedOrder.Id} delivered at " +
+                          $"{conditionMultiplier * 100f:0}% condition. " +
                           $"{_carriedOrders.Count}/{capacity} slots used.");
 
             return true;
@@ -120,7 +151,7 @@ namespace ZoomZoom.Orders
 
         public void ClearIfResolved(Order order)
         {
-            _carriedOrders.Remove(order);
+            if (_carriedOrders.Remove(order)) OrderReleased?.Invoke(order);
         }
 
         private void Refuse(string reason)

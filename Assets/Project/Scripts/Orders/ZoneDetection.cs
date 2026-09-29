@@ -4,10 +4,10 @@ using UnityEngine;
 namespace ZoomZoom.Orders
 {
     /// <summary>
-    /// Turns "the vehicle is near an order's pickup or drop-off point" into an actual
-    /// CargoSystem.TryCollect / TryDeliver call. Uses plain distance checks against each active
-    /// Order's own PickupPoint/DropOffPoint, no trigger colliders required anywhere in the scene.
-    /// Attach to the same GameObject as the vehicle controller.
+    /// Turns "the vehicle is near an order's current target" into an actual CargoSystem.TryCollect
+    /// / TryDeliver call, or, for a multi-leg order mid-route, an Order.AdvanceTransferLeg call.
+    /// Uses plain distance checks against each Order's own points, no trigger colliders required
+    /// anywhere in the scene. Attach to the same GameObject as the vehicle controller.
     /// </summary>
     [DisallowMultipleComponent]
     public class ZoneDetection : MonoBehaviour
@@ -20,12 +20,17 @@ namespace ZoomZoom.Orders
         [Tooltip("Metres. Tune to match whatever visual marker ends up on the ground.")]
         [SerializeField] private float pickupRadius = 6f;
         [SerializeField] private float dropOffRadius = 6f;
+        [Tooltip("Metres. Radius for an intermediate transfer point on a multi-leg order. " +
+                 "Separate from dropOffRadius since a transfer stop and the final drop-off don't " +
+                 "have to feel the same size once real geometry exists for either.")]
+        [SerializeField] private float transferRadius = 6f;
 
         /// <summary>Read by OrderBeacon so its ground disc always matches the actual trigger
         /// radius exactly, rather than being a second, independent number that can drift out of
         /// sync with this one.</summary>
         public float PickupRadius => pickupRadius;
         public float DropOffRadius => dropOffRadius;
+        public float TransferRadius => transferRadius;
 
         [Tooltip("How often to run the distance checks, in seconds. 0 means every frame. Was 0.1, " +
                  "which let a fast-moving car clip through a small radius in less time than that " +
@@ -60,7 +65,7 @@ namespace ZoomZoom.Orders
             _timeUntilNextCheck = checkInterval;
 
             CheckPickups();
-            CheckDropOff();
+            CheckCarried();
         }
 
         private void CheckPickups()
@@ -84,11 +89,17 @@ namespace ZoomZoom.Orders
         }
 
         /// <summary>
-        /// Checks every currently carried order's drop-off point, not just one, since Cargo can now
-        /// hold up to three at once. Iterated backwards because TryDeliver removes from
+        /// Checks every currently carried order's current target, not just one, since Cargo can
+        /// now hold up to three at once. Iterated backwards because TryDeliver removes from
         /// CarriedOrders, and removing while iterating forwards would skip the next item.
+        ///
+        /// For a multi-leg order, reaching a transfer point (not the final leg) advances the
+        /// order's leg counter and nothing else, the vehicle just keeps carrying it and the
+        /// beacon/HUD/arrow move on to the next target on their own next refresh, since they all
+        /// read Order.CurrentTarget rather than a fixed drop-off point. Only reaching the target
+        /// while IsOnFinalCarryLeg counts as an actual delivery.
         /// </summary>
-        private void CheckDropOff()
+        private void CheckCarried()
         {
             IReadOnlyList<Order> carried = cargoSystem.CarriedOrders;
 
@@ -96,13 +107,29 @@ namespace ZoomZoom.Orders
             {
                 Order order = carried[i];
 
-                float distance = Vector3.Distance(transform.position, order.DropOffPoint);
-                if (distance > dropOffRadius) continue;
+                Vector3 target = order.CurrentTarget;
+                float radius = order.IsOnFinalCarryLeg ? dropOffRadius : transferRadius;
 
-                bool delivered = cargoSystem.TryDeliver(orderManager, order);
+                float distance = Vector3.Distance(transform.position, target);
+                if (distance > radius) continue;
 
-                if (delivered && logActivity)
-                    Debug.Log($"[ZoneDetection] Drove into drop-off zone for order {order.Id}.");
+                if (order.IsOnFinalCarryLeg)
+                {
+                    bool delivered = cargoSystem.TryDeliver(orderManager, order);
+
+                    if (delivered && logActivity)
+                        Debug.Log($"[ZoneDetection] Drove into drop-off zone for order {order.Id}.");
+                }
+                else
+                {
+                    int legJustCompleted = order.CurrentCarryLegNumber;
+                    order.AdvanceTransferLeg();
+
+                    if (logActivity)
+                        Debug.Log($"[ZoneDetection] Order {order.Id} reached transfer point " +
+                                  $"{legJustCompleted}/{order.TotalCarryLegs - 1}, now heading to " +
+                                  (order.IsOnFinalCarryLeg ? "the final drop-off." : "its next transfer point."));
+                }
             }
         }
 
@@ -119,8 +146,11 @@ namespace ZoomZoom.Orders
                 }
                 else if (order.State == OrderState.Carried)
                 {
-                    Gizmos.color = new Color(0.95f, 0.55f, 0.15f, 0.6f);
-                    Gizmos.DrawWireSphere(order.DropOffPoint, dropOffRadius);
+                    bool final = order.IsOnFinalCarryLeg;
+                    Gizmos.color = final
+                        ? new Color(0.95f, 0.55f, 0.15f, 0.6f)
+                        : new Color(1f, 0.85f, 0.1f, 0.6f);
+                    Gizmos.DrawWireSphere(order.CurrentTarget, final ? dropOffRadius : transferRadius);
                 }
             }
         }
