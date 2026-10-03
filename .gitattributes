@@ -215,3 +215,5 @@ Packages/packages-lock.json linguist-generated
 # file where two people edit the same line, because union keeps both versions
 # of it and produces nonsense rather than a conflict.
 VehicleLab_Measurements/*.csv   text eol=lf merge=union
+# Same reasoning for the playtest sheet: one row per tester, added from three branches.
+docs/playtesting/*.csv          text eol=lf merge=union
