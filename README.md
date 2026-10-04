@@ -52,6 +52,11 @@ There is no pick-up or drop-off key. Driving into a pickup ring collects the ord
 into its drop-off ring delivers it, provided the cargo slot allows it. `ZoneDetection` handles
 this automatically, so arriving *is* the action.
 
+Boost is earned, not given. The tank starts full and does not refill on its own: a handbrake
+slide pays into it at 20 a second and air time at 10, and the gauge in the bottom-left corner
+lights blue while it is paying. A full tank is three seconds of boost and takes the car from
+32 m/s to 40.
+
 ## Display Toggles
 
 There are none. Nothing needs switching on to play, and no function key does anything in the game

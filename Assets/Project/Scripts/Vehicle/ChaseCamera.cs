@@ -78,6 +78,9 @@ namespace ZoomZoom.Vehicle
         private float _pitchOffset;
         private float _timeSinceSwivel;
 
+        // Degrees currently added to the field of view by boost. Eased, never snapped.
+        private float _fovKick;
+
         /// <summary>The Camera this script drives. The measurement script needs it for the road-ahead reading.</summary>
         public Camera Camera => _camera;
 
@@ -124,6 +127,7 @@ namespace ZoomZoom.Vehicle
             _yawOffset = 0f;
             _pitchOffset = 0f;
             _wallPullIn = 1f;
+            _fovKick = 0f;
 
             _position = ComputeDesiredPosition(_smoothedHeading);
             // dt of zero: any wall in the way pulls in immediately, nothing eases.
@@ -146,6 +150,7 @@ namespace ZoomZoom.Vehicle
             if (dt <= 0f) return;
 
             ReadSwivelInput(dt);
+            UpdateFovKick(dt);
 
             // 1. Which way is "forwards" for the camera this frame.
             Vector3 desiredHeading = ComputeHeading();
@@ -276,6 +281,11 @@ namespace ZoomZoom.Vehicle
             float distance = Tuning.cameraDistance + Tuning.cameraExtraDistanceAtTopSpeed * speed01;
             float height = Tuning.cameraHeight + Tuning.cameraExtraHeightAtTopSpeed * speed01;
 
+            // Second stage. speed01 saturates at topSpeed, so without this the camera was frozen
+            // across the whole boost range and the one place the player could feel the second
+            // speed stage, the camera did nothing. This ramp starts where the first one stops.
+            distance += Tuning.cameraBoostExtraDistance * BoostStage01();
+
             // Height uses WORLD up, not the car's up. The car rolls in corners; if the camera
             // followed that roll the horizon would tip and the shot becomes unreadable. There is no
             // wall or ceiling driving in this game, so world up is the right simplification.
@@ -284,8 +294,12 @@ namespace ZoomZoom.Vehicle
 
         private Quaternion ComputeDesiredRotation(Vector3 cameraPosition, Vector3 heading)
         {
+            // Look-ahead grows across the boost range so the fairness rule holds at the boost
+            // ceiling too, not only at throttle top speed. See cameraBoostExtraLookAhead.
+            float lookAhead = Tuning.cameraLookAhead + Tuning.cameraBoostExtraLookAhead * BoostStage01();
+
             Vector3 lookAtPoint = target.transform.position
-                                  + heading * Tuning.cameraLookAhead
+                                  + heading * lookAhead
                                   + Vector3.up * Tuning.cameraLookAtHeight;
 
             Vector3 toTarget = lookAtPoint - cameraPosition;
@@ -303,7 +317,32 @@ namespace ZoomZoom.Vehicle
         private void ApplyLens()
         {
             if (_camera == null) return;
-            _camera.fieldOfView = Tuning.cameraFieldOfView;
+            _camera.fieldOfView = Tuning.cameraFieldOfView + _fovKick;
+        }
+
+        /// <summary>
+        /// 0 at or below throttle-only top speed, 1 at the boost ceiling. The handling curves scale
+        /// against the full range; the camera deliberately does not, so the throttle range keeps
+        /// the exact framing that was measured and the boost range gets its own ramp on top.
+        /// </summary>
+        private float BoostStage01()
+        {
+            float top = Tuning.topSpeed;
+            float ceiling = Tuning.BoostOrTopSpeed();
+            if (ceiling - top < 0.01f) return 0f;
+            return Mathf.Clamp01((target.Speed - top) / (ceiling - top));
+        }
+
+        /// <summary>
+        /// FOV widens while boost is being spent and narrows again when it is not. Tied to the
+        /// button rather than to speed: the player gets the kick the instant they press, which is
+        /// the feedback that says the press did something, and it leaves the instant they let go,
+        /// so releasing is felt as well. Speed-tied FOV would arrive late and linger.
+        /// </summary>
+        private void UpdateFovKick(float dt)
+        {
+            float wanted = target.IsBoosting ? Tuning.cameraBoostFovKick : 0f;
+            _fovKick = Mathf.Lerp(_fovKick, wanted, SmoothingFactor(Tuning.cameraBoostFovSmoothTime, dt));
         }
 
         // ==================================================================
@@ -408,13 +447,27 @@ namespace ZoomZoom.Vehicle
             Gizmos.DrawLine(carPos + Vector3.up * 0.5f, lookAt);
             Gizmos.DrawWireSphere(lookAt, 0.5f);
 
-            // How far the car needs to see: stopping distance from top speed.
+            // How far the car needs to see. Two posts: stopping distance from throttle-only top
+            // speed, and from the boost ceiling. The look-ahead has to beat the SECOND one, or a
+            // boosting player is being asked to react to a corner the camera never showed them.
+            // The first post used to be the only one and it passed, which hid the second failing.
             float stopping = Tuning.PredictedStoppingDistanceFromTopSpeed();
+            float stoppingBoosted = Tuning.PredictedStoppingDistanceFromHighestSpeed();
             if (float.IsInfinity(stopping)) return;
 
             Vector3 stopPoint = carPos + heading * stopping;
             Gizmos.color = Tuning.cameraLookAhead >= stopping ? Color.green : Color.red;
             Gizmos.DrawLine(stopPoint + Vector3.up * 0.1f, stopPoint + Vector3.up * 2.5f);
+
+            if (stoppingBoosted > stopping + 0.01f)
+            {
+                // Judged against the look-ahead the camera will have AT the boost ceiling, since
+                // that is the look-ahead a player at that speed is actually given.
+                float lookAheadAtCeiling = Tuning.cameraLookAhead + Tuning.cameraBoostExtraLookAhead;
+                Vector3 boostStopPoint = carPos + heading * stoppingBoosted;
+                Gizmos.color = lookAheadAtCeiling >= stoppingBoosted ? Color.green : Color.red;
+                Gizmos.DrawLine(boostStopPoint + Vector3.up * 0.1f, boostStopPoint + Vector3.up * 3.5f);
+            }
 
             // Wall avoidance, only meaningful while running. Yellow while a wall is holding the
             // camera in, with the sweep sphere drawn where the camera actually is.

@@ -205,6 +205,12 @@ MonoBehaviour:
   cameraRotationSmoothTime: 0.18
   cameraSwivelSpeed: 120
   cameraSwivelRecentreDelay: 1.2
+  cameraBoostExtraDistance: 1.5
+  cameraBoostExtraLookAhead: 9
+  cameraBoostFovKick: 8
+  cameraBoostFovSmoothTime: 0.12
+  cameraCollisionRadius: 0.4
+  cameraCollisionRecoverTime: 0.35
   accelerationFromFormula: 1
   launchAcceleration: 22
   accelerationFalloffPower: 1.7
@@ -213,8 +219,10 @@ MonoBehaviour:
   boostAcceleration: 16
   boostCapacity: 100
   boostConsumptionRate: 33.3
-  boostRechargeRate: 12
+  boostRechargeRate: 0
   boostRechargeDelay: 1
+  boostEarnedFromDrift: 20
+  boostEarnedFromAir: 10
   supersonicThreshold: 38
   handbrakeDeceleration: 6
   useFrictionCircle: 1
