@@ -222,7 +222,8 @@ namespace ZoomZoom.Vehicle
 
             // Shift+F1 is the boost test. F1 to F9 are all taken and F10 to F12 belong to the
             // telemetry and order overlays, so the boost test shares F1 with a modifier rather
-            // than displacing something.
+            // than displacing something. Left Shift is also Jump, so the car hops as Shift goes
+            // down. Harmless: the test teleports the car and settles before measuring anything.
             bool shift = keyboard.leftShiftKey.isPressed || keyboard.rightShiftKey.isPressed;
 
             if (keyboard.f1Key.wasPressedThisFrame && shift) StartCoroutine(RunSingle(MeasureBoost()));
@@ -801,11 +802,12 @@ namespace ZoomZoom.Vehicle
                     $"but the camera shows {lookAheadAtCeiling:0} m. Raise cameraBoostExtraLookAhead.");
             }
 
-            // Let it coast down before the slide, so the slide starts from a known speed.
-            yield return Settle(0.5f);
-
             // ---------- EARN ----------
+            // HoldSpeed teleports the car back to the start pose, and teleporting refills the
+            // tank. Empty it before the slide: earning into a full tank lands nothing, and this
+            // test would report zero however well the earning worked.
             yield return HoldSpeed(turnTestSpeed, 2f);
+            car.SetBoostRemaining(0f);
 
             float tankBeforeSlide = car.BoostRemaining;
             float earnedBefore = car.TotalBoostEarned;

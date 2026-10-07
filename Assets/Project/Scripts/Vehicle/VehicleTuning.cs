@@ -226,8 +226,11 @@ namespace ZoomZoom.Vehicle
                  "progress so the recovery move cannot farm fuel.\n\n" +
                  "Half the drift rate on purpose. Jumping is free and has only a cooldown, so if " +
                  "it paid as well as drifting the best way to refill would be bouncing down a " +
-                 "straight, which looks ridiculous and teaches nothing. A jump is worth about 8 " +
-                 "boost; a slide is worth about 30.")]
+                 "straight, which looks ridiculous and teaches nothing. A tapped jump is 0.65 s " +
+                 "in the air and a held one about 0.94 s (jumpSpeed 6.5, gravity 20, hold bonus " +
+                 "18 m/s^2 for 0.18 s), so a jump pays at most 6.5 to 9.4 boost, and less in practice " +
+                 "because the wheel rays still reach the ground at both ends of the arc. A 1.5 s " +
+                 "slide pays 30.")]
         public float boostEarnedFromAir = 10f;
 
         [Tooltip("Speed (m/s) at which the car counts as supersonic. Rocket League sets this 100 uu/s " +

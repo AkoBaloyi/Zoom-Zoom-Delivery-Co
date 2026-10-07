@@ -1214,6 +1214,18 @@ namespace ZoomZoom.Vehicle
             TotalBoostEarned = 0f;
         }
 
+        /// <summary>
+        /// Sets the boost tank directly, clamped to capacity. For the measurement harness only.
+        /// Teleport refills the tank so every run starts from the same state, which is right for
+        /// the spend test and wrong for the earn test: a full tank swallows everything a slide
+        /// earns, and the reading would be zero however well the earning worked.
+        /// </summary>
+        public void SetBoostRemaining(float amount)
+        {
+            float capacity = tuning != null ? tuning.boostCapacity : 0f;
+            BoostRemaining = Mathf.Clamp(amount, 0f, capacity);
+        }
+
         private void OnDrawGizmos()
         {
             if (!drawDebugGizmos || tuning == null) return;

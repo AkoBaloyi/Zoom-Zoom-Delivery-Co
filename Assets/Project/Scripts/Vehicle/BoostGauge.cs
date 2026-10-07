@@ -54,6 +54,7 @@ namespace ZoomZoom.Vehicle
         [Range(0f, 1f)]
         public float earningLabelHold = 0.4f;
 
+        private GameObject _root;
         private RectTransform _fillRect;
         private Image _fill;
         private Text _label;
@@ -80,9 +81,10 @@ namespace ZoomZoom.Vehicle
         {
             if (car == null || car.Tuning == null) return;
 
+            // The whole gauge, label included. Hiding only the bar left "BOOST" on screen for a
+            // car that has no boost.
             bool boostOn = car.Tuning.boostEnabled;
-            if (_fillRect.parent.gameObject.activeSelf != boostOn)
-                _fillRect.parent.gameObject.SetActive(boostOn);
+            if (_root.activeSelf != boostOn) _root.SetActive(boostOn);
             if (!boostOn) return;
 
             float dt = Time.deltaTime;
@@ -149,6 +151,7 @@ namespace ZoomZoom.Vehicle
             // Bottom-left anchored root for the whole gauge.
             var root = new GameObject("Gauge");
             root.transform.SetParent(canvasGO.transform, false);
+            _root = root;
             RectTransform rootRect = root.AddComponent<RectTransform>();
             rootRect.anchorMin = Vector2.zero;
             rootRect.anchorMax = Vector2.zero;
