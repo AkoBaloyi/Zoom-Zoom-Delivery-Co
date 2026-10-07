@@ -2,7 +2,8 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class PoliceSiren : MonoBehaviour {
+public class PoliceSiren : MonoBehaviour
+{
 
     public GameObject blueLight, redLight;
     public bool isSirenOn;
@@ -11,15 +12,19 @@ public class PoliceSiren : MonoBehaviour {
     private MeshRenderer mr;
     private Shader defShader, unlitShader;
 
-    private void Start() {
+    private void Start()
+    {
         mr = GetComponent<MeshRenderer>();
-        defShader = Shader.Find("Standard");
-        unlitShader = Shader.Find("Unlit/Color");
+        defShader = Shader.Find("Universal Render Pipeline/Lit");
+        unlitShader = Shader.Find("Universal Render Pipeline/Unlit");
     }
 
-    private void Update() {
-        if (isSirenOn) {
-            if(timer > colorInterval) {
+    private void Update()
+    {
+        if (isSirenOn)
+        {
+            if (timer > colorInterval)
+            {
                 // index 3 : blue, index 4 : red
                 bool isBlueUnlit = mr.materials[3].shader == unlitShader;
 
