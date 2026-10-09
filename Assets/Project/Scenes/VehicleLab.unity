@@ -4386,6 +4386,7 @@ GameObject:
   - component: {fileID: 592668314}
   - component: {fileID: 592668315}
   - component: {fileID: 592668316}
+  - component: {fileID: 700100050}
   m_Layer: 0
   m_Name: Car
   m_TagString: Player
@@ -20324,6 +20325,30 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2135440271}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &700100050
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 592668305}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4b7d2e9fa1c34d58b6e0f7a8c9d1e2f3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.BoostGauge
+  car: {fileID: 592668308}
+  barSize: {x: 320, y: 22}
+  cornerOffset: {x: 28, y: 28}
+  labelFontSize: 20
+  backColour: {r: 0, g: 0, b: 0, a: 0.55}
+  fillColour: {r: 1, g: 0.62, b: 0.1, a: 1}
+  spendingColour: {r: 1, g: 0.9, b: 0.4, a: 1}
+  earningColour: {r: 0.2, g: 0.85, b: 1, a: 1}
+  emptyColour: {r: 1, g: 0.2, b: 0.15, a: 1}
+  labelColour: {r: 1, g: 1, b: 1, a: 1}
+  fillSmoothTime: 0.06
+  earningLabelHold: 0.4
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

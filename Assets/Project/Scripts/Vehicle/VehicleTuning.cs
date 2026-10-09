@@ -201,14 +201,37 @@ namespace ZoomZoom.Vehicle
         [Tooltip("Boost used per second while held. 33.3 empties a full tank in three seconds.")]
         public float boostConsumptionRate = 33.3f;
 
-        [Tooltip("Boost regained per second while not boosting. Rocket League refills from pads " +
-                 "instead, but a delivery game with no pads laid out needs some way back to full. " +
-                 "Set to 0 and pick boost up from the world instead.")]
-        public float boostRechargeRate = 12f;
+        [Tooltip("Boost regained per second while not boosting, for free. 0 means boost is only " +
+                 "ever EARNED, through the two rates below.\n\n" +
+                 "Was 12. A tank that refills on its own collapses to 'hold boost on every " +
+                 "straight': there is no decision in it, and the playtest question 'what made you " +
+                 "want to drive well?' had only one answer, the clock. Set to 0 the boost becomes " +
+                 "the payout for driving well, which is the design question in one mechanic.")]
+        public float boostRechargeRate = 0f;
 
-        [Tooltip("Seconds after releasing boost before it starts refilling. Stops the player " +
-                 "feathering the button to hold top speed for free.")]
+        [Tooltip("Seconds after releasing boost before free recharge starts, if any. Stops the " +
+                 "player feathering the button to hold top speed for free. Does not delay earning.")]
         public float boostRechargeDelay = 1f;
+
+        [Header("Earning boost")]
+        [Tooltip("Boost gained per second while the car counts as drifting (IsDrifting: grounded, " +
+                 "above driftMinimumSpeed, slip angle past driftSlipAngleThreshold).\n\n" +
+                 "20 means a committed handbrake slide through a junction, about 1.5 s, pays out " +
+                 "one second of boost, and five seconds of sliding fills the tank from empty. This " +
+                 "is what gives the handbrake a reason rather than a novelty: the slide costs speed " +
+                 "and grip and gives back the fast state.")]
+        public float boostEarnedFromDrift = 20f;
+
+        [Tooltip("Boost gained per second with all four wheels off the ground, excluding a flip in " +
+                 "progress so the recovery move cannot farm fuel.\n\n" +
+                 "Half the drift rate on purpose. Jumping is free and has only a cooldown, so if " +
+                 "it paid as well as drifting the best way to refill would be bouncing down a " +
+                 "straight, which looks ridiculous and teaches nothing. A tapped jump is 0.65 s " +
+                 "in the air and a held one about 0.94 s (jumpSpeed 6.5, gravity 20, hold bonus " +
+                 "18 m/s^2 for 0.18 s), so a jump pays at most 6.5 to 9.4 boost, and less in practice " +
+                 "because the wheel rays still reach the ground at both ends of the arc. A 1.5 s " +
+                 "slide pays 30.")]
+        public float boostEarnedFromAir = 10f;
 
         [Tooltip("Speed (m/s) at which the car counts as supersonic. Rocket League sets this 100 uu/s " +
                  "below max, so it triggers just before the ceiling and stays on. Read IsSupersonic " +
@@ -609,6 +632,31 @@ namespace ZoomZoom.Vehicle
                  "auto-recentre.")]
         public float cameraSwivelRecentreDelay = 1.2f;
 
+        [Tooltip("Extra distance the camera pulls back across the BOOST speed range, metres, on top " +
+                 "of the pull-back it already does up to topSpeed. The throttle range is left exactly " +
+                 "as measured; this is a second stage that only starts above topSpeed, so the player " +
+                 "feels the moment they cross from one speed stage into the other.")]
+        public float cameraBoostExtraDistance = 1.5f;
+
+        [Tooltip("Extra look-ahead, metres, ramped in across the boost speed range. This is a " +
+                 "fairness number, not a feel number. Stopping distance from 40 m/s at 22 m/s^2 is " +
+                 "36.4 m and the base look-ahead is 28 m, so a boosting player was being asked to " +
+                 "react to 8.4 m of road the camera never showed. 9 covers it. Ramped rather than " +
+                 "flat so the throttle range keeps exactly the framing that was measured.")]
+        public float cameraBoostExtraLookAhead = 9f;
+
+        [Tooltip("Degrees added to the field of view while boost is being SPENT, eased in and out. " +
+                 "Tied to the button rather than to speed so the player gets the kick the instant " +
+                 "they press, which is the feedback that says 'that did something'. 8 reads as a " +
+                 "surge; 15 reads as a cartoon.")]
+        [Range(0f, 25f)]
+        public float cameraBoostFovKick = 8f;
+
+        [Tooltip("Seconds for the FOV kick to arrive and leave. Short in, so the press is felt; the " +
+                 "same out, so releasing is felt too.")]
+        [Range(0.02f, 0.6f)]
+        public float cameraBoostFovSmoothTime = 0.12f;
+
         [Tooltip("Radius, metres, of the sphere swept from the car to the camera every frame to find " +
                  "walls. Anything solid in the way pulls the camera in to the near side of it, so the " +
                  "player is never looking at the inside of a building.\n\n" +
@@ -743,11 +791,25 @@ namespace ZoomZoom.Vehicle
             return Mathf.Max(SteeringRadiusAt(speed), GripLimitedRadiusAt(speed));
         }
 
-        /// <summary>Textbook stopping distance from top speed, metres: v^2 / (2a).</summary>
+        /// <summary>Textbook stopping distance from throttle-only top speed, metres: v^2 / (2a).</summary>
         public float PredictedStoppingDistanceFromTopSpeed()
         {
             if (brakeDeceleration <= 0.0001f) return float.PositiveInfinity;
             return (topSpeed * topSpeed) / (2f * brakeDeceleration);
+        }
+
+        /// <summary>
+        /// Stopping distance from the HIGHEST speed the car can reach, which is the boost ceiling
+        /// when boost is on. This is the number the camera look-ahead has to beat, not the one
+        /// above: a player at 40 m/s needs 36 m to stop, and a camera that only shows 28 m is
+        /// asking them to react to a corner they could not see. The throttle-only figure passed
+        /// that test and hid this one.
+        /// </summary>
+        public float PredictedStoppingDistanceFromHighestSpeed()
+        {
+            if (brakeDeceleration <= 0.0001f) return float.PositiveInfinity;
+            float v = BoostOrTopSpeed();
+            return (v * v) / (2f * brakeDeceleration);
         }
 
         /// <summary>Jump height from the jump impulse alone (ignoring the hold bonus), metres.</summary>
@@ -830,6 +892,11 @@ namespace ZoomZoom.Vehicle
             flipDuration = Mathf.Max(0.05f, flipDuration);
             cameraDistance = Mathf.Max(0.5f, cameraDistance);
             cameraCollisionRadius = Mathf.Max(0f, cameraCollisionRadius);
+            cameraBoostExtraDistance = Mathf.Max(0f, cameraBoostExtraDistance);
+            cameraBoostExtraLookAhead = Mathf.Max(0f, cameraBoostExtraLookAhead);
+            boostRechargeRate = Mathf.Max(0f, boostRechargeRate);
+            boostEarnedFromDrift = Mathf.Max(0f, boostEarnedFromDrift);
+            boostEarnedFromAir = Mathf.Max(0f, boostEarnedFromAir);
 
             if (string.IsNullOrWhiteSpace(profileName))
                 profileName = name;

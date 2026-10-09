@@ -220,7 +220,14 @@ namespace ZoomZoom.Vehicle
             // against the numbers in it.
             if (_running || Tuning == null) return;
 
-            if (keyboard.f1Key.wasPressedThisFrame) StartCoroutine(RunSingle(MeasureStoppingDistance()));
+            // Shift+F1 is the boost test. F1 to F9 are all taken and F10 to F12 belong to the
+            // telemetry and order overlays, so the boost test shares F1 with a modifier rather
+            // than displacing something. Left Shift is also Jump, so the car hops as Shift goes
+            // down. Harmless: the test teleports the car and settles before measuring anything.
+            bool shift = keyboard.leftShiftKey.isPressed || keyboard.rightShiftKey.isPressed;
+
+            if (keyboard.f1Key.wasPressedThisFrame && shift) StartCoroutine(RunSingle(MeasureBoost()));
+            else if (keyboard.f1Key.wasPressedThisFrame) StartCoroutine(RunSingle(MeasureStoppingDistance()));
             else if (keyboard.f2Key.wasPressedThisFrame) StartCoroutine(RunSingle(MeasureTurningCircle()));
             else if (keyboard.f3Key.wasPressedThisFrame) StartCoroutine(RunSingle(MeasureWallRecovery()));
             else if (keyboard.f4Key.wasPressedThisFrame) StartCoroutine(RunSingle(MeasureFlipDistance()));
@@ -272,6 +279,9 @@ namespace ZoomZoom.Vehicle
                 yield return Settle(0.5f);
 
                 yield return MeasureFlipDistance();
+                yield return Settle(0.5f);
+
+                yield return MeasureBoost();
                 yield return Settle(0.5f);
 
                 // Camera reading is taken at speed, because the camera pulls back as the car speeds
@@ -715,6 +725,129 @@ namespace ZoomZoom.Vehicle
         }
 
         // ==================================================================
+        // TEST 4b: BOOST, SPENDING AND EARNING
+        // ==================================================================
+
+        /// <summary>
+        /// Two halves, because boost has two halves.
+        ///
+        /// SPEND: from a standing start, full throttle and boost held until the tank runs dry.
+        /// Reports the speed reached, how long the tank lasted, how far the car got, and the
+        /// stopping distance from the boosted speed, which is the number the camera look-ahead has
+        /// to beat and the reason cameraBoostExtraLookAhead exists.
+        ///
+        /// EARN: a handbrake slide at the turning-test speed, held for a fixed time. Reports how
+        /// much boost the slide paid, so the earn rate is checked against what a real slide does
+        /// rather than against the tooltip. If this reports zero the drift threshold is never
+        /// being reached and earned boost is a dead mechanic.
+        /// </summary>
+        private IEnumerator MeasureBoost()
+        {
+            _currentTest = "Boost";
+
+            if (!Tuning.boostEnabled)
+            {
+                Debug.LogWarning("[VehicleLab] Boost test skipped: boostEnabled is off on this profile.");
+                yield break;
+            }
+
+            // ---------- SPEND ----------
+            ResetCar(StartPose());
+            yield return Settle(0.4f);
+
+            float tankAtStart = car.BoostRemaining;
+            Vector3 launchPoint = car.transform.position;
+            float elapsed = 0f;
+            float peakSpeed = 0f;
+            float timeToThrottleTop = -1f;
+            float timeToBoostTop = -1f;
+
+            while (car.BoostRemaining > 0f && elapsed < stageTimeout)
+            {
+                car.Drive = new DriveInput { throttle = 1f, boost = true };
+                yield return new WaitForFixedUpdate();
+                elapsed += Time.fixedDeltaTime;
+
+                float v = car.ForwardSpeed;
+                if (v > peakSpeed) peakSpeed = v;
+                if (timeToThrottleTop < 0f && v >= Tuning.topSpeed * 0.98f) timeToThrottleTop = elapsed;
+                if (timeToBoostTop < 0f && v >= Tuning.boostTopSpeed * 0.98f) timeToBoostTop = elapsed;
+            }
+
+            float tankDuration = elapsed;
+            float boostedDistance = FlatDistance(launchPoint, car.transform.position);
+            float expectedDuration = Tuning.boostConsumptionRate > 0.01f
+                ? tankAtStart / Tuning.boostConsumptionRate
+                : 0f;
+            float stoppingFromPeak = (peakSpeed * peakSpeed) / (2f * Mathf.Max(0.01f, Tuning.brakeDeceleration));
+            float lookAheadAtCeiling = Tuning.cameraLookAhead + Tuning.cameraBoostExtraLookAhead;
+
+            Report("Boost", "Full tank duration", tankDuration, "s",
+                $"throttle and boost held from standstill, tooltip says {expectedDuration:0.0} s");
+            Report("Boost", "Peak speed on boost", peakSpeed, "m/s",
+                $"ceiling is {Tuning.boostTopSpeed:0} m/s, throttle alone stops at {Tuning.topSpeed:0}");
+            Report("Boost", "Time to throttle top speed", timeToThrottleTop, "s",
+                timeToThrottleTop < 0f ? "never reached" : "with boost held from standstill");
+            Report("Boost", "Time to boost ceiling", timeToBoostTop, "s",
+                timeToBoostTop < 0f ? "never reached before the tank ran dry" : "with boost held from standstill");
+            Report("Boost", "Distance on one tank", boostedDistance, "m", "from standstill");
+            Report("Boost", "Stopping distance from peak", stoppingFromPeak, "m",
+                $"textbook v^2/2a at {peakSpeed:0.0} m/s; camera look-ahead at the ceiling is " +
+                $"{lookAheadAtCeiling:0} m, {(lookAheadAtCeiling >= stoppingFromPeak ? "enough" : "NOT ENOUGH")}");
+
+            if (lookAheadAtCeiling < stoppingFromPeak)
+            {
+                Debug.LogWarning(
+                    $"[VehicleLab] FAIRNESS FAIL: a boosting player needs {stoppingFromPeak:0.0} m to stop " +
+                    $"but the camera shows {lookAheadAtCeiling:0} m. Raise cameraBoostExtraLookAhead.");
+            }
+
+            // ---------- EARN ----------
+            // HoldSpeed teleports the car back to the start pose, and teleporting refills the
+            // tank. Empty it before the slide: earning into a full tank lands nothing, and this
+            // test would report zero however well the earning worked.
+            yield return HoldSpeed(turnTestSpeed, 2f);
+            car.SetBoostRemaining(0f);
+
+            float tankBeforeSlide = car.BoostRemaining;
+            float earnedBefore = car.TotalBoostEarned;
+            float slideSeconds = 0f;
+            float driftingSeconds = 0f;
+            const float slideDuration = 2.5f;
+
+            while (slideSeconds < slideDuration)
+            {
+                car.Drive = new DriveInput { throttle = 0.6f, steer = 1f, handbrake = true };
+                yield return new WaitForFixedUpdate();
+                slideSeconds += Time.fixedDeltaTime;
+                if (car.IsDrifting) driftingSeconds += Time.fixedDeltaTime;
+            }
+
+            float earned = car.TotalBoostEarned - earnedBefore;
+            float earnedPerDriftSecond = driftingSeconds > 0.01f ? earned / driftingSeconds : 0f;
+
+            Report("Boost", "Slide held", slideSeconds, "s",
+                $"handbrake plus full lock at {turnTestSpeed:0} m/s");
+            Report("Boost", "Time counted as drifting", driftingSeconds, "s",
+                $"IsDrifting true; threshold is {Tuning.driftSlipAngleThreshold:0} degrees slip above " +
+                $"{Tuning.driftMinimumSpeed:0} m/s");
+            Report("Boost", "Boost earned from slide", earned, "boost",
+                $"tank {tankBeforeSlide:0} -> {car.BoostRemaining:0}; rate measured " +
+                $"{earnedPerDriftSecond:0.0}/s against tooltip {Tuning.boostEarnedFromDrift:0}/s");
+
+            if (driftingSeconds < 0.5f)
+            {
+                Debug.LogWarning(
+                    "[VehicleLab] EARN FAIL: a handbrake slide at full lock did not register as " +
+                    "drifting for even half a second. Earned boost is unreachable at this speed. " +
+                    "Lower driftSlipAngleThreshold or check the handbrake is cutting rear grip.");
+            }
+
+            _lastResultSummary =
+                $"Boost: {peakSpeed:0.0} m/s peak, tank {tankDuration:0.0} s, slide paid {earned:0} boost";
+        }
+
+        // ==================================================================
         // TEST 5: HOW MUCH ROAD THE CAMERA SHOWS
         // ==================================================================
 
@@ -1129,7 +1262,7 @@ namespace ZoomZoom.Vehicle
             sb.AppendLine($"test     {_currentTest}");
             sb.AppendLine($"last     {_lastResultSummary}");
             sb.AppendLine();
-            sb.AppendLine("F1 stop  F2 turn  F3 wall  F4 flip  F5 camera");
+            sb.AppendLine("F1 stop  F2 turn  F3 wall  F4 flip  F5 camera  Shift+F1 boost");
             sb.AppendLine("F6 all   F7 profile  F8 reset  F9 hide");
 
             var area = new Rect(10f, 10f, 470f, 320f);

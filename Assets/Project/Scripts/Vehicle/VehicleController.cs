@@ -211,6 +211,20 @@ namespace ZoomZoom.Vehicle
         public bool IsBoosting { get; private set; }
 
         /// <summary>
+        /// True while the car is earning boost this step: drifting, or airborne outside a flip.
+        /// The gauge lights up on this, and that light is the whole point of earning boost: the
+        /// player has to SEE the slide pay out, or it is just a slower way round the corner.
+        /// </summary>
+        public bool IsEarningBoost { get; private set; }
+
+        /// <summary>Boost earned in the most recent physics step. 0 when not earning.</summary>
+        public float BoostEarnedThisStep { get; private set; }
+
+        /// <summary>Boost earned since the last reset, in boost units. Lets the measurement
+        /// harness and the playtest logger report how much of the fast state was paid for.</summary>
+        public float TotalBoostEarned { get; private set; }
+
+        /// <summary>
         /// True at and above the supersonic threshold. This is the hook for the trail, the speed
         /// lines, the engine howl and any camera shake: a state that switches on and off reads as
         /// fast in a way a gradually rising number never does.
@@ -273,6 +287,7 @@ namespace ZoomZoom.Vehicle
 
         private float _steerVelocity;      // scratch for the steering smoothing
         private float _boostRechargeCountdown;
+        private VehicleJumpFlip _jumpFlip; // optional, only consulted so a flip cannot earn fuel
 
         private readonly SurfaceProfile[] _wheelSurfaces = new SurfaceProfile[4];
 
@@ -289,6 +304,7 @@ namespace ZoomZoom.Vehicle
         {
             _rb = GetComponent<Rigidbody>();
             _ownColliders = GetComponentsInChildren<Collider>(true);
+            _jumpFlip = GetComponent<VehicleJumpFlip>();
 
             if (tuning == null)
             {
@@ -817,10 +833,28 @@ namespace ZoomZoom.Vehicle
         /// topSpeed makes a car feel no faster than it did before.
         ///
         /// Runs whether or not the wheels are on the ground, because a rocket does not care.
+        ///
+        /// WHERE THE FUEL COMES FROM
+        /// Earned, not given. The tank refills from drifting and from air time, read off the same
+        /// IsDrifting and WheelsOnGround the rest of the car already uses, so there is no second
+        /// opinion about what counts as a slide. Free recharge still exists as a tuning number
+        /// (boostRechargeRate) and is 0 on every shipped profile; it is kept so a playtest can
+        /// compare "earned" against "regenerating" by changing one field.
+        ///
+        /// Earning runs while boosting too. A player who slides WHILE boosting is doing the
+        /// hardest thing the car offers and should not be told the two cancel out.
+        ///
+        /// Penalties are deliberately not here. Hard braking and collisions are judged by the
+        /// cargo system, which docks the order's payout; this only ever adds. Two components
+        /// scoring the same crash would be felt as a double charge even if nobody could name it,
+        /// so the split is: the order system takes away, the car gives back, and neither reads
+        /// the other's events.
         /// </summary>
         private void ApplyBoost(float dt)
         {
             IsBoosting = false;
+            IsEarningBoost = false;
+            BoostEarnedThisStep = 0f;
 
             if (!tuning.boostEnabled)
             {
@@ -857,7 +891,41 @@ namespace ZoomZoom.Vehicle
                 }
             }
 
+            EarnBoost(dt);
+
             IsSupersonic = Speed >= tuning.supersonicThreshold;
+        }
+
+        /// <summary>
+        /// The reward half of boost. Drifting pays at one rate, air time at another, and a flip in
+        /// progress pays nothing: the flip is a recovery move, and a recovery move that refuels
+        /// the car is a loop, not a recovery.
+        /// </summary>
+        private void EarnBoost(float dt)
+        {
+            float rate = 0f;
+
+            if (IsDrifting)
+            {
+                rate = tuning.boostEarnedFromDrift;
+            }
+            else if (WheelsOnGround == 0)
+            {
+                bool flipping = _jumpFlip != null && _jumpFlip.IsFlipping;
+                if (!flipping) rate = tuning.boostEarnedFromAir;
+            }
+
+            if (rate <= 0f) return;
+
+            float before = BoostRemaining;
+            BoostRemaining = Mathf.Min(tuning.boostCapacity, BoostRemaining + rate * dt);
+
+            // Earning into a full tank still counts as earning for the gauge, so the player sees
+            // that the slide WOULD have paid and learns to spend before the next one. The total
+            // only counts fuel that actually landed, because that is what the measurement is for.
+            IsEarningBoost = true;
+            BoostEarnedThisStep = BoostRemaining - before;
+            TotalBoostEarned += BoostEarnedThisStep;
         }
 
         // ==================================================================
@@ -1141,6 +1209,21 @@ namespace ZoomZoom.Vehicle
             _boostRechargeCountdown = 0f;
             IsBoosting = false;
             IsSupersonic = false;
+            IsEarningBoost = false;
+            BoostEarnedThisStep = 0f;
+            TotalBoostEarned = 0f;
+        }
+
+        /// <summary>
+        /// Sets the boost tank directly, clamped to capacity. For the measurement harness only.
+        /// Teleport refills the tank so every run starts from the same state, which is right for
+        /// the spend test and wrong for the earn test: a full tank swallows everything a slide
+        /// earns, and the reading would be zero however well the earning worked.
+        /// </summary>
+        public void SetBoostRemaining(float amount)
+        {
+            float capacity = tuning != null ? tuning.boostCapacity : 0f;
+            BoostRemaining = Mathf.Clamp(amount, 0f, capacity);
         }
 
         private void OnDrawGizmos()
