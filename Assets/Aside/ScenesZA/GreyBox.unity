@@ -814,6 +814,22 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -8296924742842440160, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+      propertyPath: m_RayTraceProcedural
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8296924742842440160, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 1b6b08521004edc4c8c725ad1ad8f6cb, type: 2}
+    - target: {fileID: -6481865154690547805, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 1182b049724da734fb95ea0f2b4e2b75, type: 2}
+    - target: {fileID: -1441034939143842925, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 1182b049724da734fb95ea0f2b4e2b75, type: 2}
     - target: {fileID: -395720840883918525, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
       propertyPath: m_Enabled
       value: 0
@@ -822,6 +838,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: sehirlogo_01
       objectReference: {fileID: 0}
+    - target: {fileID: 5189452361216291658, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 1182b049724da734fb95ea0f2b4e2b75, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -2746,6 +2766,10 @@ PrefabInstance:
     - target: {fileID: 919132149155446097, guid: 68390cdfb2196d24a8e7502ef458a1da, type: 3}
       propertyPath: m_Name
       value: RoadsAndBridgesPreview
+      objectReference: {fileID: 0}
+    - target: {fileID: 3528124051586921592, guid: 68390cdfb2196d24a8e7502ef458a1da, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0.441
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
