@@ -10,11 +10,14 @@ namespace ZoomZoom.Orders
     /// reaches Tasks 19 and 25 (two-slot, then three-slot), and a list scales to that without
     /// needing to be rewritten, unlike a single field would.
     ///
-    /// CURRENT CAPACITY: 1, matching Task 8 and the pre-alpha milestone. It was briefly set to 3
-    /// directly, skipping past Tasks 19 and 25 (scheduled after Milestone 1 and Milestone 2
-    /// respectively) and past the XP/money gating Scope describes for those upgrades. Reverted:
-    /// representing capacity that hasn't been earned through any system that exists yet
-    /// misrepresents where the build actually is, not just the design intent.
+    /// STARTING CAPACITY: 1, matching Task 8 and the pre-alpha milestone. It was briefly set to 3
+    /// directly in the Inspector, skipping past Tasks 19 and 25 (scheduled after Milestone 1 and
+    /// Milestone 2 respectively) and past the XP/money gating Scope describes for those upgrades.
+    /// Reverted at the time, since representing capacity that hasn't been earned through any
+    /// system that exists yet misrepresents where the build actually is, not just the design
+    /// intent. TryUnlockCapacity below is the hook for Task 19 and Task 25: the upgrade screen
+    /// (Task 26) calls it when the player buys the two slot or three slot upgrade, so capacity
+    /// only ever rises through the purchase the plan describes, not by hand.
     /// </summary>
     [DisallowMultipleComponent]
     public class CargoSystem : MonoBehaviour
@@ -57,6 +60,10 @@ namespace ZoomZoom.Orders
         /// gone Late while still carried, or otherwise cleared. CargoCondition subscribes to this
         /// to stop tracking an order that no longer occupies a slot.</summary>
         public event Action<Order> OrderReleased;
+
+        /// <summary>Fires whenever capacity actually changes, so UI (OrderHUD's slot count) can
+        /// react immediately rather than only noticing next time it happens to poll Capacity.</summary>
+        public event Action<int> CapacityChanged;
 
         private void Awake()
         {
@@ -126,10 +133,9 @@ namespace ZoomZoom.Orders
                 return false;
             }
 
-            if (!expectedOrder.IsOnFinalCarryLeg)
+            if (expectedOrder.State != OrderState.Carried)
             {
-                Refuse($"order {expectedOrder.Id}: not on its final leg yet " +
-                       $"({expectedOrder.CurrentCarryLegNumber}/{expectedOrder.TotalCarryLegs})");
+                Refuse($"order {expectedOrder.Id}: not Carried (state was {expectedOrder.State})");
                 return false;
             }
 
@@ -152,6 +158,27 @@ namespace ZoomZoom.Orders
         public void ClearIfResolved(Order order)
         {
             if (_carriedOrders.Remove(order)) OrderReleased?.Invoke(order);
+        }
+
+        /// <summary>
+        /// The one legitimate way capacity is ever allowed to rise above what's set in the
+        /// Inspector, called by the upgrade screen (Task 26) when the player buys the Task 19 or
+        /// Task 25 cargo upgrade. Refuses to lower capacity (that would be a downgrade
+        /// bug, not an unlock) and refuses to re-apply the same value, so it's safe to call every
+        /// time a level-up happens without checking "did we already unlock this" elsewhere.
+        /// </summary>
+        public bool TryUnlockCapacity(int newCapacity)
+        {
+            if (newCapacity <= capacity) return false;
+
+            int previous = capacity;
+            capacity = newCapacity;
+            CapacityChanged?.Invoke(capacity);
+
+            if (logActivity)
+                Debug.Log($"[CargoSystem] Capacity unlocked: {previous} -> {capacity}.", this);
+
+            return true;
         }
 
         private void Refuse(string reason)
