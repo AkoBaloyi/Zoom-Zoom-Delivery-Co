@@ -5,7 +5,7 @@ namespace ZoomZoom.Orders.UI
 {
     /// <summary>
     /// A bright, in-world beacon at each active order's current target, pickup while Active,
-    /// drop-off once Carried. Built to actually stand out from across the map: a saturated,
+    /// drop off once Carried. Built to actually stand out from across the map: a saturated,
     /// pulsing beam, and the order's own number floating above it in large, camera-facing text.
     ///
     /// WHY THIS EXISTS ALONGSIDE DestinationMarker
@@ -52,14 +52,8 @@ namespace ZoomZoom.Orders.UI
         [SerializeField] private float numberCharacterSize = 0.3f;
         [SerializeField] private float numberHeightAboveBeam = 1.5f;
 
-        [Header("Colours, bright and saturated on purpose")]
-        [SerializeField] private Color pickupColour = new Color(0.15f, 0.55f, 1f, 1f);
-        [SerializeField] private Color dropOffColour = new Color(0.1f, 1f, 0.25f, 1f);
-        [Tooltip("Colour used for an intermediate transfer point on a multi-leg order, distinct " +
-                 "from both pickup blue and final drop-off green so a player can tell 'one more " +
-                 "stop after this' apart from 'this is the last one' at a glance.")]
-        [SerializeField] private Color transferColour = new Color(1f, 0.75f, 0.1f, 1f);
-        [SerializeField] private Color urgentColour = new Color(1f, 0.05f, 0.05f, 1f);
+        [Tooltip("Seconds of order time left below which a beacon blends toward red. Colours " +
+                 "themselves come from OrderPalette so beacon, arrow and ticket agree.")]
         [SerializeField] private float urgentBelowSeconds = 8f;
 
         [Header("Pulse")]
@@ -118,27 +112,20 @@ namespace ZoomZoom.Orders.UI
                 Order order = active[i];
                 if (order.IsTerminal) continue;
 
-                bool carrying = order.State == OrderState.Carried || order.State == OrderState.Collected;
                 Vector3 target = order.CurrentTarget;
 
-                Color baseColour = !carrying
-                    ? pickupColour
-                    : (order.IsOnFinalCarryLeg ? dropOffColour : transferColour);
-
-                float urgency = 1f - Mathf.Clamp01(order.TimeRemaining / Mathf.Max(0.01f, urgentBelowSeconds));
-                Color colour = Color.Lerp(baseColour, urgentColour, urgency);
+                Color colour = OrderPalette.WithUrgency(
+                    OrderPalette.ForOrder(order), order.TimeRemaining, urgentBelowSeconds);
 
                 float discRadius = fallbackGroundDiscRadius;
                 if (zoneDetection != null)
                 {
-                    discRadius = !carrying ? zoneDetection.PickupRadius
-                               : order.IsOnFinalCarryLeg ? zoneDetection.DropOffRadius
-                               : zoneDetection.TransferRadius;
+                    discRadius = order.CurrentStep == OrderStep.Pickup
+                        ? zoneDetection.PickupRadius
+                        : zoneDetection.DropOffRadius;
                 }
 
-                string label = order.TotalCarryLegs > 1 && carrying
-                    ? $"#{order.Id} ({order.CurrentCarryLegNumber}/{order.TotalCarryLegs})"
-                    : $"#{order.Id}";
+                string label = $"#{order.Id}";
 
                 PlaceBeacon(_slots[used], target, colour, label, discRadius);
                 used++;
@@ -163,8 +150,7 @@ namespace ZoomZoom.Orders.UI
             slot.Beam.localPosition = new Vector3(0f, halfHeight, 0f);
             slot.Beam.localScale = new Vector3(beamRadius * pulse, halfHeight, beamRadius * pulse);
 
-            slot.Block.SetColor("_BaseColor", colour);
-            slot.Block.SetColor("_Color", colour);
+            OrderWorldMaterial.SetColour(slot.Block, colour);
             slot.BeamRenderer.SetPropertyBlock(slot.Block);
 
             // The disc IS the real pickup/drop-off radius, not a decorative guess, so its size
@@ -176,8 +162,7 @@ namespace ZoomZoom.Orders.UI
 
             Color discColour = colour;
             discColour.a = 0.6f; // was 0.35, too faint to register as the actual interactive boundary
-            slot.DiscBlock.SetColor("_BaseColor", discColour);
-            slot.DiscBlock.SetColor("_Color", discColour);
+            OrderWorldMaterial.SetColour(slot.DiscBlock, discColour);
             slot.GroundDiscRenderer.SetPropertyBlock(slot.DiscBlock);
 
             slot.Number.text = label;
@@ -196,7 +181,7 @@ namespace ZoomZoom.Orders.UI
 
         private void BuildPool()
         {
-            if (_beamMaterial == null) _beamMaterial = CreateBeamMaterial();
+            if (_beamMaterial == null) _beamMaterial = OrderWorldMaterial.Get();
 
             var root = new GameObject("Order Beacons");
             root.transform.SetParent(transform, false);
@@ -252,37 +237,6 @@ namespace ZoomZoom.Orders.UI
                     Number = number
                 });
             }
-        }
-
-        private static Material CreateBeamMaterial()
-        {
-            Shader shader = Shader.Find("Universal Render Pipeline/Particles/Unlit")
-                            ?? Shader.Find("Universal Render Pipeline/Unlit")
-                            ?? Shader.Find("Sprites/Default");
-
-            if (shader == null)
-            {
-                Debug.LogError("[OrderBeacon] Found no usable shader, beams cannot be drawn.");
-                return null;
-            }
-
-            var material = new Material(shader) { name = "Order beacon beam" };
-
-            if (material.HasProperty("_Surface")) material.SetFloat("_Surface", 1f);
-            if (material.HasProperty("_SrcBlend"))
-                material.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
-            if (material.HasProperty("_DstBlend"))
-                material.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-            if (material.HasProperty("_ZWrite")) material.SetFloat("_ZWrite", 0f);
-            if (material.HasProperty("_Cull"))
-                material.SetFloat("_Cull", (float)UnityEngine.Rendering.CullMode.Off);
-
-            material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
-            material.SetOverrideTag("RenderType", "Transparent");
-            material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
-            material.SetShaderPassEnabled("ShadowCaster", false);
-
-            return material;
         }
     }
 }

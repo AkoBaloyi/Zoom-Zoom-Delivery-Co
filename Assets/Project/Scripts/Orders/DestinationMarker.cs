@@ -7,7 +7,7 @@ namespace ZoomZoom.Orders.UI
     /// <summary>
     /// The one piece of Task 11 that didn't exist yet: an on-screen marker telling the player
     /// where to actually drive. One arrow per active order, pointing at its pickup point while
-    /// Active, switching to its drop-off point once Carried. When the target is on screen, the
+    /// Active, switching to its drop off point once Carried. When the target is on screen, the
     /// arrow sits over it with a distance readout. When it isn't, whether behind the camera or
     /// just off to the side, the arrow clamps to the screen edge and rotates to keep pointing the
     /// right way, the same convention as a race game's off-track waypoint arrow.
@@ -37,13 +37,8 @@ namespace ZoomZoom.Orders.UI
         [SerializeField] private int distanceFontSize = 22;
         [SerializeField] private int idFontSize = 30;
 
-        [Header("Colours (bright and saturated on purpose, these need to grab attention)")]
-        [SerializeField] private Color pickupColour = new Color(0.15f, 0.6f, 1f, 1f);
-        [SerializeField] private Color dropOffColour = new Color(0.15f, 1f, 0.3f, 1f);
-        [Tooltip("Colour used while heading to an intermediate transfer point on a multi-leg " +
-                 "order, distinct from pickup blue and final drop-off green.")]
-        [SerializeField] private Color transferColour = new Color(1f, 0.75f, 0.1f, 1f);
-        [SerializeField] private Color urgentColour = new Color(1f, 0.05f, 0.05f, 1f);
+        [Tooltip("Seconds of order time left below which an arrow blends toward red. Colours " +
+                 "themselves come from OrderPalette so arrow, beacon and ticket agree.")]
         [SerializeField] private float urgentBelowSeconds = 8f;
 
         [Header("Pulse, so an arrow demands attention rather than sitting static")]
@@ -91,19 +86,12 @@ namespace ZoomZoom.Orders.UI
                 Order order = active[i];
                 if (order.IsTerminal) continue;
 
-                bool carrying = order.State == OrderState.Carried || order.State == OrderState.Collected;
                 Vector3 target = order.CurrentTarget;
 
-                Color baseColour = !carrying
-                    ? pickupColour
-                    : (order.IsOnFinalCarryLeg ? dropOffColour : transferColour);
+                Color colour = OrderPalette.WithUrgency(
+                    OrderPalette.ForOrder(order), order.TimeRemaining, urgentBelowSeconds);
 
-                float urgency = 1f - Mathf.Clamp01(order.TimeRemaining / Mathf.Max(0.01f, urgentBelowSeconds));
-                Color colour = Color.Lerp(baseColour, urgentColour, urgency);
-
-                string label = order.TotalCarryLegs > 1 && carrying
-                    ? $"#{order.Id} ({order.CurrentCarryLegNumber}/{order.TotalCarryLegs})"
-                    : $"#{order.Id}";
+                string label = $"#{order.Id}";
 
                 PlaceMarker(_slots[used], target, colour, label);
                 used++;

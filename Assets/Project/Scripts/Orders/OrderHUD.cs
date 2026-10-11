@@ -5,45 +5,40 @@ using UnityEngine.UI;
 namespace ZoomZoom.Orders.UI
 {
     /// <summary>
-    /// The player-facing HUD for orders and cargo: which orders are active and how long they have
-    /// left, what the cargo slot is carrying, and a running score. Real Canvas + UI.Text, not a
-    /// debug OnGUI overlay, meant to ship. Builds itself in code, add the component and press Play.
+    /// The player-facing stats panel, top-right: shift clock, cargo hold, score and level/XP.
+    /// The list of active orders is not here any more, it moved to OrderTicketStrip, which shows
+    /// each order as an Overcooked style ticket, as the project plan's Concept section describes. This panel is deliberately small so the tickets
+    /// are what the eye goes to. Real Canvas + UI.Text, builds itself in code.
     /// </summary>
     [DisallowMultipleComponent]
     public class OrderHUD : MonoBehaviour
     {
-        [Header("Wiring")]
+        [Header("Wiring (found automatically if left empty)")]
         [SerializeField] private OrderManager orderManager;
         [SerializeField] private CargoSystem cargoSystem;
         [SerializeField] private ShiftTimer shiftTimer;
-        [Tooltip("Optional. Found automatically if present. When assigned and its own toggle is " +
-                 "on, the cargo line shows a condition percentage instead of just slot counts.")]
+        [Tooltip("Optional. When its own toggle is on, the cargo line shows condition.")]
         [SerializeField] private CargoCondition cargoCondition;
+        [Tooltip("Optional. When assigned, a level/XP line and bar are added.")]
+        [SerializeField] private PlayerProgression playerProgression;
+
+        [Header("Art")]
+        [SerializeField] private HudSkin skin;
 
         [Header("Layout")]
         [SerializeField] private Vector2 panelPosition = new Vector2(-24f, -24f); // offset from the top-right corner
-        [SerializeField] private Vector2 panelSize = new Vector2(420f, 340f);
+        [SerializeField] private Vector2 panelSize = new Vector2(380f, 178f);
         [SerializeField] private int fontSize = 24;
-        [SerializeField] private int headerFontSize = 20;
-        [SerializeField] private int orderLineSlots = 6;
-
-        [Header("Colours (matches DestinationMarker and OrderBeacon exactly, so all three " +
-                "channels agree)")]
-        [SerializeField] private Color normalColour = Color.white;
-        [SerializeField] private Color pickupColour = new Color(0.15f, 0.6f, 1f, 1f);
-        [SerializeField] private Color dropOffColour = new Color(0.15f, 1f, 0.3f, 1f);
-        [Tooltip("Colour used for an order currently heading to an intermediate transfer point, " +
-                 "matching DestinationMarker and OrderBeacon's transfer colour.")]
-        [SerializeField] private Color transferColour = new Color(1f, 0.75f, 0.1f, 1f);
-        [SerializeField] private Color urgentColour = new Color(1f, 0.05f, 0.05f, 1f);
-        [SerializeField] private Color panelColour = new Color(0f, 0f, 0f, 0.55f);
-        [SerializeField] private float urgentBelowSeconds = 8f;
+        [SerializeField] private float urgentShiftSeconds = 30f;
 
         private Text _timerLine;
         private Text _cargoLine;
         private Text _scoreLine;
-        private Text _headerLine;
-        private readonly List<Text> _orderLines = new List<Text>();
+        private Text _xpLine;
+        private RectTransform _xpBarFill;
+        private float _xpBarWidth;
+        private readonly List<Image> _cargoSlots = new List<Image>();
+        private float _pad = 14f;
 
         private int _deliveredCount;
         private int _lateCount;
@@ -55,6 +50,7 @@ namespace ZoomZoom.Orders.UI
             if (cargoSystem == null) cargoSystem = FindAnyObjectByType<CargoSystem>();
             if (shiftTimer == null) shiftTimer = FindAnyObjectByType<ShiftTimer>();
             if (cargoCondition == null) cargoCondition = FindAnyObjectByType<CargoCondition>();
+            if (playerProgression == null) playerProgression = FindAnyObjectByType<PlayerProgression>();
 
             if (orderManager == null)
             {
@@ -91,50 +87,10 @@ namespace ZoomZoom.Orders.UI
         {
             if (orderManager == null) return;
 
-            RefreshOrderLines();
+            RefreshTimerLine();
             RefreshCargoLine();
             RefreshScoreLine();
-            RefreshTimerLine();
-        }
-
-        private void RefreshOrderLines()
-        {
-            IReadOnlyList<Order> active = orderManager.ActiveOrders;
-
-            for (int i = 0; i < _orderLines.Count; i++)
-            {
-                if (i >= active.Count)
-                {
-                    _orderLines[i].text = string.Empty;
-                    continue;
-                }
-
-                Order order = active[i];
-                bool carrying = order.State == OrderState.Carried || order.State == OrderState.Collected;
-
-                string legSuffix = order.TotalCarryLegs > 1 && carrying
-                    ? $" (leg {order.CurrentCarryLegNumber}/{order.TotalCarryLegs})"
-                    : "";
-
-                _orderLines[i].text =
-                    $"Order {order.Id}   {order.State}{legSuffix}   {order.TimeRemaining:0.0}s";
-
-                // Exactly the same blend DestinationMarker and OrderBeacon use: base colour by
-                // pickup/transfer/drop-off, shifted toward red as the timer runs out. A player
-                // should never see a different colour for the same order across the three channels.
-                Color baseColour = !carrying
-                    ? pickupColour
-                    : (order.IsOnFinalCarryLeg ? dropOffColour : transferColour);
-                float urgency = 1f - Mathf.Clamp01(order.TimeRemaining / Mathf.Max(0.01f, urgentBelowSeconds));
-                _orderLines[i].color = Color.Lerp(baseColour, urgentColour, urgency);
-            }
-
-            if (active.Count > _orderLines.Count)
-            {
-                Debug.LogWarning(
-                    $"[OrderHUD] {active.Count} orders active but only {_orderLines.Count} HUD lines " +
-                    "exist. Raise orderLineSlots.", this);
-            }
+            RefreshXpLine();
         }
 
         private void RefreshCargoLine()
@@ -147,10 +103,13 @@ namespace ZoomZoom.Orders.UI
                 return;
             }
 
+            RefreshCargoSlots();
+            bool slotArt = _cargoSlots.Count > 0;
+
             if (cargoSystem.SlotsUsed == 0)
             {
-                _cargoLine.text = $"Cargo: empty (0/{cargoSystem.Capacity})";
-                _cargoLine.color = normalColour;
+                _cargoLine.text = slotArt ? "Cargo" : $"Cargo: empty (0/{cargoSystem.Capacity})";
+                _cargoLine.color = OrderPalette.Neutral;
                 return;
             }
 
@@ -160,25 +119,39 @@ namespace ZoomZoom.Orders.UI
             foreach (Order o in cargoSystem.CarriedOrders)
             {
                 ids.Add(showCondition
-                    ? $"{o.Id} @ {cargoCondition.GetConditionPercent(o):0}%"
-                    : o.Id.ToString());
+                    ? $"#{o.Id} @ {cargoCondition.GetConditionPercent(o):0}%"
+                    : $"#{o.Id}");
             }
 
-            _cargoLine.text = $"Cargo: {cargoSystem.SlotsUsed}/{cargoSystem.Capacity} (orders {string.Join(", ", ids)})";
+            _cargoLine.text = slotArt
+                ? $"Cargo  {string.Join(", ", ids)}"
+                : $"Cargo {cargoSystem.SlotsUsed}/{cargoSystem.Capacity}: {string.Join(", ", ids)}";
 
-            // Worst condition among carried orders pulls the line toward the urgent colour, so a
-            // deteriorating delivery is visible here even before the player checks the beacon.
-            if (showCondition && cargoSystem.SlotsUsed > 0)
+            if (showCondition)
             {
                 float worst = 100f;
                 foreach (Order o in cargoSystem.CarriedOrders)
                     worst = Mathf.Min(worst, cargoCondition.GetConditionPercent(o));
 
-                _cargoLine.color = Color.Lerp(urgentColour, dropOffColour, worst / 100f);
+                _cargoLine.color = Color.Lerp(OrderPalette.Urgent, OrderPalette.Deliver, worst / 100f);
             }
             else
             {
-                _cargoLine.color = dropOffColour; // matches the "carried" colour everywhere else
+                _cargoLine.color = OrderPalette.Deliver;
+            }
+        }
+
+        /// <summary>One slot icon per unit of capacity, filled for each carried order. Only
+        /// exists when the skin has both cargo slot sprites.</summary>
+        private void RefreshCargoSlots()
+        {
+            for (int i = 0; i < _cargoSlots.Count; i++)
+            {
+                bool exists = i < cargoSystem.Capacity;
+                _cargoSlots[i].enabled = exists;
+                if (!exists) continue;
+
+                _cargoSlots[i].sprite = i < cargoSystem.SlotsUsed ? skin.cargoSlotFilled : skin.cargoSlotEmpty;
             }
         }
 
@@ -186,8 +159,36 @@ namespace ZoomZoom.Orders.UI
         {
             if (_scoreLine == null) return;
 
-            _scoreLine.text =
-                $"Delivered {_deliveredCount}   Late {_lateCount}   Value {_totalValueEarned:0}";
+            // Money comes from PlayerProgression (Task 20) when present, since that is the
+            // balance the upgrade screen will spend from. Without it, the shift's earned value.
+            float money = playerProgression != null ? playerProgression.Money : _totalValueEarned;
+            _scoreLine.text = $"Delivered {_deliveredCount}   Late {_lateCount}   ${money:0}";
+        }
+
+        private void RefreshXpLine()
+        {
+            if (_xpLine == null) return;
+
+            if (playerProgression == null)
+            {
+                _xpLine.text = string.Empty;
+                if (_xpBarFill != null) _xpBarFill.gameObject.SetActive(false);
+                return;
+            }
+
+            _xpLine.text = $"Level {playerProgression.Level}   " +
+                           $"XP {playerProgression.XpIntoLevel:0}/{playerProgression.XpToNextLevel:0}";
+
+            if (_xpBarFill != null)
+            {
+                float barHeight = _xpBarFill.sizeDelta.y;
+                float width = _xpBarWidth * playerProgression.LevelProgress01;
+                bool pill = skin != null && skin.barFill != null;
+
+                // A sliced pill cannot be narrower than its height without its ends overlapping.
+                _xpBarFill.gameObject.SetActive(!pill || width >= barHeight);
+                _xpBarFill.sizeDelta = new Vector2(Mathf.Max(pill ? barHeight : 0f, width), barHeight);
+            }
         }
 
         private void RefreshTimerLine()
@@ -195,7 +196,9 @@ namespace ZoomZoom.Orders.UI
             if (_timerLine == null || shiftTimer == null) return;
 
             _timerLine.text = $"Shift  {shiftTimer.FormattedTimeRemaining}";
-            _timerLine.color = shiftTimer.TimeRemaining <= 30f ? urgentColour : normalColour;
+            _timerLine.color = shiftTimer.TimeRemaining <= urgentShiftSeconds
+                ? OrderPalette.Urgent
+                : OrderPalette.Neutral;
         }
 
         private void BuildCanvas()
@@ -217,41 +220,111 @@ namespace ZoomZoom.Orders.UI
             panelGO.transform.SetParent(canvasGO.transform, false);
 
             Image panelImage = panelGO.AddComponent<Image>();
-            panelImage.color = panelColour;
+            panelImage.color = OrderPalette.PanelDark;
+            panelImage.raycastTarget = false;
+
+            // The wood frame art is thicker than the flat panel's margin, so with art the
+            // contents move in and the panel grows by the same amount to keep the same room inside.
+            bool framed = skin != null && skin.statsPanel != null;
+            _pad = framed ? 32f : 14f;
+            Vector2 size = panelSize + Vector2.one * (2f * (_pad - 14f));
+
+            if (framed && skin.ApplyFrame(panelImage, skin.statsPanel, size.y)) panelImage.color = Color.white;
 
             RectTransform panelRect = panelGO.GetComponent<RectTransform>();
-            // Anchored to the screen's top-right corner rather than top-left, so it doesn't sit
-            // where OrderMarkers' own corner text used to be.
             panelRect.anchorMin = new Vector2(1f, 1f);
             panelRect.anchorMax = new Vector2(1f, 1f);
             panelRect.pivot = new Vector2(1f, 1f);
             panelRect.anchoredPosition = panelPosition;
-            panelRect.sizeDelta = panelSize;
+            panelRect.sizeDelta = size;
 
-            float y = -12f;
-            const float lineHeight = 30f;
+            float y = 2f - _pad;
+            const float lineHeight = 32f;
 
-            _timerLine = CreateLine(panelRect, "Timer", ref y, lineHeight, fontSize + 4, normalColour);
+            _timerLine = CreateLine(panelRect, "Timer", ref y, lineHeight, fontSize + 6, OrderPalette.Neutral);
             _timerLine.fontStyle = FontStyle.Bold;
-            _cargoLine = CreateLine(panelRect, "Cargo", ref y, lineHeight, fontSize, normalColour);
-            _scoreLine = CreateLine(panelRect, "Score", ref y, lineHeight, fontSize, normalColour);
+            _cargoLine = CreateLine(panelRect, "Cargo", ref y, lineHeight, fontSize - 2, OrderPalette.Neutral);
+            _scoreLine = CreateLine(panelRect, "Score", ref y, lineHeight, fontSize - 4, OrderPalette.Neutral);
+            _xpLine = CreateLine(panelRect, "XP", ref y, lineHeight, fontSize - 4, OrderPalette.Xp);
 
-            y -= 6f;
+            BuildCargoSlots(panelRect, _cargoLine.rectTransform.anchoredPosition.y);
 
-            _headerLine = CreateLine(panelRect, "Header", ref y, headerFontSize, headerFontSize,
-                normalColour);
-            _headerLine.text = "ACTIVE ORDERS";
-            _headerLine.fontStyle = FontStyle.Bold;
-
-            for (int i = 0; i < Mathf.Max(1, orderLineSlots); i++)
+            // XP star sits at the left end of the XP bar, the bar starts after it.
+            float barHeight = skin != null && skin.barFill != null ? 16f : 12f;
+            float barX = _pad;
+            if (skin != null && skin.xpIcon != null)
             {
-                Text line = CreateLine(panelRect, $"Order line {i}", ref y, lineHeight, fontSize,
-                    normalColour);
-                _orderLines.Add(line);
+                var starGO = new GameObject("XP star");
+                starGO.transform.SetParent(panelRect, false);
+                Image star = starGO.AddComponent<Image>();
+                star.raycastTarget = false;
+                HudSkin.ApplyIcon(star, skin.xpIcon);
+                RectTransform starRect = star.rectTransform;
+                starRect.anchorMin = starRect.anchorMax = new Vector2(0f, 1f);
+                starRect.pivot = new Vector2(0f, 0.5f);
+                starRect.anchoredPosition = new Vector2(_pad - 2f, y - 2f - barHeight * 0.5f);
+                starRect.sizeDelta = new Vector2(28f, 28f);
+                barX += 30f;
+            }
+
+            _xpBarWidth = size.x - _pad - barX;
+
+            var barBgGO = new GameObject("XP bar background");
+            barBgGO.transform.SetParent(panelRect, false);
+            Image barBg = barBgGO.AddComponent<Image>();
+            barBg.color = new Color(0f, 0f, 0f, 0.6f);
+            barBg.raycastTarget = false;
+            RectTransform barBgRect = barBg.rectTransform;
+            barBgRect.anchorMin = new Vector2(0f, 1f);
+            barBgRect.anchorMax = new Vector2(0f, 1f);
+            barBgRect.pivot = new Vector2(0f, 1f);
+            barBgRect.anchoredPosition = new Vector2(barX, y - 2f);
+            barBgRect.sizeDelta = new Vector2(_xpBarWidth, barHeight);
+            if (skin != null && HudSkin.ApplyPill(barBg, skin.barBackground, barHeight)) barBg.color = Color.white;
+
+            var barFillGO = new GameObject("XP bar fill");
+            barFillGO.transform.SetParent(panelRect, false);
+            Image barFill = barFillGO.AddComponent<Image>();
+            barFill.color = OrderPalette.Xp;
+            barFill.raycastTarget = false;
+            _xpBarFill = barFill.rectTransform;
+            _xpBarFill.anchorMin = new Vector2(0f, 1f);
+            _xpBarFill.anchorMax = new Vector2(0f, 1f);
+            _xpBarFill.pivot = new Vector2(0f, 1f);
+            _xpBarFill.anchoredPosition = new Vector2(barX, y - 2f);
+            _xpBarFill.sizeDelta = new Vector2(0f, barHeight);
+            if (skin != null) HudSkin.ApplyPill(barFill, skin.barFill, barHeight);
+        }
+
+        /// <summary>Three slot icons right aligned on the cargo line (the most capacity the
+        /// plan's upgrades reach). Unused ones are hidden by RefreshCargoSlots.</summary>
+        private void BuildCargoSlots(RectTransform panelRect, float lineY)
+        {
+            if (skin == null || skin.cargoSlotEmpty == null || skin.cargoSlotFilled == null) return;
+
+            const int maxSlots = 3;
+            const float slotSize = 30f, gap = 4f;
+            float right = panelRect.sizeDelta.x - _pad;
+
+            for (int i = 0; i < maxSlots; i++)
+            {
+                var go = new GameObject($"Cargo slot {i}");
+                go.transform.SetParent(panelRect, false);
+                Image slot = go.AddComponent<Image>();
+                slot.raycastTarget = false;
+                HudSkin.ApplyIcon(slot, skin.cargoSlotEmpty);
+
+                RectTransform rect = slot.rectTransform;
+                rect.anchorMin = rect.anchorMax = new Vector2(0f, 1f);
+                rect.pivot = new Vector2(0f, 1f);
+                rect.anchoredPosition = new Vector2(right - (i + 1) * slotSize - i * gap, lineY + 1f);
+                rect.sizeDelta = new Vector2(slotSize, slotSize);
+
+                _cargoSlots.Add(slot);
             }
         }
 
-        private static Text CreateLine(RectTransform parent, string name, ref float y,
+        private Text CreateLine(RectTransform parent, string name, ref float y,
             float advance, int size, Color colour)
         {
             var go = new GameObject(name);
@@ -264,13 +337,14 @@ namespace ZoomZoom.Orders.UI
             text.alignment = TextAnchor.UpperLeft;
             text.horizontalOverflow = HorizontalWrapMode.Overflow;
             text.verticalOverflow = VerticalWrapMode.Overflow;
+            text.raycastTarget = false;
 
             RectTransform rect = go.GetComponent<RectTransform>();
             rect.anchorMin = new Vector2(0f, 1f);
             rect.anchorMax = new Vector2(0f, 1f);
             rect.pivot = new Vector2(0f, 1f);
-            rect.anchoredPosition = new Vector2(14f, y);
-            rect.sizeDelta = new Vector2(parent.sizeDelta.x - 28f, advance);
+            rect.anchoredPosition = new Vector2(_pad, y);
+            rect.sizeDelta = new Vector2(parent.sizeDelta.x - 2f * _pad, advance);
 
             y -= advance;
             return text;
