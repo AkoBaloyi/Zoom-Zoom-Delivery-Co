@@ -379,6 +379,10 @@ MonoBehaviour:
   numberFontSize: 64
   numberCharacterSize: 0.3
   numberHeightAboveBeam: 1.5
+  pickupColour: {r: 0.15, g: 0.55, b: 1, a: 1}
+  dropOffColour: {r: 0.1, g: 1, b: 0.25, a: 1}
+  transferColour: {r: 1, g: 0.75, b: 0.1, a: 1}
+  urgentColour: {r: 1, g: 0.05, b: 0.05, a: 1}
   urgentBelowSeconds: 8
   pulseSpeed: 3
   pulseScaleAmount: 0.18
@@ -1020,6 +1024,7 @@ MonoBehaviour:
   cargoSystem: {fileID: 935175481}
   pickupRadius: 6
   dropOffRadius: 6
+  transferRadius: 6
   checkInterval: 0.1
   logActivity: 1
   drawGizmos: 1
@@ -1913,7 +1918,6 @@ GameObject:
   - component: {fileID: 816895045}
   - component: {fileID: 816895044}
   - component: {fileID: 816895046}
-  - component: {fileID: 816895047}
   m_Layer: 0
   m_Name: OrderManager
   m_TagString: Untagged
@@ -1984,21 +1988,6 @@ MonoBehaviour:
   orderManager: {fileID: 816895044}
   shiftDurationSeconds: 300
   startAutomatically: 1
-  logActivity: 1
---- !u!114 &816895047
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 816895043}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cdd06e60aa8338a4bb39e087cbb6958d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.PlayerProgression
-  tuning: {fileID: 11400000, guid: b7cde7f517a195741a027c88a0445852, type: 2}
-  orderManager: {fileID: 816895044}
   logActivity: 1
 --- !u!1 &856578211
 GameObject:
@@ -2467,7 +2456,6 @@ GameObject:
   - component: {fileID: 1027706770}
   - component: {fileID: 1027706769}
   - component: {fileID: 700100040}
-  - component: {fileID: 1027706772}
   m_Layer: 0
   m_Name: OrderHUD
   m_TagString: Untagged
@@ -2494,6 +2482,10 @@ MonoBehaviour:
   edgeMargin: 60
   distanceFontSize: 22
   idFontSize: 30
+  pickupColour: {r: 0.3, g: 0.65, b: 1, a: 0.95}
+  dropOffColour: {r: 0.35, g: 0.95, b: 0.45, a: 0.95}
+  transferColour: {r: 1, g: 0.75, b: 0.1, a: 1}
+  urgentColour: {r: 1, g: 0.25, b: 0.2, a: 0.95}
   urgentBelowSeconds: 8
   pulseSpeed: 4
   pulseScaleAmount: 0.12
@@ -2512,13 +2504,19 @@ MonoBehaviour:
   orderManager: {fileID: 816895044}
   cargoSystem: {fileID: 935175481}
   shiftTimer: {fileID: 816895046}
-  cargoCondition: {fileID: 592668317}
-  playerProgression: {fileID: 816895047}
-  skin: {fileID: 11400000, guid: 8ce8086168a1fa847a1d4ff5a2a48667, type: 2}
+  cargoCondition: {fileID: 0}
   panelPosition: {x: -8, y: -8}
   panelSize: {x: 420, y: 340}
   fontSize: 26
-  urgentShiftSeconds: 30
+  headerFontSize: 29
+  orderLineSlots: 6
+  normalColour: {r: 1, g: 1, b: 1, a: 1}
+  pickupColour: {r: 0.15, g: 0.6, b: 1, a: 1}
+  dropOffColour: {r: 0.15, g: 1, b: 0.3, a: 1}
+  transferColour: {r: 1, g: 0.75, b: 0.1, a: 1}
+  urgentColour: {r: 1, g: 0.05, b: 0.05, a: 1}
+  panelColour: {r: 0, g: 0, b: 0, a: 0.55}
+  urgentBelowSeconds: 8
 --- !u!4 &1027706771
 Transform:
   m_ObjectHideFlags: 0
@@ -2534,29 +2532,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1027706772
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1027706768}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d62a920a72c9db04fa4abaf122673c94, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.UI.OrderTicketStrip
-  orderManager: {fileID: 816895044}
-  cargoSystem: {fileID: 935175481}
-  cargoCondition: {fileID: 592668317}
-  playerProgression: {fileID: 816895047}
-  skin: {fileID: 11400000, guid: 8ce8086168a1fa847a1d4ff5a2a48667, type: 2}
-  stripOrigin: {x: 24, y: -24}
-  ticketSize: {x: 210, y: 150}
-  ticketGap: 10
-  urgentBelowSeconds: 8
-  resolvedLingerSeconds: 1.1
-  bannerSeconds: 2.4
 --- !u!1 &1037944430
 GameObject:
   m_ObjectHideFlags: 0

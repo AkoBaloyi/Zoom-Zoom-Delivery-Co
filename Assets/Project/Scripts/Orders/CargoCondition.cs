@@ -75,9 +75,9 @@ namespace ZoomZoom.Orders
         [Header("Debug")]
         [SerializeField] private bool logActivity = true;
 
-        // Condition of every carried order, keyed by the Order itself (a plain class, so default
-        // reference equality is exactly what is wanted).
-        private readonly Dictionary<Order, float> _condition = new Dictionary<Order, float>();
+        // Keyed by Order.Id rather than by Order itself, purely so nothing here needs to
+        // implement or rely on Order's equality/hashing beyond what int already gives for free.
+        private readonly Dictionary<int, float> _condition = new Dictionary<int, float>();
 
         private float _previousForwardSpeed;
         private float _hardBrakeCooldownRemaining;
@@ -133,13 +133,12 @@ namespace ZoomZoom.Orders
 
         private void HandleOrderCarried(Order order)
         {
-            _condition[order] = 100f;
+            _condition[order.Id] = 100f;
         }
 
         private void HandleOrderReleased(Order order)
         {
-            // Delivered, or went Late while carried. Either way it no longer occupies a slot.
-            _condition.Remove(order);
+            _condition.Remove(order.Id);
         }
 
         private void FixedUpdate()
@@ -184,9 +183,6 @@ namespace ZoomZoom.Orders
             float impactSpeed = collision.relativeVelocity.magnitude;
             if (impactSpeed < collisionImpactThreshold) return;
 
-            // An impact also shows up as a huge deceleration in FixedUpdate. Starting the
-            // hard-brake cooldown here means the same hit is charged once, as a collision, and
-            // not a second time as a hard brake.
             _hardBrakeCooldownRemaining = hardBrakeCooldown;
 
             float damage = (impactSpeed - collisionImpactThreshold) * collisionDamagePerMps;
@@ -197,15 +193,9 @@ namespace ZoomZoom.Orders
         {
             if (amount <= 0f) return;
 
-            // Copy the keys first so the dictionary can be safely mutated during iteration;
-            // damage always applies to every currently carried order, since a shared cargo hold
-            // takes a hit as a whole, not per individual item inside it, at least not at this
-            // capacity.
-            // Copy the keys first so the dictionary can be safely changed during iteration. Damage
-            // applies to every carried order, since the hold takes a hit as a whole.
-            foreach (Order carried in new List<Order>(_condition.Keys))
+            foreach (int id in new List<int>(_condition.Keys))
             {
-                _condition[carried] = Mathf.Max(0f, _condition[carried] - amount);
+                _condition[id] = Mathf.Max(0f, _condition[id] - amount);
             }
 
             if (logActivity)
@@ -213,23 +203,16 @@ namespace ZoomZoom.Orders
                           $"{_condition.Count} carried order(s).");
         }
 
-        /// <summary>0 to 1. Read by CargoSystem at the moment of delivery to scale payout: a
-        /// spoiled delivery is still a delivery, not a failure state of its own, it's just worth
-        /// less, which keeps the state machine unchanged. Returns 1 (full value) while the
-        /// toggle is off, or for any order this isn't tracking.</summary>
         public float GetConditionMultiplier(Order order)
         {
             if (!enableCondition || order == null) return 1f;
-            return _condition.TryGetValue(order, out float value) ? value / 100f : 1f;
+            return _condition.TryGetValue(order.Id, out float value) ? value / 100f : 1f;
         }
 
-        /// <summary>0 to 100, for UI. Returns 100 (full) while the toggle is off, or for any
-        /// order this isn't tracking, so UI code doesn't need its own separate "is this even on"
-        /// check before displaying a number.</summary>
         public float GetConditionPercent(Order order)
         {
             if (!enableCondition || order == null) return 100f;
-            return _condition.TryGetValue(order, out float value) ? value : 100f;
+            return _condition.TryGetValue(order.Id, out float value) ? value : 100f;
         }
 
         public bool ConditionEnabled => enableCondition;
