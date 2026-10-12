@@ -575,6 +575,7 @@ GameObject:
   - component: {fileID: 592668316}
   - component: {fileID: 592668317}
   - component: {fileID: 700100050}
+  - component: {fileID: 700100060}
   m_Layer: 0
   m_Name: Car
   m_TagString: Player
@@ -14026,6 +14027,28 @@ MonoBehaviour:
   labelColour: {r: 1, g: 1, b: 1, a: 1}
   fillSmoothTime: 0.06
   earningLabelHold: 0.4
+--- !u!114 &700100060
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 592668305}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c2d4e6f8a1b4c3d9e5f7a8b0c1d2e3f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.PlaytestLogger
+  car: {fileID: 592668308}
+  jumpFlip: {fileID: 592668307}
+  orderManager: {fileID: 816895044}
+  shiftTimer: {fileID: 816895046}
+  impactSpeedDrop: 3
+  impactMinimumSpeed: 10
+  usefulSpeed: 8
+  folderName: PlaytestLogs
+  fileName: shift_log.csv
+  alsoLogToConsole: 1
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

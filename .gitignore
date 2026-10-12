@@ -162,3 +162,8 @@ docs/M1-INDIVIDUAL-GDD-AGENT-PROMPT.md
 # the only copy of anything; Assets/Aside/Art/Blender holds the same greybox at 192 MB, and the
 # district has since moved to the Group 15 prefab.
 Assets/_Project/
+
+# Local addition: raw shift logs written by PlaytestLogger at runtime. One row per shift, per
+# machine, appended forever. The curated record is docs/playtesting/playtest_sessions.csv, which
+# a human fills from these; the raw file is a local scratch source, not submission material.
+/PlaytestLogs/

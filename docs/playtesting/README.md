@@ -31,6 +31,7 @@ neither number says alone.
 | `session_id` | text | `S01`, `S02`... one per sitting, shared by every tester in that sitting |
 | `date` | ISO date | |
 | `build` | commit hash or tag | `git rev-parse --short HEAD` on the build that was played. A row without this cannot be tied to a version and is worthless |
+| `variant` | one of the names in `QUESTIONS.md` | Which single factor was changed for this session. `baseline` if none. Two rows with different variants are not comparable with each other; rows sharing a variant are |
 | `tester_id` | text | `T01`... never a name. Same tester, same id across sessions |
 | `tester_racing_experience` | `never` / `sometimes` / `often` | asked before play |
 | `play_minutes` | number | wall clock, including restarts |
@@ -39,6 +40,7 @@ neither number says alone.
 | `value` | number | session log |
 | `boost_activations` | int | session log, presses that spent fuel |
 | `boost_seconds` | number | session log |
+| `boost_earned` | number | session log, boost units earned from drifting and air time over the shift |
 | `handbrake_seconds` | number | session log |
 | `wall_hits` | int | session log, impacts above the wall-recovery test's impact threshold |
 | `flips` | int | session log |
@@ -68,8 +70,17 @@ written up as one.
 
 ## The session log
 
-The measured columns depend on the game writing a log. That logger does not exist yet; until it
-does, leave measured cells blank rather than estimating them. It will subscribe to the order
-manager's events and read the vehicle's public state, the same way the shift results screen
-does, and write one row per shift to `playtest_logs/`. Writing it is on the vehicle owner's list;
-it reads the order system but does not change it.
+`PlaytestLogger` (on the Car in the game scene) writes one row per shift to
+`<project>/PlaytestLogs/shift_log.csv`, outside `Assets` so Unity never imports it. The row has
+the same measured columns as this sheet, in the same order, plus the scene name and the shift
+length, so it can be pasted straight into `playtest_sessions.csv` with the asked columns filled
+in by hand afterwards. It also prints the row to the console at shift end so an observer can
+read it off the screen.
+
+It subscribes to the order manager's events and reads the vehicle's public state, the same way
+the shift results screen does. It never changes anything. If it is missing from a scene the
+measured cells stay blank, and blank is correct; do not estimate them.
+
+The thresholds match the measurement harness so the two agree: a wall hit is a drop of more than
+3 m/s in one physics step from above 10 m/s, and recovery ends when the car is grounded, upright
+and above 8 m/s again.
