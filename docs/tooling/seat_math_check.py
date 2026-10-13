@@ -18,6 +18,8 @@ What it proves:
      cancel, so the old measure-in-world-then-invert round trip was the identity.
   6. The max(1 m, box height) lift cap passes a legitimate first bake and rejects the 6.24 m
      overhang lift that put trashcontainer01.006 on a roof.
+  7. The empty-mesh fallback box is about 1 m in WORLD space, not 1 in local units, which on these
+     props would be a 230 m collider.
 
 Usage:
     python docs/tooling/seat_math_check.py
@@ -299,6 +301,30 @@ def main():
     check("the overhang lift is 6.2384 m", close(overhang, 6.2383702, 1e-6), "%.7f" % overhang)
     check("max(1 m, box height) rejects it", overhang > max(1.0, bin_height),
           "cap %.4f" % max(1.0, bin_height))
+
+    print("\n7. the empty-mesh fallback box")
+    # RobustLocalBounds falls back to EmptyMeshFallbackMetres = 1 m in WORLD space for a mesh with
+    # no usable vertices, which means dividing by the transform scale, because box.size is LOCAL.
+    # A local size of 1 is not a 1 m box on these props: the import keeps its metres in the
+    # transform scale. Unreachable for the 33 props in the scene, pinned here so it cannot drift
+    # back to a 230 m collider silently.
+    for name in ("RoadBlocker04.002", "trashcontainer01.001", "picnictable01.001"):
+        p = SCENE[name]
+        local = tuple(1.0 / s for s in p["scale"])
+        got = world_extents(p["rot"], p["scale"], local)
+        check(f"{name:22} scale-corrected fallback is 1 m in world space",
+              all(close(got[i], 1.0, 1e-4) for i in range(3)),
+              "scale %.1f -> local %.6f, world %.6f x %.6f x %.6f m"
+              % ((p["scale"][0], local[0]) + got))
+        naive = world_extents(p["rot"], p["scale"], (1.0, 1.0, 1.0))
+        check(f"{name:22} a LOCAL size of 1 would be a {max(naive):.0f} m collider",
+              min(naive) > 100.0, "world %.2f x %.2f x %.2f m" % naive)
+    # The number the regression actually produced on the scale-230 blocker, so a future reader can
+    # recognise it in a console log.
+    blocker_naive = world_extents(blocker["rot"], blocker["scale"], (1.0, 1.0, 1.0))
+    check("the regression's blocker box was 230.0039 m",
+          all(close(blocker_naive[i], 230.0039, 1e-3) for i in range(3)),
+          "%.4f x %.4f x %.4f m" % blocker_naive)
 
     print()
     if failures:

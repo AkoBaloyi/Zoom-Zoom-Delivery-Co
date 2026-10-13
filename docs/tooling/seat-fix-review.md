@@ -21,6 +21,27 @@ half-extent is 1.0873 m, not 1.985 m — and the code is right; see below before
 
 **Verdict**: APPROVED
 
+## Follow-up: issues 1, 2 and 3 are closed
+
+A second commit on this branch closed the top three issues below; the rest of the list still
+stands as written.
+
+- **1, empty-mesh fallback** — closed by making the fallback the physical size it used to be
+  rather than by refusing the prop: `RobustLocalBounds` now divides `EmptyMeshFallbackMetres`
+  (1 m, world) by the transform's scale, so it lands at 1 m in world space instead of 230 m.
+  Refusing an empty mesh would have been a behaviour change on a path no prop in the scene
+  reaches, and prop sizes on the live path are untouched. Pinned by section 7 of
+  `seat_math_check.py`.
+- **2, refusals never reach the headline** — the headline now carries
+  `"N NOT SEATED: left exactly where they were, each one named below."` and the severity ladder
+  logs a bake with refusals as a warning, so it can no longer read as clean at info level. Over
+  6 m stays a warning, under 10 cm stays an error.
+- **3, undo on the reference-box re-fit** — the `ApplyReferenceBox` branch now calls
+  `Undo.RecordObject(oldBox, "refit box")` the way its sibling does.
+
+The per-run verdict JSON this document came with was dropped; it was machine output. The plan and
+this review stay, because they carry the root cause and the trade-offs a teammate needs.
+
 ## High-level view
 
 The root cause is one assumption in two places, which is why the fitter and the seater had to
