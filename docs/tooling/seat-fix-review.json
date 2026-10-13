@@ -1,0 +1,104 @@
+{
+  "verdict": "APPROVED",
+  "findings": [
+    {
+      "id": 1,
+      "severity": "non-blocking",
+      "confidence": "confirmed",
+      "label": "Empty-mesh fallback is scale-times too large",
+      "detail": "RobustLocalBounds returns a local size of 1 for a zero-vertex mesh and FitBoxToMesh assigns it straight to box.size, which is a 230 m collider on a blocker and 255 m on a table; the old code divided a 1 m world fallback by scale and produced a 1 m box. Unreachable for the 33 props in this scene. Fix: treat an empty mesh as not knockable (FitBoxToMesh reports failure, MakeKnockable counts it as noMesh)."
+    },
+    {
+      "id": 2,
+      "severity": "non-blocking",
+      "confidence": "confirmed",
+      "label": "Refusals never reach the headline",
+      "detail": "The headline StringBuilder never mentions the unseated list and the severity ladder is suspect -> not-saved -> oversized -> Debug.Log, so a bake in which every prop was refused still opens with '33 props made knockable... Scene saved' at info level. Fix: append the unseated count to the headline and promote it to a warning when unseated.Count > 0."
+    },
+    {
+      "id": 3,
+      "severity": "non-blocking",
+      "confidence": "confirmed",
+      "label": "Undo not recorded on the reference-box re-fit",
+      "detail": "On the already-knockable path the measured branch guards its mutation with Undo.RecordObject(oldBox, \"refit box\") but the ApplyReferenceBox branch beside it records nothing, so Ctrl+Z after a re-bake restores a table's box and leaves a blocker's copied box in place. Inherited from the old code, newly inconsistent with its sibling branch. Fix: add the matching Undo.RecordObject."
+    },
+    {
+      "id": 4,
+      "severity": "non-blocking",
+      "confidence": "likely",
+      "label": "Blockers start 8.6 cm inside the road",
+      "detail": "ReferenceClearance yields -0.086 m for the RoadBlocker04 family, which is what puts .001 and .003 at exactly the hand-placed .002's y = 0.400. The bodies are baked asleep, so the overlap is resolved as a depenetration pop at up to Unity's default 10 m/s on first contact. Deliberate trade documented in the plan. Fix if it shows in playtest: rb.maxDepenetrationVelocity around 1 m/s keeps the exact y match, or clamp the gap to Mathf.Max(0f, gap) and lose it."
+    },
+    {
+      "id": 5,
+      "severity": "non-blocking",
+      "confidence": "confirmed",
+      "label": "Lift cap is near-inert and proportional",
+      "detail": "The ray starts at boxTop + 0.25 m, which already bounds any achievable lift at about the box's own height, so max(1 m, box height) only rejects inside a 25 cm window. The cap also scales with the prop and permits a 5.36 m lift for picnictable02. The overhang protection is the ray start, not the cap; do not loosen the ray start on the assumption the cap covers it."
+    },
+    {
+      "id": 6,
+      "severity": "non-blocking",
+      "confidence": "likely",
+      "label": "Deeply sunk props can no longer be recovered",
+      "detail": "A prop more than its own box height plus 25 cm below the surface starts its ray below the ground's top face; with Physics.queriesHitBackfaces off by default no hit is registered, so TryFindGroundBelow returns false and the prop is reported rather than repaired. Safe direction, but a capability the old 50 m ray had. Accept or add an explicit deep-recovery path."
+    },
+    {
+      "id": 7,
+      "severity": "non-blocking",
+      "confidence": "confirmed",
+      "label": "Downward moves are uncapped and unreported",
+      "detail": "The ray reaches height + 100 m downward and downward lifts are never capped or logged, so a prop sitting 50 m above the city is silently dropped to the road while a 1.1 m upward lift is refused and named. A silent bake is not evidence that nothing large moved. Consider reporting large downward moves too."
+    },
+    {
+      "id": 8,
+      "severity": "non-blocking",
+      "confidence": "confirmed",
+      "label": "Re-fit overwrites hand-tuned colliders",
+      "detail": "The already-knockable path now re-fits every non-reference box from the mesh, which is the intended repair for the 30 mis-oriented boxes but also discards any by-eye collider edit without a log line. Only the named reference object is protected. Costs nothing today since RoadBlocker04.002 is the only hand-fitted box."
+    },
+    {
+      "id": 9,
+      "severity": "non-blocking",
+      "confidence": "confirmed",
+      "label": "Brief's 1.985 m figure is wrong",
+      "detail": "For box dims (0.017257674, 0.004203821, 0.009454458) at uniform scale 230.0039 under quaternion (-0.5, 0.5, 0.5, 0.5) the y row of localToWorldMatrix is (0, 0, 230.0039), so the vertical half-extent is 230.0039 * 0.009454458 / 2 = 1.087281 m. 1.985 m is half the local X extent, which this rotation sends to world -Z. The code, plan and proof all carry 1.087281 m and name the brief's error. The brief's identity figure of 0.4834 m is right and is the local-Y reading the old code used. Correct the brief so a later pass does not reverse the fix."
+    },
+    {
+      "id": 10,
+      "severity": "non-blocking",
+      "confidence": "confirmed",
+      "label": "Proof script quotes pre-fix axes for the lift caps",
+      "detail": "seat_math_check.py section 6 derives family heights from the mis-oriented boxes still in the scene, printing 'max(1 m, 9.21 m)' for a table whose post-fix height is 1.98 m and a 3.31 m cap for a bin that is 2.57 m. Both conclusions survive (1.02 < 1.98, 6.24 > 2.57) but the quoted caps are not what the shipped C# computes. Fix: derive them from the corrected box."
+    },
+    {
+      "id": 11,
+      "severity": "non-blocking",
+      "confidence": "confirmed",
+      "label": "Headline wording understates the re-fit",
+      "detail": "The summary still says the already-knockable props 'were re-seated on the road in place', which no longer describes the work now that their boxes are re-fitted as well."
+    },
+    {
+      "id": 12,
+      "severity": "non-blocking",
+      "confidence": "confirmed",
+      "label": "Rotation-mismatch warning names one prop",
+      "detail": "The warning in ApplyReferenceBox is keyed by reference.name through rotationWarned, so the first off-angle prop is named and the rest are silent, where the unseated list names every offender."
+    },
+    {
+      "id": 13,
+      "severity": "non-blocking",
+      "confidence": "confirmed",
+      "label": "WorldExtents reports a world AABB",
+      "detail": "WorldExtents returns the world-aligned bounding box of the rotated collider, which equals the box's own dimensions only for 90-degree multiples. Correct for all four current families, but it will overstate a tilted prop's size and can trip the < 0.1 m or > 6 m self-check lists when lamps and signs are added."
+    },
+    {
+      "id": 14,
+      "severity": "non-blocking",
+      "confidence": "confirmed",
+      "label": "Change is uncommitted",
+      "detail": "KnockablePropBaker.cs is modified in the working tree and docs/tooling/seat_math_check.py and docs/tooling/seat-fix-plan.md are untracked; the plan's final step (one commit on fix/seat-on-road-rotation, three files added by name) has not run."
+    }
+  ],
+  "reviewDoc": "c:\\Users\\akoba\\DIGI2001\\Project\\GameDesign\\Zoom Zoom Delivery Co\\.worktrees\\seat-fix\\docs\\tooling\\seat-fix-review.md"
+}
