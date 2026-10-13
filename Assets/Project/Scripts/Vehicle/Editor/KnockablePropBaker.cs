@@ -28,10 +28,19 @@ namespace ZoomZoom.Vehicle.EditorTools
     /// So each prop is reparented to the scene root with its world position and rotation kept and
     /// its scale made positive on every axis (magnitudes preserved, so the mesh still renders at
     /// its real size). Non-uniform scale on the body's own transform is fine; it is the PARENT
-    /// scale PhysX objects to. The box is fitted to the renderer's measured WORLD bounds, taken
-    /// before anything moves, so it is the size the player sees whatever the import did. The stale
+    /// scale PhysX objects to. The box is fitted to the mesh's own vertices in the prop's local
+    /// space, so it matches the model however the import rotated it; see FitBoxToMesh. The stale
     /// MeshCollider is disabled and kept so the bake stays reversible, and the original parent is
     /// recorded on the marker so Undo Knockable Props can put the object back.
+    ///
+    /// EVERY PROP IS ROTATED, AND THAT USED TO BE IGNORED
+    /// These are Blender exports, so each one carries the Z-up to Y-up import rotation: the axis
+    /// pointing at the sky is the prop's LOCAL Z. Two places read height off local Y instead, with
+    /// the same sign of error: the box fitter wrote a measured world height into local Y, and the
+    /// seater read the height back out of local Y. Measured props therefore landed at the right
+    /// height with a collider on the wrong axes, and the three hand-boxed RoadBlocker04s, whose box
+    /// was not measured, were buried half a metre into the road. Both now go through
+    /// WorldVerticalHalfExtent, which projects the box's axes onto world up.
     ///
     /// WHY SOME MATCHES ARE SKIPPED
     /// The scene has whole groups of props 84 m below the map, never placed. Every cone_type in
@@ -100,12 +109,22 @@ namespace ZoomZoom.Vehicle.EditorTools
         /// surface is at y = 0; the unplaced groups sit at y = -83.6.</summary>
         private const float MinimumWorldY = -5f;
 
+        /// <summary>Gap left between a prop's box bottom and the ground under it, for families
+        /// with no hand-fitted reference. A hand-fitted family uses the reference's own gap
+        /// instead; see ReferenceClearance.</summary>
+        private const float DefaultClearance = 0.03f;
+
+        /// <summary>Reference objects already reported for a rotation mismatch this bake, so the
+        /// warning fires once per reference instead of once per prop. Cleared by Bake().</summary>
+        private static readonly HashSet<string> rotationWarned = new HashSet<string>();
+
         [MenuItem("Tools/Zoom Zoom/Make Props Knockable", priority = 60)]
         public static void Bake()
         {
             var scene = EditorSceneManager.GetActiveScene();
             var counts = new Dictionary<string, int>();
             int underground = 0, already = 0, noMesh = 0, refitted = 0;
+            rotationWarned.Clear();
 
             Undo.SetCurrentGroupName("Make Props Knockable");
             int group = Undo.GetCurrentGroup();
@@ -123,20 +142,61 @@ namespace ZoomZoom.Vehicle.EditorTools
             var sample = new Dictionary<string, string>();
             var suspect = new List<string>();
             var oversized = new List<string>();
+            var unseated = new List<string>();
 
             // Resolve each family's hand-fitted reference once, before anything is re-fitted.
             // The reference object itself is excluded from the bake so the copy source is never
             // overwritten by its own copy.
+            //
+            // A referenced family also inherits the REFERENCE'S OWN ground gap instead of the
+            // generic 3 cm. RoadBlocker04.002 was fitted and placed by eye and called perfect; its
+            // box bottom sits at y = 0.3140 against a road top of 0.40, i.e. 8.6 cm of initial
+            // overlap, which PhysX pushes out in a frame or two. Reproducing that gap puts the
+            // other blockers at exactly the y the hand-placed one has, which is the only
+            // definition of "right" available for a box nobody measured.
             var references = new Dictionary<string, BoxCollider>();
+            var clearances = new Dictionary<string, float>();
             foreach (Family f in Families)
                 if (!string.IsNullOrEmpty(f.ReferenceObject) && !references.ContainsKey(f.Label))
-                    references[f.Label] = FindReferenceBox(f.ReferenceObject);
+                {
+                    BoxCollider r = FindReferenceBox(f.ReferenceObject);
+                    references[f.Label] = r;
+                    clearances[f.Label] = ReferenceClearance(f, r);
+                }
+
+            // Shared self-check for both paths below: a freshly baked prop and a re-fitted one are
+            // judged the same way, so the log says what is in the scene now either way.
+            //
+            // Earlier versions reported success on bakes that could not work, so this one measures
+            // its own output. Under 10 cm is a box that cannot have been fitted to anything real
+            // and is treated as a failure. Over 6 m is reported but NOT treated as a failure: it
+            // turned out to be true. The picnic tables in this import measure 9 m square and sit
+            // 12 m apart in the park, which is how someone spaces 9 m objects, not 2 m ones. The
+            // whole city is oversized relative to the car (its author said so: "buildings are too
+            // big, need resizing"). A collider that matches an oversized mesh is correct; the mesh
+            // is the thing to fix.
+            void Record(Transform t, Family f, BoxCollider box)
+            {
+                Vector3 ws = WorldExtents(t, box);
+                float longest = Mathf.Max(ws.x, ws.y, ws.z);
+                if (longest < 0.1f)
+                    suspect.Add($"{t.name} box {ws.x:0.00}x{ws.y:0.00}x{ws.z:0.00} m");
+                else if (longest > 6f)
+                    oversized.Add($"{t.name} {ws.x:0.0}x{ws.y:0.0}x{ws.z:0.0} m");
+                if (sample.ContainsKey(f.Label)) return;
+                var mk = t.GetComponent<KnockableProp>();
+                sample[f.Label] = $"{t.name}: box {ws.x:0.0}x{ws.y:0.0}x{ws.z:0.0} m, {mk.bakedMassKg:0} kg, " +
+                                  $"box bottom at y={WorldBoxBottom(t, box):0.00}" +
+                                  (f.CopyBoxFrom != null ? $", box copied from {f.CopyBoxFrom.name}" : "") +
+                                  (mk.strayVertexFraction > 0.05f ? $", ignored {mk.strayVertexFraction:P0} stray" : "");
+            }
 
             for (int i = 0; i < targets.Count; i++)
             {
                 (Transform t, Family f) = targets[i];
                 references.TryGetValue(f.Label, out f.CopyBoxFrom);
                 if (f.CopyBoxFrom != null && f.CopyBoxFrom.transform == t) { already++; continue; }
+                float clearance = clearances.TryGetValue(f.Label, out float c) ? c : DefaultClearance;
 
                 // Already knockable: re-fit in place rather than skip. The seating fix and the
                 // reference boxes have to reach props from earlier bakes, and asking the user to
@@ -147,48 +207,38 @@ namespace ZoomZoom.Vehicle.EditorTools
                     var oldBox = t.GetComponent<BoxCollider>();
                     if (oldBox != null)
                     {
+                        // Re-fit the box, not just the seating. Boxes from earlier bakes have the
+                        // measured WORLD height written into their local Y, which is the wrong axis
+                        // for every prop in this import; see FitBoxToMesh. Seating a wrong box
+                        // would move a prop that is currently in the right place.
+                        var filter = t.GetComponent<MeshFilter>();
                         if (f.CopyBoxFrom != null) ApplyReferenceBox(t.gameObject, oldBox, f.CopyBoxFrom);
-                        SeatOnRoad(t, oldBox);
+                        else if (filter != null && filter.sharedMesh != null)
+                        {
+                            Undo.RecordObject(oldBox, "refit box");
+                            FitBoxToMesh(oldBox, filter.sharedMesh, out float stray);
+                            Undo.RecordObject(existing, "refit stray fraction");
+                            existing.strayVertexFraction = stray;
+                        }
+                        string why = SeatOnRoad(t, oldBox, clearance);
+                        if (why != null) unseated.Add(why);
                         var rb = t.GetComponent<Rigidbody>();
                         if (rb != null) { Undo.RecordObject(rb, "refit mass"); rb.mass = f.MassKg; rb.inertiaTensor = CompactInertia(f.MassKg, 2f); }
                         Undo.RecordObject(existing, "refit marker"); existing.bakedMassKg = f.MassKg;
                         counts.TryGetValue(f.Label, out int re); counts[f.Label] = re + 1;
                         refitted++;
+                        Record(t, f, oldBox);
                     }
                     else already++;
                     continue;
                 }
 
                 if (t.position.y < MinimumWorldY) { underground++; continue; }
-                if (!MakeKnockable(t, f)) { noMesh++; continue; }
+                if (!MakeKnockable(t, f, clearance, unseated)) { noMesh++; continue; }
 
                 counts.TryGetValue(f.Label, out int n);
                 counts[f.Label] = n + 1;
-
-                // Self-check. Earlier versions reported success on bakes that could not work, so
-                // this one measures its own output and says what it made. Under 10 cm is a box that
-                // cannot have been fitted to anything real and is treated as a failure. Over 6 m is
-                // reported but NOT treated as a failure: it turned out to be true. The picnic tables
-                // in this import measure 9 m square and sit 12 m apart in the park, which is how
-                // someone spaces 9 m objects, not 2 m ones. The whole city is oversized relative to
-                // the car (its author said so: "buildings are too big, need resizing"). A collider
-                // that matches an oversized mesh is correct; the mesh is the thing to fix.
-                var box = t.GetComponent<BoxCollider>();
-                Vector3 ws = Vector3.Scale(box.size, t.lossyScale);
-                float longest = Mathf.Max(ws.x, ws.y, ws.z);
-                if (longest < 0.1f)
-                    suspect.Add($"{t.name} box {ws.x:0.00}x{ws.y:0.00}x{ws.z:0.00} m");
-                else if (longest > 6f)
-                    oversized.Add($"{t.name} {ws.x:0.0}x{ws.y:0.0}x{ws.z:0.0} m");
-                if (!sample.ContainsKey(f.Label))
-                {
-                    var mk = t.GetComponent<KnockableProp>();
-                    float bottom = t.TransformPoint(box.center).y - ws.y * 0.5f;
-                    sample[f.Label] = $"{t.name}: box {ws.x:0.0}x{ws.y:0.0}x{ws.z:0.0} m, {mk.bakedMassKg:0} kg, " +
-                                      $"box bottom at y={bottom:0.00}" +
-                                      (f.CopyBoxFrom != null ? $", box copied from {f.CopyBoxFrom.name}" : "") +
-                                      (mk.strayVertexFraction > 0.05f ? $", ignored {mk.strayVertexFraction:P0} stray" : "");
-                }
+                Record(t, f, t.GetComponent<BoxCollider>());
             }
 
             Undo.CollapseUndoOperations(group);
@@ -228,6 +278,19 @@ namespace ZoomZoom.Vehicle.EditorTools
             else if (!saved) Debug.LogWarning(sb.ToString());
             else if (oversized.Count > 0) Debug.LogWarning(sb.ToString());
             else Debug.Log(sb.ToString());
+
+            // Anything the seater refused is named, with the reason, rather than left to be found
+            // by eye in a 950-object scene. A prop listed here was NOT moved: it is still wherever
+            // it was before the bake, which is the safe outcome. If the road's hit normals ever
+            // point the wrong way, or a prop stands under an awning, every case shows up here.
+            if (unseated.Count > 0)
+            {
+                var us = new System.Text.StringBuilder(
+                    $"[KnockablePropBaker] {unseated.Count} props were NOT re-seated and were left exactly where " +
+                    "they were. Each line says why:");
+                foreach (string s in unseated) us.Append("\n   " + s);
+                Debug.LogWarning(us.ToString());
+            }
         }
 
         [MenuItem("Tools/Zoom Zoom/Undo Knockable Props", priority = 61)]
@@ -281,7 +344,7 @@ namespace ZoomZoom.Vehicle.EditorTools
             return null;
         }
 
-        private static bool MakeKnockable(Transform t, Family family)
+        private static bool MakeKnockable(Transform t, Family family, float clearance, List<string> unseated)
         {
             GameObject go = t.gameObject;
             var filter = go.GetComponent<MeshFilter>();
@@ -291,17 +354,9 @@ namespace ZoomZoom.Vehicle.EditorTools
             Transform originalParent = t.parent;
             Vector3 originalLocalScale = t.localScale;
 
-            // Measure the prop BEFORE touching the transform, and do not trust either
-            // mesh.bounds or renderer.bounds to do it. This FBX is a Blender scene export: every
-            // prop is its own unique mesh, Unity discarded self-intersecting polygons from it on
-            // import, and the bounds it reports are several times the visible object (a picnic
-            // table came back 9 m square). That is the known symptom of stray vertices far from the
-            // drawn geometry, which the renderer skips but the bounds include. So the size is taken
-            // from the vertex cloud itself with the outliers thrown away. The amount discarded is
-            // recorded on the marker, so the correction is visible rather than silent.
-            var renderer = go.GetComponent<Renderer>();
-            if (renderer == null) return false;
-            Bounds world = RobustWorldBounds(filter.sharedMesh, t, out float rejectedFraction);
+            // Nothing drawn, nothing to knock over: skip it rather than give a body to an
+            // invisible object.
+            if (go.GetComponent<Renderer>() == null) return false;
 
             // 1. Out of the broken hierarchy. World position and rotation are kept; scale is reset
             //    to exactly 1 so the Rigidbody lives in a clean, positive, uniform transform.
@@ -324,19 +379,9 @@ namespace ZoomZoom.Vehicle.EditorTools
                 mesh.enabled = false;
             }
 
-            // 3. Box fitted to the measured world bounds, expressed in the prop's new local space.
-            //    BoxCollider.size is multiplied by the transform's scale, so divide it back out.
-            //    Renderer bounds are axis-aligned in world space, so for a prop rotated off the
-            //    grid this box is a little loose rather than tight. Fine for furniture on a street
-            //    grid, where nearly everything is at 0 or 90 degrees; not fine for a tilted sign,
-            //    which is one more reason lamps and signs are not in the list yet.
+            // 3. Box fitted to the mesh in the prop's own local space. See FitBoxToMesh.
             var box = Undo.AddComponent<BoxCollider>(go);
-            Vector3 s = t.localScale;
-            box.center = t.InverseTransformPoint(world.center);
-            box.size = new Vector3(
-                world.size.x / Mathf.Max(s.x, 1e-4f),
-                world.size.y / Mathf.Max(s.y, 1e-4f),
-                world.size.z / Mathf.Max(s.z, 1e-4f));
+            FitBoxToMesh(box, filter.sharedMesh, out float rejectedFraction);
 
             // 3b. Blockers take the hand-fitted box instead of the measured one. See CopyBoxFrom.
             if (family.CopyBoxFrom != null) ApplyReferenceBox(go, box, family.CopyBoxFrom);
@@ -349,7 +394,8 @@ namespace ZoomZoom.Vehicle.EditorTools
             //     it. The first version lifted by 2 cm against y = 0, which was neither the road's
             //     height nor the box's bottom. Now the road is found the way the car finds it, with
             //     a raycast from above, and the box bottom is placed a hair above the hit.
-            SeatOnRoad(t, box);
+            string why = SeatOnRoad(t, box, clearance);
+            if (why != null) unseated.Add(why);
 
             // 4. The body. Starts asleep so 50 bodies at rest cost nothing on frame one.
             //    Mass is the family's feel number, not a function of size; see Families.
@@ -383,35 +429,150 @@ namespace ZoomZoom.Vehicle.EditorTools
         }
 
         /// <summary>
-        /// Lowers or raises the prop so the bottom face of its box rests just above whatever static
-        /// ground is under it. Casts down from well above the prop, ignoring the prop's own collider
-        /// and any other knockable body, so it lands on the road and not on a neighbour. Falls back
-        /// to leaving the position alone if nothing is hit (an object off the map), and says so.
+        /// Half the box's extent along WORLD up, for a box that is rotated, which every prop in
+        /// this import is.
+        ///
+        /// WHY NOT box.size.y * scale.y
+        /// That is the box's height along its OWN y axis, and the two are only the same thing when
+        /// the prop is unrotated. Every prop here is a Blender export carrying the Z-up to Y-up
+        /// import rotation, so the axis that points at the sky is local Z, not local Y. Reading the
+        /// height off local Y is what buried RoadBlocker04.001 and .003 at y = -0.0899 against the
+        /// 0.400 of the hand-placed .002: it used 0.483 m of half-extent where 1.087 m was needed.
+        ///
+        /// THE ARITHMETIC, WORKED THROUGH ON THAT BLOCKER
+        /// Rotation {x:-0.5000001, y:0.5, z:0.49999994, w:0.5}, uniform scale 230.0039. The y row
+        /// of localToWorldMatrix comes out (m10, m11, m12) = (0, 0, 230.0039), i.e. local Z is
+        /// world up and the other two local axes are horizontal, contributing nothing to height:
+        ///     local X -> world -Z,  scaled extent 3.969 m   (the 4 m long barrier panel)
+        ///     local Y -> world -X,  scaled extent 0.967 m   (its thickness)
+        ///     local Z -> world +Y,  scaled extent 2.175 m   (its height)
+        /// box.size = (0.017257674, 0.004203821, 0.009454458), so e = size * 0.5 and
+        ///     halfHeight = |0*e.x| + |0*e.y| + |230.0039*e.z| = 1.087281 m.
+        /// The old code returned 230.0039 * 0.004203821 / 2 = 0.483448 m, which is 0.603833 m
+        /// short. That shortfall, less the 0.116001 m by which the generic 3 cm clearance differs
+        /// from the reference's own -0.086001 m gap, is the 0.4899 m those two blockers ended up
+        /// below the hand-placed .002. Note that 1.985 m, which looks like a plausible answer, is
+        /// half the LOCAL X extent; this rotation sends local X to world -Z, so it is horizontal.
+        ///
+        /// THE TRAP: e must be the RAW box.size * 0.5. The matrix columns already carry the
+        /// transform's scale, so pre-scaling e by lossyScale applies 230x twice and returns
+        /// 250.08 m for this blocker. Equally, do not reach for box.bounds here: that reads
+        /// PhysX's cached pose, which is stale the moment the baker writes transform.position and
+        /// would need a Physics.SyncTransforms() to be trusted in edit mode. This form is pure
+        /// transform maths and needs no sync.
         /// </summary>
-        private static void SeatOnRoad(Transform t, BoxCollider box)
+        private static float WorldVerticalHalfExtent(Transform t, BoxCollider box)
         {
-            const float clearance = 0.03f;
-            Vector3 worldCentre = t.TransformPoint(box.center);
-            Vector3 worldHalf = Vector3.Scale(box.size, t.lossyScale) * 0.5f;
-            float boxBottom = worldCentre.y - Mathf.Abs(worldHalf.y);
+            Matrix4x4 m = t.localToWorldMatrix;
+            Vector3 e = box.size * 0.5f;
+            return Mathf.Abs(m.m10 * e.x) + Mathf.Abs(m.m11 * e.y) + Mathf.Abs(m.m12 * e.z);
+        }
 
-            Vector3 from = new Vector3(worldCentre.x, worldCentre.y + Mathf.Abs(worldHalf.y) + 50f, worldCentre.z);
-            RaycastHit[] hits = Physics.RaycastAll(from, Vector3.down, 200f, ~0, QueryTriggerInteraction.Ignore);
-            float roadY = float.NaN;
+        /// <summary>World height of the bottom face of a rotated box. The centre goes through
+        /// TransformPoint, which already handles rotation; only the half-extent needed fixing.</summary>
+        private static float WorldBoxBottom(Transform t, BoxCollider box)
+            => t.TransformPoint(box.center).y - WorldVerticalHalfExtent(t, box);
+
+        /// <summary>Size of the rotated box's world-aligned bounding box, for the log. Same
+        /// projection as WorldVerticalHalfExtent, once per world axis, doubled. For the blocker
+        /// above this reads 0.97 x 2.17 x 3.97 m, which is what a player sees; the old
+        /// Vector3.Scale(box.size, lossyScale) reported 3.97 x 0.97 x 2.17, the same three numbers
+        /// on the wrong axes.</summary>
+        private static Vector3 WorldExtents(Transform t, BoxCollider box)
+        {
+            Matrix4x4 m = t.localToWorldMatrix;
+            Vector3 e = box.size * 0.5f;
+            return new Vector3(
+                (Mathf.Abs(m.m00 * e.x) + Mathf.Abs(m.m01 * e.y) + Mathf.Abs(m.m02 * e.z)) * 2f,
+                (Mathf.Abs(m.m10 * e.x) + Mathf.Abs(m.m11 * e.y) + Mathf.Abs(m.m12 * e.z)) * 2f,
+                (Mathf.Abs(m.m20 * e.x) + Mathf.Abs(m.m21 * e.y) + Mathf.Abs(m.m22 * e.z)) * 2f);
+        }
+
+        /// <summary>
+        /// Highest static surface under the prop, or false if there is none.
+        ///
+        /// The ray starts just above the prop's OWN box top, not 50 m overhead. That is the fix for
+        /// trashcontainer01.006, which the old version parked at y = 6.76 while its eight siblings
+        /// sat at 0.525: the ray came down from 50 m up, hit the awning the bin stands under, and
+        /// the baker dutifully seated the bin on the awning. A ray that starts below the awning
+        /// cannot hit it. Hits are also required to face up within 45 degrees, so a wall or a kerb
+        /// face the ray clips on the way down is not mistaken for ground.
+        ///
+        /// No Physics.SyncTransforms() is needed around this, even though the baker moves props
+        /// between calls: everything the ray is allowed to hit is static geometry that never moves
+        /// during a bake, and every collider that does move is filtered out below for having a
+        /// Rigidbody or a KnockableProp.
+        /// </summary>
+        private static bool TryFindGroundBelow(Transform t, BoxCollider box, out float groundY)
+        {
+            groundY = 0f;
+            Vector3 worldCentre = t.TransformPoint(box.center);
+            float half = WorldVerticalHalfExtent(t, box);
+            var from = new Vector3(worldCentre.x, worldCentre.y + half + 0.25f, worldCentre.z);
+
+            RaycastHit[] hits = Physics.RaycastAll(from, Vector3.down, half * 2f + 100f, ~0, QueryTriggerInteraction.Ignore);
             float best = float.PositiveInfinity;
+            bool found = false;
             foreach (RaycastHit h in hits)
             {
-                if (h.collider.transform.IsChildOf(t)) continue;                     // itself
-                if (h.collider.GetComponentInParent<KnockableProp>() != null) continue; // another prop
-                if (h.collider.attachedRigidbody != null) continue;                   // anything dynamic
-                if (h.distance < best) { best = h.distance; roadY = h.point.y; }
+                if (h.collider.transform.IsChildOf(t)) continue;                         // itself
+                if (h.collider.GetComponentInParent<KnockableProp>() != null) continue;  // another prop
+                if (h.collider.attachedRigidbody != null) continue;                      // anything dynamic
+                if (Vector3.Dot(h.normal, Vector3.up) < 0.707f) continue;                // over 45 deg off up: not a floor
+                if (h.distance < best) { best = h.distance; groundY = h.point.y; found = true; }
             }
-            if (float.IsNaN(roadY)) return;
+            return found;
+        }
 
-            float lift = (roadY + clearance) - boxBottom;
-            if (Mathf.Abs(lift) < 0.001f) return;
+        /// <summary>
+        /// Lowers or raises the prop so the bottom face of its box sits <paramref name="clearance"/>
+        /// above the static ground under it. Returns null when the prop is seated or already within
+        /// a millimetre of it, or a one-line reason naming the prop when the move was refused.
+        ///
+        /// A refused move leaves the prop exactly where it was: a prop in the wrong place is a
+        /// visible, reportable problem, where a prop teleported onto a roof looks like the tool
+        /// worked. Upward moves are capped at max(1 m, the box's own height); downward moves are
+        /// not capped, since that is the path that repairs an already-floating prop. The cap cannot
+        /// be a flat 1 m: a first bake legitimately lifts a table 1.02 m and a toilet 2.04 m,
+        /// because their import bounds reach to -0.59 and -1.61 against a road at +0.40. It still
+        /// rejects the 6.24 m lift that put trashcontainer01.006 on an awning.
+        /// </summary>
+        private static string SeatOnRoad(Transform t, BoxCollider box, float clearance)
+        {
+            float boxBottom = WorldBoxBottom(t, box);
+            if (!TryFindGroundBelow(t, box, out float groundY))
+                return $"{t.name}: no static ground under it; left at y={t.position.y:0.000}";
+
+            float lift = (groundY + clearance) - boxBottom;
+            if (Mathf.Abs(lift) < 0.001f) return null;
+
+            float maxLift = Mathf.Max(1f, WorldVerticalHalfExtent(t, box) * 2f);
+            if (lift > maxLift)
+                return $"{t.name}: ground found at y={groundY:0.00} would lift it {lift:0.00} m, " +
+                       $"more than its own {maxLift:0.00} m of height; left at y={t.position.y:0.000}";
+
             Undo.RecordObject(t, "seat prop on road");
             t.position += Vector3.up * lift;
+            return null;
+        }
+
+        /// <summary>
+        /// The ground gap to use for a family with a hand-fitted reference: the reference's own.
+        /// Its box bottom minus the ground under it, so every member of the family ends up sitting
+        /// the way the hand-placed one does. Falls back to DefaultClearance, with a warning, if the
+        /// reference is missing or has nothing under it.
+        /// </summary>
+        private static float ReferenceClearance(Family family, BoxCollider reference)
+        {
+            if (reference == null) return DefaultClearance;
+            Transform rt = reference.transform;
+            if (!TryFindGroundBelow(rt, reference, out float groundY))
+            {
+                Debug.LogWarning($"[KnockablePropBaker] No ground found under reference '{rt.name}'; " +
+                                 $"the {family.Label} family falls back to a {DefaultClearance:0.##} m gap.");
+                return DefaultClearance;
+            }
+            return WorldBoxBottom(rt, reference) - groundY;
         }
 
         /// <summary>
@@ -420,11 +581,23 @@ namespace ZoomZoom.Vehicle.EditorTools
         /// re-expressed in this prop's local scale, so a 230x object and a 0.55x object end up with
         /// an identical box on screen. Centre offset is scaled by the ratio of the two objects'
         /// scales along each axis so the box sits at the same place on the model.
+        ///
+        /// This is axis-for-axis in LOCAL space, so it is only exact when reference and target
+        /// share rotation as well as scale shape. They do here: every RoadBlocker04.* carries
+        /// {-0.5000001, 0.5, 0.49999994, 0.5} at 230.0039 uniform. A target rotated differently
+        /// gets an approximate box, and is warned about once.
         /// </summary>
         private static void ApplyReferenceBox(GameObject go, BoxCollider box, BoxCollider reference)
         {
             Transform rt = reference.transform;
             Transform t = go.transform;
+
+            float off = Quaternion.Angle(rt.rotation, t.rotation);
+            if (off > 1f && rotationWarned.Add(reference.name))
+                Debug.LogWarning($"[KnockablePropBaker] '{t.name}' sits {off:0.#} degrees away from reference " +
+                                 $"'{reference.name}'. The copied box is only exact when the two share rotation, " +
+                                 "so boxes in this family are approximate. Fit one by hand at the new angle.");
+
             Vector3 worldSize = Vector3.Scale(reference.size, Abs(rt.lossyScale));
             Vector3 worldOffset = Vector3.Scale(reference.center, rt.lossyScale);
             Vector3 s = Abs(t.lossyScale);
@@ -460,32 +633,60 @@ namespace ZoomZoom.Vehicle.EditorTools
         }
 
         /// <summary>
-        /// World-space bounds of the vertices that actually form the object, ignoring strays.
+        /// Fits the box to the mesh, in the prop's own local space, ignoring stray vertices.
         ///
-        /// Per axis, the vertex coordinates are sorted and the box is taken from the 2nd to the
-        /// 98th percentile, then widened by 4% so a legitimately thin extreme (a table's
-        /// outermost leg) is not clipped. A handful of vertices parked far from the mesh, which is
-        /// what inflates Unity's own bounds, land outside those percentiles and are ignored. On a
-        /// clean mesh the result is within a few percent of the true bounds; on this import it is
-        /// the difference between a 9 m box and a 1.8 m one.
+        /// WHY LOCAL AND NOT WORLD
+        /// BoxCollider.center and size ARE local, and the earlier version measured a world
+        /// axis-aligned box and then divided its size by the transform's scale component by
+        /// component. That silently assumed local axes line up with world axes. They never do in
+        /// this import: the Z-up to Y-up import rotation means local Z points at the sky, so the
+        /// measured world HEIGHT landed on local Y, i.e. on a horizontal axis. picnictable01.001
+        /// ended up with a 9.21 x 9.21 x 1.98 m collider: a 9 m slab standing on edge where the
+        /// table is 9.21 x 1.98 x 9.21. Measuring the vertices in local space needs no division at
+        /// all and is exact under any rotation. The world dimensions it produces are the same
+        /// numbers as before (percentile selection per axis is invariant to an axis permutation and
+        /// to positive scaling); only the axis each one lands on changes, which is the whole fix.
         ///
-        /// Transformed with the object's CURRENT world matrix, before the baker normalises it, so
-        /// it measures what is on screen right now.
+        /// The box CENTRE does not change, which is why re-baking does not move the props that are
+        /// already seated correctly. The old code took InverseTransformPoint of a world centre it
+        /// had measured through the pre-normalise matrix, and that round trip is the identity
+        /// exactly when the original world scale was positive on every axis. It was, for all 33
+        /// props in the scene: the negative prop scale and the negative group scale cancel, e.g. a
+        /// park table at -0.29310867 under park_props at -426.46298 under sehirlogo_01 at
+        /// 2.0439076 comes to +255.48845 on every axis. Only the size was ever wrong.
+        ///
+        /// WHY PERCENTILES AND NOT mesh.bounds
+        /// This FBX is a Blender scene export: every prop is its own unique mesh, Unity discarded
+        /// self-intersecting polygons on import, and the bounds it reports are several times the
+        /// visible object (a picnic table came back 9 m square). That is the signature of stray
+        /// vertices parked far from the drawn geometry, which the renderer skips but the bounds
+        /// include. So per axis the coordinates are sorted and the box is taken from the 2nd to the
+        /// 98th percentile, then widened by 4% so a legitimately thin extreme (a table's outermost
+        /// leg) is not clipped. The fraction discarded is returned and recorded on the marker, so
+        /// the correction is visible rather than silent.
         /// </summary>
-        private static Bounds RobustWorldBounds(Mesh mesh, Transform t, out float rejectedFraction)
+        private static void FitBoxToMesh(BoxCollider box, Mesh mesh, out float rejectedFraction)
+        {
+            Bounds local = RobustLocalBounds(mesh, out rejectedFraction);
+            box.center = local.center;
+            box.size = local.size;
+        }
+
+        /// <summary>Local-space bounds of the vertices that actually form the object, ignoring
+        /// strays. See FitBoxToMesh for why this is local and why it is percentile-based.</summary>
+        private static Bounds RobustLocalBounds(Mesh mesh, out float rejectedFraction)
         {
             Vector3[] verts = mesh.vertices;
             rejectedFraction = 0f;
-            if (verts.Length == 0) return new Bounds(t.position, Vector3.one);
+            if (verts.Length == 0) return new Bounds(Vector3.zero, Vector3.one);
 
-            Matrix4x4 m = t.localToWorldMatrix;
             var xs = new float[verts.Length];
             var ys = new float[verts.Length];
             var zs = new float[verts.Length];
             for (int i = 0; i < verts.Length; i++)
             {
-                Vector3 w = m.MultiplyPoint3x4(verts[i]);
-                xs[i] = w.x; ys[i] = w.y; zs[i] = w.z;
+                Vector3 v = verts[i];
+                xs[i] = v.x; ys[i] = v.y; zs[i] = v.z;
             }
             System.Array.Sort(xs); System.Array.Sort(ys); System.Array.Sort(zs);
 

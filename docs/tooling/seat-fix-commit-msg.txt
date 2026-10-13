@@ -1,0 +1,29 @@
+fix: seat knockable props on the road with rotation-aware extents
+
+Two bugs in KnockablePropBaker made props sink into or float above the
+road after baking. Both are fixed in the editor tool only.
+
+BUG 1 - vertical extent ignored rotation.
+SeatOnRoad used the box's local half-height scaled by the transform,
+so any prop with a non-identity rotation got the wrong bottom edge and
+was seated at the wrong height. The vertical extent is now computed in
+world space from the rotated, scaled box (WorldVerticalHalfExtent /
+WorldBoxBottom / WorldExtents), so the bottom edge is correct for any
+orientation.
+
+BUG 2 - downward raycast accepted overhang hits.
+The ground probe could latch onto a surface that merely overhangs the
+prop (another prop, a roof, a sign) and seat the prop against that
+instead of the road. TryFindGroundBelow now rejects hits that are not
+valid ground below the prop, so seating uses the road surface.
+
+Proof.
+docs/tooling/seat_math_check.py checks the vertical-extent arithmetic
+against rotated/scaled boxes. docs/tooling/seat-fix-plan.md and
+docs/tooling/seat-fix-review.{md,json} record the plan and review.
+
+Not changed.
+No collider sizes, transform scales, masses, prop families/enum, the
+Orders data, or Kyuri's Scene.unity were touched. A Unity re-bake is
+still required to confirm live placement values; the math check only
+validates the arithmetic.
