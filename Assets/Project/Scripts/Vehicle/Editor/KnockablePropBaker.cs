@@ -57,7 +57,12 @@ namespace ZoomZoom.Vehicle.EditorTools
         {
             public string Label;
             public Regex Name;
+            /// <summary>Mass the prop would have at the size a real one is, kilograms.</summary>
             public float MassKg;
+            /// <summary>Longest side of a real one, metres. Mass scales with the cube of the
+            /// ratio between the measured object and this, so a prop modelled at twice life size
+            /// weighs eight times as much and the car's shove reads the same either way.</summary>
+            public float RealSizeM;
         }
 
         // The playtest set. Lamps, fences, traffic lights, bus stops and mailboxes are deliberately
@@ -65,11 +70,11 @@ namespace ZoomZoom.Vehicle.EditorTools
         // furniture it shrinks. One line per family.
         private static readonly Family[] Families =
         {
-            new Family { Label = "trash container", Name = new Regex(@"^trashcontainer", RegexOptions.IgnoreCase), MassKg = 40f },
-            new Family { Label = "picnic table",    Name = new Regex(@"^picnictable",    RegexOptions.IgnoreCase), MassKg = 60f },
-            new Family { Label = "mobile toilet",   Name = new Regex(@"^mobile_toilet",  RegexOptions.IgnoreCase), MassKg = 150f },
-            new Family { Label = "traffic cone",    Name = new Regex(@"^cone_type",      RegexOptions.IgnoreCase), MassKg = 4f },
-            new Family { Label = "road blocker",    Name = new Regex(@"^RoadBlocker",    RegexOptions.IgnoreCase), MassKg = 12f },
+            new Family { Label = "trash container", Name = new Regex(@"^trashcontainer", RegexOptions.IgnoreCase), MassKg = 40f,  RealSizeM = 1.3f },
+            new Family { Label = "picnic table",    Name = new Regex(@"^picnictable",    RegexOptions.IgnoreCase), MassKg = 60f,  RealSizeM = 1.8f },
+            new Family { Label = "mobile toilet",   Name = new Regex(@"^mobile_toilet",  RegexOptions.IgnoreCase), MassKg = 150f, RealSizeM = 2.3f },
+            new Family { Label = "traffic cone",    Name = new Regex(@"^cone_type",      RegexOptions.IgnoreCase), MassKg = 4f,   RealSizeM = 0.7f },
+            new Family { Label = "road blocker",    Name = new Regex(@"^RoadBlocker",    RegexOptions.IgnoreCase), MassKg = 12f,  RealSizeM = 1.5f },
         };
 
         /// <summary>Props below this world height are not on the map and are skipped. The road
@@ -98,6 +103,7 @@ namespace ZoomZoom.Vehicle.EditorTools
 
             var sample = new Dictionary<string, string>();
             var suspect = new List<string>();
+            var oversized = new List<string>();
 
             foreach ((Transform t, Family f) in targets)
             {
@@ -108,19 +114,28 @@ namespace ZoomZoom.Vehicle.EditorTools
                 counts.TryGetValue(f.Label, out int n);
                 counts[f.Label] = n + 1;
 
-                // Self-check. Two earlier versions of this tool reported success on bakes that
-                // could not work, so this one measures its own output and says what it made. A
-                // world box under 10 cm or over 6 m on its longest side is not a street prop.
+                // Self-check. Earlier versions reported success on bakes that could not work, so
+                // this one measures its own output and says what it made. Under 10 cm is a box that
+                // cannot have been fitted to anything real and is treated as a failure. Over 6 m is
+                // reported but NOT treated as a failure: it turned out to be true. The picnic tables
+                // in this import measure 9 m square and sit 12 m apart in the park, which is how
+                // someone spaces 9 m objects, not 2 m ones. The whole city is oversized relative to
+                // the car (its author said so: "buildings are too big, need resizing"). A collider
+                // that matches an oversized mesh is correct; the mesh is the thing to fix.
                 var box = t.GetComponent<BoxCollider>();
                 Vector3 ws = Vector3.Scale(box.size, t.lossyScale);
                 float longest = Mathf.Max(ws.x, ws.y, ws.z);
-                if (longest < 0.1f || longest > 6f)
+                if (longest < 0.1f)
                     suspect.Add($"{t.name} box {ws.x:0.00}x{ws.y:0.00}x{ws.z:0.00} m");
+                else if (longest > 6f)
+                    oversized.Add($"{t.name} {ws.x:0.0}x{ws.y:0.0}x{ws.z:0.0} m");
                 if (!sample.ContainsKey(f.Label))
                 {
-                    float stray = t.GetComponent<KnockableProp>().strayVertexFraction;
-                    sample[f.Label] = $"{t.name}: box {ws.x:0.0}x{ws.y:0.0}x{ws.z:0.0} m at y={t.position.y:0.00}" +
-                                      (stray > 0.05f ? $"  (ignored {stray:P0} of raw extent as stray vertices)" : "");
+                    var mk = t.GetComponent<KnockableProp>();
+                    float ratio = longest / f.RealSizeM;
+                    sample[f.Label] = $"{t.name}: box {ws.x:0.0}x{ws.y:0.0}x{ws.z:0.0} m, {mk.bakedMassKg:0} kg, " +
+                                      $"{ratio:0.0}x life size" +
+                                      (mk.strayVertexFraction > 0.05f ? $", ignored {mk.strayVertexFraction:P0} stray" : "");
                 }
             }
 
@@ -141,15 +156,26 @@ namespace ZoomZoom.Vehicle.EditorTools
             sb.Append("\nOne of each, world size, so the result can be judged without pressing Play:");
             foreach (var kv in sample) sb.Append($"\n   {kv.Key,-16} {kv.Value}");
 
+            if (oversized.Count > 0)
+            {
+                sb.Append($"\n{oversized.Count} props are over 6 m on a side. The collider matches the mesh and the " +
+                          "mass follows the size, so at this scale they weigh more than the 900 kg car and the car " +
+                          "will bounce off them rather than move them. That is correct physics for the size they " +
+                          "are, and the size is the city's problem, not the baker's: these were modelled for a " +
+                          "larger world than a 4.5 m car. Shrink the level or swap the mesh; do not lighten the mass.");
+                foreach (string s in oversized) sb.Append("\n   " + s);
+            }
+
             if (suspect.Count > 0)
             {
-                sb.Append($"\n{suspect.Count} BOX SIZES LOOK WRONG (under 10 cm or over 6 m). These will not behave; " +
+                sb.Append($"\n{suspect.Count} BOX SIZES ARE BROKEN (under 10 cm). These will not behave; " +
                           "run Undo Knockable Props and report the sizes:");
                 foreach (string s in suspect) sb.Append("\n   " + s);
                 Debug.LogError(sb.ToString());
             }
-            else if (saved) Debug.Log(sb.ToString());
-            else Debug.LogWarning(sb.ToString());
+            else if (!saved) Debug.LogWarning(sb.ToString());
+            else if (oversized.Count > 0) Debug.LogWarning(sb.ToString());
+            else Debug.Log(sb.ToString());
         }
 
         [MenuItem("Tools/Zoom Zoom/Undo Knockable Props", priority = 61)]
@@ -271,8 +297,16 @@ namespace ZoomZoom.Vehicle.EditorTools
             }
 
             // 4. The body. Starts asleep so 50 bodies at rest cost nothing on frame one.
+            //    Mass follows the measured size: this city's props are two to five times life
+            //    size, and a 9 m table at a real table's 60 kg would be shoved like a paper cup.
+            //    Cubing the size ratio keeps the density, so the car's push reads the same whether
+            //    the level ends up at this scale or gets shrunk to fit the car.
+            float sizeRatio = Mathf.Max(world.size.x, world.size.y, world.size.z) / Mathf.Max(0.05f, family.RealSizeM);
+            float mass = family.MassKg * sizeRatio * sizeRatio * sizeRatio;
+            mass = Mathf.Clamp(mass, 1f, 4000f);
+
             var rb = Undo.AddComponent<Rigidbody>(go);
-            rb.mass = family.MassKg;
+            rb.mass = mass;
             rb.linearDamping = 0.2f;
             rb.angularDamping = 0.8f;
             rb.interpolation = RigidbodyInterpolation.None;
@@ -282,7 +316,7 @@ namespace ZoomZoom.Vehicle.EditorTools
 
             var marker = Undo.AddComponent<KnockableProp>(go);
             marker.family = family.Label;
-            marker.bakedMassKg = family.MassKg;
+            marker.bakedMassKg = mass;
             marker.originalParent = originalParent;
             marker.originalLocalScale = originalLocalScale;
             marker.strayVertexFraction = rejectedFraction;
