@@ -2334,7 +2334,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.CargoSystem
   orderManager: {fileID: 816895044}
   cargoCondition: {fileID: 592668317}
-  capacity: 1
+  capacity: 2
   logActivity: 1
 --- !u!4 &935175482
 Transform:

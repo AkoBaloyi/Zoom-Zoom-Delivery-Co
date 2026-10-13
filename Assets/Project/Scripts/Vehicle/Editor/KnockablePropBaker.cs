@@ -33,8 +33,13 @@ namespace ZoomZoom.Vehicle.EditorTools
     /// and still do.
     ///
     /// SLEEP
-    /// Every body starts asleep. 46 bodies at rest cost nothing; 46 awake bodies all settling on
+    /// Every body starts asleep. 54 bodies at rest cost nothing; 54 awake bodies all settling on
     /// the first frame cost a hitch. Unity sleeps them again a few seconds after they stop.
+    ///
+    /// THE TOOL SAVES THE SCENE
+    /// Pressing Play snapshots the saved scene and leaving Play restores it. The first version only
+    /// marked the scene dirty, so a bake followed by a test drive was silently undone by the test
+    /// drive, with the console still reporting success. Now it writes the file.
     ///
     /// The KnockableProp marker it adds lives in the runtime folder, not here: a component
     /// serialised into a scene has to exist in the player build.
@@ -93,13 +98,22 @@ namespace ZoomZoom.Vehicle.EditorTools
             Undo.CollapseUndoOperations(group);
             EditorSceneManager.MarkSceneDirty(scene);
 
+            // Save, do not just mark dirty. The first version left this to the user and the
+            // result was a bake that vanished: pressing Play snapshots the SAVED scene, and leaving
+            // Play restores that snapshot, so an unsaved bake was undone by the first test drive
+            // while the console still said it was done. A tool whose work can be lost by the very
+            // next thing anyone does is not finished until it has written the file.
+            bool saved = EditorSceneManager.SaveScene(scene);
+
             var sb = new System.Text.StringBuilder("[KnockablePropBaker] ");
             int total = 0;
             foreach (var kv in counts) { sb.Append($"{kv.Value} {kv.Key}, "); total += kv.Value; }
             sb.Append($"{total} props made knockable in '{scene.name}'");
             if (skipped > 0) sb.Append($", {skipped} skipped (already done or no renderer)");
-            sb.Append(". Save the scene to keep it. Ctrl+Z reverts the lot.");
-            Debug.Log(sb.ToString());
+            sb.Append(saved
+                ? ". Scene saved; it will survive Play. Ctrl+Z then save again to revert."
+                : ". SCENE NOT SAVED: Unity refused the save. Press Ctrl+S before pressing Play or this is lost.");
+            if (saved) Debug.Log(sb.ToString()); else Debug.LogWarning(sb.ToString());
         }
 
         [MenuItem("Tools/Zoom Zoom/Undo Knockable Props", priority = 61)]
@@ -130,7 +144,9 @@ namespace ZoomZoom.Vehicle.EditorTools
 
             Undo.CollapseUndoOperations(group);
             EditorSceneManager.MarkSceneDirty(scene);
-            Debug.Log($"[KnockablePropBaker] Stripped {n} props back to static in '{scene.name}'.");
+            bool saved = EditorSceneManager.SaveScene(scene);
+            Debug.Log($"[KnockablePropBaker] Stripped {n} props back to static in '{scene.name}'" +
+                      (saved ? ", scene saved." : ". SCENE NOT SAVED, press Ctrl+S."));
         }
 
         private static Family? Match(string name)
