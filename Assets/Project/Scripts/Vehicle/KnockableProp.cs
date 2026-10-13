@@ -23,5 +23,13 @@ namespace ZoomZoom.Vehicle
         [Tooltip("Mass the baker gave it, kept here so the number is visible without opening the " +
                  "Rigidbody. The Rigidbody is the one that counts.")]
         public float bakedMassKg;
+
+        [Tooltip("Where this prop lived before the baker pulled it to the scene root. The city's " +
+                 "group nodes carry scales like -426, which PhysX cannot run a Rigidbody under, so " +
+                 "the prop had to come out. Undo Knockable Props puts it back here.")]
+        public Transform originalParent;
+
+        [Tooltip("The local scale it had under that parent, restored on undo.")]
+        public Vector3 originalLocalScale = Vector3.one;
     }
 }

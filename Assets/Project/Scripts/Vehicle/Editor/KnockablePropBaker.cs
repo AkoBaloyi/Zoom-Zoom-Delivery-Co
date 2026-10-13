@@ -10,110 +10,142 @@ namespace ZoomZoom.Vehicle.EditorTools
     /// Turns chosen street props in the open scene into things the car can knock over.
     ///
     /// WHY A TOOL AND NOT THE INSPECTOR
-    /// The city came in as flat geometry, not prefabs: the scene has about 950 props as plain
-    /// GameObjects named things like trashcontainer01.004. Hand-editing even the 46 in this first
-    /// pass is an afternoon of clicking; doing it again after the next re-export is another. The
-    /// tool makes the decision once, by name, and the scene can be re-baked in a second.
+    /// The city came in as flat geometry, not prefabs: about 950 props as plain GameObjects named
+    /// things like trashcontainer01.004. Hand-editing even the few dozen in this first pass is an
+    /// afternoon of clicking; doing it again after the next re-export is another. The tool makes
+    /// the decision once, by name, and the scene can be re-baked in a second.
     ///
-    /// WHY A BOX COLLIDER AND NOT THE MESH COLLIDER THAT IS ALREADY THERE
-    /// Two reasons found by reading the scene file rather than assuming.
-    ///   1. The bins and tables carry a NEGATIVE scale (-0.29). PhysX cannot build a convex hull from
-    ///      a mirrored mesh, and a Rigidbody on a non-convex MeshCollider logs an error every frame
-    ///      and falls through the floor. A BoxCollider does not care which way the mesh is wound.
-    ///   2. The cones have no collider at all. They are _LOD1 decoration; the car drives through
-    ///      them today. A box fitted to the rendered bounds gives them a body for the first time.
-    /// The box is fitted in the prop's local space from the mesh bounds, so it is right whatever
-    /// the scale sign, and the old MeshCollider is disabled rather than destroyed so this is
-    /// reversible with Undo and the original data is still there.
+    /// WHY EACH PROP IS PULLED OUT OF ITS PARENT
+    /// This is the part the first two versions got wrong, and the reason the props did not move.
+    /// The city FBX was authored in centimetres. Its group nodes compensate with scales like 267
+    /// and -426, and the props under them have local scales like 0.147 or -0.293, so a bin's
+    /// WORLD scale is (255, 141, 255): huge, non-uniform, and reached through a negative parent.
+    /// PhysX cannot run a Rigidbody in that hierarchy. Unity's own manual says never to scale the
+    /// parent of a rigidbody, BoxCollider refuses negative scale and forces it positive with
+    /// "unexpected collision geometry", and non-uniform parent scale shears any rotated child. The
+    /// bodies existed; they could not behave.
+    ///
+    /// So each prop is reparented to the scene root with its world position and rotation kept and
+    /// its scale made positive on every axis (magnitudes preserved, so the mesh still renders at
+    /// its real size). Non-uniform scale on the body's own transform is fine; it is the PARENT
+    /// scale PhysX objects to. The box is fitted to the renderer's measured WORLD bounds, taken
+    /// before anything moves, so it is the size the player sees whatever the import did. The stale
+    /// MeshCollider is disabled and kept so the bake stays reversible, and the original parent is
+    /// recorded on the marker so Undo Knockable Props can put the object back.
+    ///
+    /// WHY SOME MATCHES ARE SKIPPED
+    /// The scene has whole groups of props 84 m below the map, never placed. Every cone_type in
+    /// the file is one of them; the cone-shaped things actually on the road are RoadBlocker04.
+    /// Giving a body to an object under the floor does nothing a player can see and wastes a
+    /// physics slot, so anything below MinimumWorldY is left alone and counted as skipped.
     ///
     /// MASS
-    /// The car is 900 kg. Masses here are in that unit so the contact looks right: a bin at 40 kg
-    /// goes flying, a toilet at 150 kg lurches and tips, a cone at 4 kg barely registers. Nothing
-    /// here should ever stop the car, which is the whole point; walls and buildings stay static
-    /// and still do.
-    ///
-    /// SLEEP
-    /// Every body starts asleep. 54 bodies at rest cost nothing; 54 awake bodies all settling on
-    /// the first frame cost a hitch. Unity sleeps them again a few seconds after they stop.
+    /// The car is 900 kg. A bin at 40 kg goes flying, a toilet at 150 kg lurches and tips, a cone
+    /// at 4 kg barely registers. Nothing here should ever stop the car; walls and buildings stay
+    /// static and still do.
     ///
     /// THE TOOL SAVES THE SCENE
-    /// Pressing Play snapshots the saved scene and leaving Play restores it. The first version only
-    /// marked the scene dirty, so a bake followed by a test drive was silently undone by the test
-    /// drive, with the console still reporting success. Now it writes the file.
-    ///
-    /// The KnockableProp marker it adds lives in the runtime folder, not here: a component
-    /// serialised into a scene has to exist in the player build.
+    /// Pressing Play snapshots the saved scene and leaving Play restores it. A bake that is only
+    /// marked dirty is undone by the first test drive. This writes the file.
     ///
     /// Tools > Zoom Zoom > Make Props Knockable      bakes the selected families in the open scene
-    /// Tools > Zoom Zoom > Undo Knockable Props      strips what the baker added, re-enables the old colliders
+    /// Tools > Zoom Zoom > Undo Knockable Props      strips what the baker added and reparents back
     /// </summary>
     public static class KnockablePropBaker
     {
-        /// <summary>One line per prop family: a name pattern, a mass, and whether the box should be
-        /// shrunk slightly so neighbours do not start overlapped and explode apart on frame one.</summary>
         private struct Family
         {
             public string Label;
             public Regex Name;
             public float MassKg;
-            public float Shrink;
         }
 
-        // The first playtest set, chosen on 12 October: four families, 46 objects. Lamps, fences,
-        // traffic lights, bus stops and mailboxes are deliberately NOT here yet. If these four feel
-        // right, extend the list; if the car gets caught on tumbling furniture, cut it.
+        // The playtest set. Lamps, fences, traffic lights, bus stops and mailboxes are deliberately
+        // NOT here yet: if this lot feels right the list grows, if the car gets caught on tumbling
+        // furniture it shrinks. One line per family.
         private static readonly Family[] Families =
         {
-            new Family { Label = "trash container", Name = new Regex(@"^trashcontainer", RegexOptions.IgnoreCase), MassKg = 40f,  Shrink = 0.95f },
-            new Family { Label = "picnic table",    Name = new Regex(@"^picnictable",    RegexOptions.IgnoreCase), MassKg = 60f,  Shrink = 0.95f },
-            new Family { Label = "mobile toilet",   Name = new Regex(@"^mobile_toilet",  RegexOptions.IgnoreCase), MassKg = 150f, Shrink = 0.97f },
-            new Family { Label = "traffic cone",    Name = new Regex(@"^cone_type",      RegexOptions.IgnoreCase), MassKg = 4f,   Shrink = 1.0f },
+            new Family { Label = "trash container", Name = new Regex(@"^trashcontainer", RegexOptions.IgnoreCase), MassKg = 40f },
+            new Family { Label = "picnic table",    Name = new Regex(@"^picnictable",    RegexOptions.IgnoreCase), MassKg = 60f },
+            new Family { Label = "mobile toilet",   Name = new Regex(@"^mobile_toilet",  RegexOptions.IgnoreCase), MassKg = 150f },
+            new Family { Label = "traffic cone",    Name = new Regex(@"^cone_type",      RegexOptions.IgnoreCase), MassKg = 4f },
+            new Family { Label = "road blocker",    Name = new Regex(@"^RoadBlocker",    RegexOptions.IgnoreCase), MassKg = 12f },
         };
+
+        /// <summary>Props below this world height are not on the map and are skipped. The road
+        /// surface is at y = 0; the unplaced groups sit at y = -83.6.</summary>
+        private const float MinimumWorldY = -5f;
 
         [MenuItem("Tools/Zoom Zoom/Make Props Knockable", priority = 60)]
         public static void Bake()
         {
             var scene = EditorSceneManager.GetActiveScene();
             var counts = new Dictionary<string, int>();
-            int skipped = 0;
+            int underground = 0, already = 0, noMesh = 0;
 
             Undo.SetCurrentGroupName("Make Props Knockable");
             int group = Undo.GetCurrentGroup();
 
-            foreach (GameObject go in scene.GetRootGameObjects())
-            {
-                foreach (Transform t in go.GetComponentsInChildren<Transform>(true))
+            // Collect first, then mutate. Reparenting while iterating GetComponentsInChildren of
+            // the roots would move objects out from under the enumeration.
+            var targets = new List<(Transform t, Family f)>();
+            foreach (GameObject root in scene.GetRootGameObjects())
+                foreach (Transform t in root.GetComponentsInChildren<Transform>(true))
                 {
-                    Family? match = Match(t.name);
-                    if (match == null) continue;
-
-                    if (t.GetComponent<KnockableProp>() != null) { skipped++; continue; }
-                    if (!MakeKnockable(t.gameObject, match.Value)) { skipped++; continue; }
-
-                    counts.TryGetValue(match.Value.Label, out int n);
-                    counts[match.Value.Label] = n + 1;
+                    Family? f = Match(t.name);
+                    if (f != null) targets.Add((t, f.Value));
                 }
+
+            var sample = new Dictionary<string, string>();
+            var suspect = new List<string>();
+
+            foreach ((Transform t, Family f) in targets)
+            {
+                if (t.GetComponent<KnockableProp>() != null) { already++; continue; }
+                if (t.position.y < MinimumWorldY) { underground++; continue; }
+                if (!MakeKnockable(t, f)) { noMesh++; continue; }
+
+                counts.TryGetValue(f.Label, out int n);
+                counts[f.Label] = n + 1;
+
+                // Self-check. Two earlier versions of this tool reported success on bakes that
+                // could not work, so this one measures its own output and says what it made. A
+                // world box under 10 cm or over 6 m on its longest side is not a street prop.
+                var box = t.GetComponent<BoxCollider>();
+                Vector3 ws = Vector3.Scale(box.size, t.lossyScale);
+                float longest = Mathf.Max(ws.x, ws.y, ws.z);
+                if (longest < 0.1f || longest > 6f)
+                    suspect.Add($"{t.name} box {ws.x:0.00}x{ws.y:0.00}x{ws.z:0.00} m");
+                if (!sample.ContainsKey(f.Label))
+                    sample[f.Label] = $"{t.name}: box {ws.x:0.0}x{ws.y:0.0}x{ws.z:0.0} m at y={t.position.y:0.00}";
             }
 
             Undo.CollapseUndoOperations(group);
             EditorSceneManager.MarkSceneDirty(scene);
-
-            // Save, do not just mark dirty. The first version left this to the user and the
-            // result was a bake that vanished: pressing Play snapshots the SAVED scene, and leaving
-            // Play restores that snapshot, so an unsaved bake was undone by the first test drive
-            // while the console still said it was done. A tool whose work can be lost by the very
-            // next thing anyone does is not finished until it has written the file.
             bool saved = EditorSceneManager.SaveScene(scene);
 
             var sb = new System.Text.StringBuilder("[KnockablePropBaker] ");
             int total = 0;
             foreach (var kv in counts) { sb.Append($"{kv.Value} {kv.Key}, "); total += kv.Value; }
-            sb.Append($"{total} props made knockable in '{scene.name}'");
-            if (skipped > 0) sb.Append($", {skipped} skipped (already done or no renderer)");
+            sb.Append($"{total} props made knockable in '{scene.name}'.");
+            if (underground > 0) sb.Append($" {underground} skipped: below the map (y < {MinimumWorldY}).");
+            if (already > 0) sb.Append($" {already} already knockable.");
+            if (noMesh > 0) sb.Append($" {noMesh} skipped: no mesh or renderer.");
             sb.Append(saved
-                ? ". Scene saved; it will survive Play. Ctrl+Z then save again to revert."
-                : ". SCENE NOT SAVED: Unity refused the save. Press Ctrl+S before pressing Play or this is lost.");
-            if (saved) Debug.Log(sb.ToString()); else Debug.LogWarning(sb.ToString());
+                ? " Scene saved; it will survive Play."
+                : " SCENE NOT SAVED: Unity refused the save. Press Ctrl+S before Play or this is lost.");
+            sb.Append("\nOne of each, world size, so the result can be judged without pressing Play:");
+            foreach (var kv in sample) sb.Append($"\n   {kv.Key,-16} {kv.Value}");
+
+            if (suspect.Count > 0)
+            {
+                sb.Append($"\n{suspect.Count} BOX SIZES LOOK WRONG (under 10 cm or over 6 m). These will not behave; " +
+                          "run Undo Knockable Props and report the sizes:");
+                foreach (string s in suspect) sb.Append("\n   " + s);
+                Debug.LogError(sb.ToString());
+            }
+            else if (saved) Debug.Log(sb.ToString());
+            else Debug.LogWarning(sb.ToString());
         }
 
         [MenuItem("Tools/Zoom Zoom/Undo Knockable Props", priority = 61)]
@@ -125,21 +157,32 @@ namespace ZoomZoom.Vehicle.EditorTools
             Undo.SetCurrentGroupName("Undo Knockable Props");
             int group = Undo.GetCurrentGroup();
 
+            var markers = new List<KnockableProp>();
             foreach (GameObject root in scene.GetRootGameObjects())
+                markers.AddRange(root.GetComponentsInChildren<KnockableProp>(true));
+
+            foreach (KnockableProp marker in markers)
             {
-                foreach (KnockableProp marker in root.GetComponentsInChildren<KnockableProp>(true))
+                GameObject go = marker.gameObject;
+                foreach (var rb in go.GetComponents<Rigidbody>()) Undo.DestroyObjectImmediate(rb);
+                foreach (var box in go.GetComponents<BoxCollider>()) Undo.DestroyObjectImmediate(box);
+                foreach (var mesh in go.GetComponents<MeshCollider>())
                 {
-                    GameObject go = marker.gameObject;
-                    foreach (var rb in go.GetComponents<Rigidbody>()) Undo.DestroyObjectImmediate(rb);
-                    foreach (var box in go.GetComponents<BoxCollider>()) Undo.DestroyObjectImmediate(box);
-                    foreach (var mesh in go.GetComponents<MeshCollider>())
-                    {
-                        Undo.RecordObject(mesh, "re-enable mesh collider");
-                        mesh.enabled = true;
-                    }
-                    Undo.DestroyObjectImmediate(marker);
-                    n++;
+                    Undo.RecordObject(mesh, "re-enable mesh collider");
+                    mesh.enabled = true;
                 }
+
+                // Back under the parent it came from, keeping world placement. Scale returns to
+                // whatever the parent chain implies, which is the import's original.
+                if (marker.originalParent != null)
+                {
+                    Undo.SetTransformParent(go.transform, marker.originalParent, "reparent prop");
+                    Undo.RecordObject(go.transform, "restore scale");
+                    go.transform.localScale = marker.originalLocalScale;
+                }
+
+                Undo.DestroyObjectImmediate(marker);
+                n++;
             }
 
             Undo.CollapseUndoOperations(group);
@@ -156,30 +199,74 @@ namespace ZoomZoom.Vehicle.EditorTools
             return null;
         }
 
-        private static bool MakeKnockable(GameObject go, Family family)
+        private static bool MakeKnockable(Transform t, Family family)
         {
+            GameObject go = t.gameObject;
             var filter = go.GetComponent<MeshFilter>();
             if (filter == null || filter.sharedMesh == null) return false;
 
-            // The old collider stays on the object, switched off. Destroying it would make the
-            // bake irreversible once the Undo history is gone.
+            // Remember where it came from before anything moves.
+            Transform originalParent = t.parent;
+            Vector3 originalLocalScale = t.localScale;
+
+            // Measure what the player actually sees BEFORE touching the transform. The renderer's
+            // world bounds are the truth about the prop's size, whatever chain of weird scales
+            // produced it. Everything below is fitted to this, so it cannot be wrong by a factor of
+            // the parent scale the way a local-bounds box was.
+            var renderer = go.GetComponent<Renderer>();
+            if (renderer == null) return false;
+            Bounds world = renderer.bounds;
+
+            // 1. Out of the broken hierarchy. World position and rotation are kept; scale is reset
+            //    to exactly 1 so the Rigidbody lives in a clean, positive, uniform transform.
+            Vector3 worldPos = t.position;
+            Quaternion worldRot = t.rotation;
+            Vector3 lossy = t.lossyScale;
+
+            Undo.SetTransformParent(t, null, "unparent prop");
+            Undo.RecordObject(t, "normalise prop transform");
+            t.SetPositionAndRotation(worldPos, worldRot);
+            // Keep the magnitude per axis so the MESH still renders at its real size, but make
+            // every axis positive. Non-uniform scale on the body's OWN transform is fine; it is
+            // non-uniform scale on a PARENT that PhysX cannot take.
+            t.localScale = new Vector3(Mathf.Abs(lossy.x), Mathf.Abs(lossy.y), Mathf.Abs(lossy.z));
+
+            // 2. Old collider off, not destroyed: the bake stays reversible.
             foreach (var mesh in go.GetComponents<MeshCollider>())
             {
                 Undo.RecordObject(mesh, "disable mesh collider");
                 mesh.enabled = false;
             }
 
-            // Box from the mesh's own bounds, in local space, so a mirrored scale does not matter:
-            // the box is expressed before scale is applied and Unity scales it with the transform.
-            Bounds b = filter.sharedMesh.bounds;
+            // 3. Box fitted to the measured world bounds, expressed in the prop's new local space.
+            //    BoxCollider.size is multiplied by the transform's scale, so divide it back out.
+            //    Renderer bounds are axis-aligned in world space, so for a prop rotated off the
+            //    grid this box is a little loose rather than tight. Fine for furniture on a street
+            //    grid, where nearly everything is at 0 or 90 degrees; not fine for a tilted sign,
+            //    which is one more reason lamps and signs are not in the list yet.
             var box = Undo.AddComponent<BoxCollider>(go);
-            box.center = b.center;
-            box.size = b.size * family.Shrink;
+            Vector3 s = t.localScale;
+            box.center = t.InverseTransformPoint(world.center);
+            box.size = new Vector3(
+                world.size.x / Mathf.Max(s.x, 1e-4f),
+                world.size.y / Mathf.Max(s.y, 1e-4f),
+                world.size.z / Mathf.Max(s.z, 1e-4f));
 
+            // Props from this import sit with their pivot at ground level and their bounds
+            // overlapping the road collider by a few centimetres. A body that starts inside
+            // another collider gets shoved out on frame one and may launch. Lift it clear.
+            float sink = (world.min.y) - 0.0f;
+            if (sink < 0.02f)
+            {
+                Undo.RecordObject(t, "lift prop clear of road");
+                t.position += Vector3.up * (0.02f - sink);
+            }
+
+            // 4. The body. Starts asleep so 50 bodies at rest cost nothing on frame one.
             var rb = Undo.AddComponent<Rigidbody>(go);
             rb.mass = family.MassKg;
             rb.linearDamping = 0.2f;
-            rb.angularDamping = 0.8f;      // settles tumbling furniture rather than letting it spin
+            rb.angularDamping = 0.8f;
             rb.interpolation = RigidbodyInterpolation.None;
             rb.collisionDetectionMode = CollisionDetectionMode.Discrete;
             rb.sleepThreshold = 0.05f;
@@ -188,6 +275,8 @@ namespace ZoomZoom.Vehicle.EditorTools
             var marker = Undo.AddComponent<KnockableProp>(go);
             marker.family = family.Label;
             marker.bakedMassKg = family.MassKg;
+            marker.originalParent = originalParent;
+            marker.originalLocalScale = originalLocalScale;
 
             return true;
         }
