@@ -1382,6 +1382,51 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 641917143}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &681793355
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 681793357}
+  - component: {fileID: 681793356}
+  m_Layer: 0
+  m_Name: Weather
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &681793356
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 681793355}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7a3e5c1d9f2b4a6e8c0d1e2f3a4b5c6d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.WeatherState
+  weather: 0
+--- !u!4 &681793357
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 681793355}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &700100001
 GameObject:
   m_ObjectHideFlags: 0
@@ -5498,6 +5543,7 @@ GameObject:
   - component: {fileID: 4324914183085471093}
   - component: {fileID: 4296740578675907485}
   - component: {fileID: 4324914183085471094}
+  - component: {fileID: 4324914183085471095}
   m_Layer: 0
   m_Name: parkbase03_sample.001
   m_TagString: Untagged
@@ -7250,6 +7296,7 @@ GameObject:
   - component: {fileID: 1026556811679630406}
   - component: {fileID: 3664327949577638205}
   - component: {fileID: 5186195689372935407}
+  - component: {fileID: 5186195689372935408}
   m_Layer: 0
   m_Name: parkbase01_sample.001
   m_TagString: Untagged
@@ -7304,7 +7351,7 @@ Transform:
   m_GameObject: {fileID: 8926149213213249048}
   serializedVersion: 2
   m_LocalRotation: {x: -0.000000053385076, y: 0.7071068, z: 0.70710677, w: 0.00000005338508}
-  m_LocalPosition: {x: -177.54424, y: 0.400001, z: -73.61015}
+  m_LocalPosition: {x: -177.54424, y: 0.572538, z: -73.61015}
   m_LocalScale: {x: 183.95169, y: 183.95169, z: 183.95169}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -10554,6 +10601,7 @@ GameObject:
   - component: {fileID: 886364715453275543}
   - component: {fileID: 7248272490201081447}
   - component: {fileID: 7248272490201081448}
+  - component: {fileID: 7248272490201081449}
   m_Layer: 0
   m_Name: parkbase02_sample.002
   m_TagString: Untagged
@@ -15088,6 +15136,7 @@ GameObject:
   - component: {fileID: 8674291725156209398}
   - component: {fileID: 4933664025943974226}
   - component: {fileID: 8674291725156209399}
+  - component: {fileID: 8674291725156209400}
   m_Layer: 0
   m_Name: parkbase01_sample.005
   m_TagString: Untagged
@@ -15917,6 +15966,7 @@ GameObject:
   - component: {fileID: 5279391523217647320}
   - component: {fileID: 6174008873856259956}
   - component: {fileID: 9087550159085263147}
+  - component: {fileID: 9087550159085263148}
   m_Layer: 0
   m_Name: parkbase01_sample.009
   m_TagString: Untagged
@@ -20089,7 +20139,7 @@ Transform:
   m_GameObject: {fileID: 6224019060470724278}
   serializedVersion: 2
   m_LocalRotation: {x: 0.000000053385076, y: 0.7071068, z: 0.70710677, w: -0.00000005338508}
-  m_LocalPosition: {x: -200.66118, y: 0.400001, z: 179.62675}
+  m_LocalPosition: {x: -200.66118, y: 0.5725831, z: 179.62675}
   m_LocalScale: {x: 183.95169, y: 183.95169, z: 183.95169}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -20492,6 +20542,7 @@ GameObject:
   - component: {fileID: 4290392501106295785}
   - component: {fileID: 3042266741323010620}
   - component: {fileID: 5220517091271880375}
+  - component: {fileID: 5220517091271880376}
   m_Layer: 0
   m_Name: parkbase01
   m_TagString: Untagged
@@ -21765,6 +21816,7 @@ GameObject:
   - component: {fileID: 593651827707279947}
   - component: {fileID: 3195316099994340256}
   - component: {fileID: 3195316099994340257}
+  - component: {fileID: 3195316099994340258}
   m_Layer: 0
   m_Name: commercial_base.001
   m_TagString: Untagged
@@ -22738,6 +22790,7 @@ GameObject:
   - component: {fileID: 7087233354383506803}
   - component: {fileID: 4347210500900929272}
   - component: {fileID: 7087233354383506804}
+  - component: {fileID: 7087233354383506805}
   m_Layer: 0
   m_Name: commercial_base.040
   m_TagString: Untagged
@@ -22860,6 +22913,7 @@ GameObject:
   - component: {fileID: 5557971085383276000}
   - component: {fileID: 8113348447049888811}
   - component: {fileID: 8113348447049888812}
+  - component: {fileID: 8113348447049888813}
   m_Layer: 0
   m_Name: commercial_base.042
   m_TagString: Untagged
@@ -24636,6 +24690,7 @@ GameObject:
   - component: {fileID: 1356116258425901879}
   - component: {fileID: 8343823156621030057}
   - component: {fileID: 8343823156621030058}
+  - component: {fileID: 8343823156621030059}
   m_Layer: 0
   m_Name: commercial_base.011
   m_TagString: Untagged
@@ -26375,6 +26430,7 @@ GameObject:
   - component: {fileID: 5398898804069863207}
   - component: {fileID: 1734247823437130770}
   - component: {fileID: 5398898804069863208}
+  - component: {fileID: 5398898804069863209}
   m_Layer: 0
   m_Name: commercial_base.027
   m_TagString: Untagged
@@ -27615,6 +27671,7 @@ GameObject:
   - component: {fileID: 6191519475140257010}
   - component: {fileID: 2463481364869763584}
   - component: {fileID: 6191519475140257011}
+  - component: {fileID: 6191519475140257012}
   m_Layer: 0
   m_Name: parkbase01_sample.004
   m_TagString: Untagged
@@ -30865,7 +30922,7 @@ Transform:
   m_GameObject: {fileID: 2411025081374483631}
   serializedVersion: 2
   m_LocalRotation: {x: 0.50000006, y: 0.49999997, z: 0.5, w: -0.5}
-  m_LocalPosition: {x: -216.69203, y: 0.39999807, z: 172.32428}
+  m_LocalPosition: {x: -216.69203, y: 0.5746498, z: 172.32428}
   m_LocalScale: {x: 183.95169, y: 183.95169, z: 183.95169}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -34384,6 +34441,7 @@ GameObject:
   - component: {fileID: 3258950916346170833}
   - component: {fileID: 273723429061890496}
   - component: {fileID: 4294560422863102653}
+  - component: {fileID: 4294560422863102654}
   m_Layer: 0
   m_Name: commercial_base.059
   m_TagString: Untagged
@@ -34707,6 +34765,7 @@ GameObject:
   - component: {fileID: 7482649363830202259}
   - component: {fileID: 3175750252192388313}
   - component: {fileID: 7482649363830202260}
+  - component: {fileID: 7482649363830202261}
   m_Layer: 0
   m_Name: commercial_base.036
   m_TagString: Untagged
@@ -37941,6 +38000,7 @@ GameObject:
   - component: {fileID: 6713415894987263770}
   - component: {fileID: 1060822722070615690}
   - component: {fileID: 6713415894987263771}
+  - component: {fileID: 6713415894987263772}
   m_Layer: 0
   m_Name: commercial_base.004
   m_TagString: Untagged
@@ -42188,6 +42248,7 @@ GameObject:
   - component: {fileID: 5228516968387913993}
   - component: {fileID: 8279847163046174333}
   - component: {fileID: 8279847163046174334}
+  - component: {fileID: 8279847163046174335}
   m_Layer: 0
   m_Name: commercial_base.012
   m_TagString: Untagged
@@ -43867,7 +43928,7 @@ Transform:
   m_GameObject: {fileID: 3949139842991305738}
   serializedVersion: 2
   m_LocalRotation: {x: -0.5000001, y: 0.5, z: 0.49999994, w: 0.5}
-  m_LocalPosition: {x: -250.49788, y: 0.8, z: 10.185104}
+  m_LocalPosition: {x: -250.49788, y: 0.4, z: 10.185104}
   m_LocalScale: {x: 230.00386, y: 230.00389, z: 230.00388}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -54886,7 +54947,7 @@ Transform:
   m_GameObject: {fileID: 5017235686923160926}
   serializedVersion: 2
   m_LocalRotation: {x: -0.70710677, y: -0, z: -0, w: 0.7071068}
-  m_LocalPosition: {x: -87.44876, y: 0.3999922, z: -40.9375}
+  m_LocalPosition: {x: -87.44876, y: 0.503167, z: -40.9375}
   m_LocalScale: {x: 255.48845, y: 255.48845, z: 255.48845}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -55357,6 +55418,7 @@ GameObject:
   - component: {fileID: 2372507957559887587}
   - component: {fileID: 489860140034505387}
   - component: {fileID: 5474120980967027507}
+  - component: {fileID: 5474120980967027508}
   m_Layer: 0
   m_Name: commercial_base.014
   m_TagString: Untagged
@@ -58574,7 +58636,7 @@ Transform:
   m_GameObject: {fileID: 7014046478427150048}
   serializedVersion: 2
   m_LocalRotation: {x: -0.5000001, y: 0.5, z: 0.49999994, w: 0.5}
-  m_LocalPosition: {x: -6.894881, y: 0.39996883, z: 10.288116}
+  m_LocalPosition: {x: -6.894881, y: 0.4, z: 10.288116}
   m_LocalScale: {x: 230.00386, y: 230.00389, z: 230.00388}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -62710,6 +62772,7 @@ GameObject:
   - component: {fileID: 2750098938351733156}
   - component: {fileID: 8699491234030957098}
   - component: {fileID: 8699491234030957099}
+  - component: {fileID: 8699491234030957100}
   m_Layer: 0
   m_Name: commercial_base.007
   m_TagString: Untagged
@@ -63328,6 +63391,7 @@ GameObject:
   - component: {fileID: 2572739960678767068}
   - component: {fileID: 1707801186131002053}
   - component: {fileID: 5803390736177048809}
+  - component: {fileID: 5803390736177048810}
   m_Layer: 0
   m_Name: commercial_base.054
   m_TagString: Untagged
@@ -66273,6 +66337,7 @@ GameObject:
   - component: {fileID: 7728601141709045586}
   - component: {fileID: 1370319374243169729}
   - component: {fileID: 7728601141709045587}
+  - component: {fileID: 7728601141709045588}
   m_Layer: 0
   m_Name: commercial_base.019
   m_TagString: Untagged
@@ -69855,6 +69920,7 @@ GameObject:
   - component: {fileID: 1029389469361372003}
   - component: {fileID: 8355993803914213552}
   - component: {fileID: 8355993803914213553}
+  - component: {fileID: 8355993803914213554}
   m_Layer: 0
   m_Name: commercial_base.024
   m_TagString: Untagged
@@ -72371,6 +72437,7 @@ GameObject:
   - component: {fileID: 790891943026153055}
   - component: {fileID: 8437789687868794302}
   - component: {fileID: 8437789687868794303}
+  - component: {fileID: 8437789687868794304}
   m_Layer: 0
   m_Name: commercial_base.046
   m_TagString: Untagged
@@ -72587,7 +72654,7 @@ Transform:
   m_GameObject: {fileID: 1740674290252061758}
   serializedVersion: 2
   m_LocalRotation: {x: -0.70710677, y: -0, z: -0, w: 0.7071068}
-  m_LocalPosition: {x: 168.73683, y: 0.39996883, z: 257.70776}
+  m_LocalPosition: {x: 168.73683, y: 0.5031908, z: 257.70776}
   m_LocalScale: {x: 255.48845, y: 255.48845, z: 255.48845}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -74662,7 +74729,7 @@ Transform:
   m_GameObject: {fileID: 2644883839166033201}
   serializedVersion: 2
   m_LocalRotation: {x: -0.50000006, y: 0.49999994, z: 0.5, w: 0.50000006}
-  m_LocalPosition: {x: 193.36478, y: 0.39993763, z: 390.61218}
+  m_LocalPosition: {x: 193.36478, y: 0.5251243, z: 390.61218}
   m_LocalScale: {x: 255.48842, y: 141.3813, z: 255.48845}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -75512,6 +75579,7 @@ GameObject:
   - component: {fileID: 3920404280106624923}
   - component: {fileID: 8568743049593686675}
   - component: {fileID: 8568743049593686676}
+  - component: {fileID: 8568743049593686677}
   m_Layer: 0
   m_Name: commercial_base.038
   m_TagString: Untagged
@@ -79215,6 +79283,7 @@ GameObject:
   - component: {fileID: 7850808382979864293}
   - component: {fileID: 2280475061461171012}
   - component: {fileID: 7850808382979864294}
+  - component: {fileID: 7850808382979864295}
   m_Layer: 0
   m_Name: parkbase01_sample.010
   m_TagString: Untagged
@@ -79332,6 +79401,7 @@ GameObject:
   - component: {fileID: 8168805332361555335}
   - component: {fileID: 3649395078864683720}
   - component: {fileID: 8168805332361555336}
+  - component: {fileID: 8168805332361555337}
   m_Layer: 0
   m_Name: parkbase02
   m_TagString: Untagged
@@ -83551,6 +83621,7 @@ GameObject:
   - component: {fileID: 6948137494185501580}
   - component: {fileID: 7033628899615212910}
   - component: {fileID: 7033628899615212911}
+  - component: {fileID: 7033628899615212912}
   m_Layer: 0
   m_Name: commercial_base.009
   m_TagString: Untagged
@@ -83965,6 +84036,7 @@ GameObject:
   - component: {fileID: 2537652688786290071}
   - component: {fileID: 1750905308024712692}
   - component: {fileID: 8823405926144468079}
+  - component: {fileID: 8823405926144468080}
   m_Layer: 0
   m_Name: commercial_base.055
   m_TagString: Untagged
@@ -84756,6 +84828,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -8345073954262497269, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &3195316099994340258
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 667588420022940636}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!33 &3195966076498855128
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -86522,7 +86616,7 @@ Transform:
   m_GameObject: {fileID: 345353879597870473}
   serializedVersion: 2
   m_LocalRotation: {x: -0.6840034, y: -0.17927453, z: -0.17927454, w: 0.6840034}
-  m_LocalPosition: {x: 171.61766, y: 0.39996883, z: 310.81067}
+  m_LocalPosition: {x: 171.61766, y: 0.5032093, z: 310.81067}
   m_LocalScale: {x: 255.48846, y: 255.4885, z: 255.48845}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -87576,6 +87670,7 @@ GameObject:
   - component: {fileID: 5995632712568773804}
   - component: {fileID: 5779987361258473478}
   - component: {fileID: 5995632712568773805}
+  - component: {fileID: 5995632712568773806}
   m_Layer: 0
   m_Name: parkbase03
   m_TagString: Untagged
@@ -87693,6 +87788,7 @@ GameObject:
   - component: {fileID: 224032631909156101}
   - component: {fileID: 6498509741061486182}
   - component: {fileID: 7947886432580698529}
+  - component: {fileID: 7947886432580698530}
   m_Layer: 0
   m_Name: parkbase01_sample
   m_TagString: Untagged
@@ -89331,6 +89427,7 @@ GameObject:
   - component: {fileID: 3494917633023717973}
   - component: {fileID: 8498357509634640132}
   - component: {fileID: 8498357509634640133}
+  - component: {fileID: 8498357509634640134}
   m_Layer: 0
   m_Name: commercial_base.048
   m_TagString: Untagged
@@ -89619,6 +89716,7 @@ GameObject:
   - component: {fileID: 3197990374408133029}
   - component: {fileID: 7777573951460552522}
   - component: {fileID: 7777573951460552523}
+  - component: {fileID: 7777573951460552524}
   m_Layer: 0
   m_Name: commercial_base.034
   m_TagString: Untagged
@@ -92515,6 +92613,7 @@ GameObject:
   - component: {fileID: 7383147124777283763}
   - component: {fileID: 5540547732561387577}
   - component: {fileID: 7383147124777283764}
+  - component: {fileID: 7383147124777283765}
   m_Layer: 0
   m_Name: commercial_base.061
   m_TagString: Untagged
@@ -92692,6 +92791,7 @@ GameObject:
   - component: {fileID: 4285265976145414195}
   - component: {fileID: 4200954649253985224}
   - component: {fileID: 8372376315474869759}
+  - component: {fileID: 8372376315474869760}
   m_Layer: 0
   m_Name: parkbase01_sample.011
   m_TagString: Untagged
@@ -100964,6 +101064,7 @@ GameObject:
   - component: {fileID: 9191465998245097774}
   - component: {fileID: 5166238679174360359}
   - component: {fileID: 9191465998245097775}
+  - component: {fileID: 9191465998245097776}
   m_Layer: 0
   m_Name: parkbase01_sample.008
   m_TagString: Untagged
@@ -103544,7 +103645,7 @@ Transform:
   m_GameObject: {fileID: 9023678890928251826}
   serializedVersion: 2
   m_LocalRotation: {x: -0.70710677, y: -0, z: -0, w: 0.7071068}
-  m_LocalPosition: {x: -98.705925, y: 0.3999922, z: -47.725845}
+  m_LocalPosition: {x: -98.705925, y: 0.6285825, z: -47.725845}
   m_LocalScale: {x: 255.48845, y: 255.48845, z: 255.48845}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -105457,6 +105558,7 @@ GameObject:
   - component: {fileID: 4944076990802139937}
   - component: {fileID: 6581910901150585699}
   - component: {fileID: 6581910901150585700}
+  - component: {fileID: 6581910901150585701}
   m_Layer: 0
   m_Name: commercial_base.018
   m_TagString: Untagged
@@ -107603,6 +107705,7 @@ GameObject:
   - component: {fileID: 7511574444782755378}
   - component: {fileID: 5200714727297851186}
   - component: {fileID: 7511574444782755379}
+  - component: {fileID: 7511574444782755380}
   m_Layer: 0
   m_Name: commercial_base.060
   m_TagString: Untagged
@@ -107803,6 +107906,7 @@ GameObject:
   - component: {fileID: 650702738898128064}
   - component: {fileID: 1054117975887038296}
   - component: {fileID: 6107081829326803295}
+  - component: {fileID: 6107081829326803296}
   m_Layer: 0
   m_Name: parkbase01_sample.006
   m_TagString: Untagged
@@ -107874,6 +107978,7 @@ GameObject:
   - component: {fileID: 3769816024434380315}
   - component: {fileID: 194470530271269303}
   - component: {fileID: 8337442970325747897}
+  - component: {fileID: 8337442970325747898}
   m_Layer: 0
   m_Name: commercial_base.044
   m_TagString: Untagged
@@ -112309,6 +112414,7 @@ GameObject:
   - component: {fileID: 8595695025001052080}
   - component: {fileID: 4756145109337280375}
   - component: {fileID: 8595695025001052081}
+  - component: {fileID: 8595695025001052082}
   m_Layer: 0
   m_Name: parkbase01_sample.002
   m_TagString: Untagged
@@ -112617,6 +112723,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 9150552867931735359, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &4294560422863102654
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1206233990442087012}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!4 &4295870966469477181
 Transform:
   m_ObjectHideFlags: 0
@@ -113378,6 +113506,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 5290972232948465087, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &4324914183085471095
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 50163528119269903}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 3
+  gripMultiplier: 0.45
+  driveMultiplier: 0.6
+  brakeMultiplier: 0.6
+  rollingResistance: 5
+  markColour: {r: 0.16, g: 0.22, b: 0.11, a: 0.5}
+  markStrength: 0.35
+  particleColour: {r: 0.3, g: 0.45, b: 0.16, a: 0.5}
+  particleAmount: 1.8
+  sprayWhenRolling: 1
 --- !u!23 &4326786927038783740
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -113667,7 +113817,7 @@ Transform:
   m_GameObject: {fileID: 9130412681881711679}
   serializedVersion: 2
   m_LocalRotation: {x: -0.50000006, y: 0.49999994, z: 0.5, w: 0.50000006}
-  m_LocalPosition: {x: 245.40137, y: 0.39996883, z: 338.5424}
+  m_LocalPosition: {x: 245.40137, y: 0.5251443, z: 338.5424}
   m_LocalScale: {x: 255.48842, y: 141.3813, z: 255.48845}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -116870,7 +117020,7 @@ Transform:
   m_GameObject: {fileID: 5756881070883719290}
   serializedVersion: 2
   m_LocalRotation: {x: -0.50000006, y: 0.49999994, z: 0.5, w: 0.50000006}
-  m_LocalPosition: {x: 245.68367, y: 0.39996883, z: 302.5503}
+  m_LocalPosition: {x: 245.68367, y: 0.5251345, z: 302.5503}
   m_LocalScale: {x: 255.48842, y: 141.3813, z: 255.48845}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -121329,7 +121479,7 @@ Transform:
   m_GameObject: {fileID: 7921027483106486114}
   serializedVersion: 2
   m_LocalRotation: {x: -0.50000006, y: 0.49999994, z: 0.5, w: 0.50000006}
-  m_LocalPosition: {x: 245.89056, y: 0.39993763, z: 377.8996}
+  m_LocalPosition: {x: 245.89056, y: 0.5251231, z: 377.8996}
   m_LocalScale: {x: 255.48842, y: 141.3813, z: 255.48845}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -123781,6 +123931,7 @@ GameObject:
   - component: {fileID: 5358938194709782931}
   - component: {fileID: 401788488540684804}
   - component: {fileID: 6122616962651043984}
+  - component: {fileID: 6122616962651043985}
   m_Layer: 0
   m_Name: commercial_base.020
   m_TagString: Untagged
@@ -126293,6 +126444,7 @@ GameObject:
   - component: {fileID: 3650593349211127125}
   - component: {fileID: 8483598271458259421}
   - component: {fileID: 8483598271458259422}
+  - component: {fileID: 8483598271458259423}
   m_Layer: 0
   m_Name: commercial_base.013
   m_TagString: Untagged
@@ -126563,6 +126715,7 @@ GameObject:
   - component: {fileID: 3241772538530288319}
   - component: {fileID: 8837459318807482059}
   - component: {fileID: 8837459318807482060}
+  - component: {fileID: 8837459318807482061}
   m_Layer: 0
   m_Name: commercial_base
   m_TagString: Untagged
@@ -126684,6 +126837,7 @@ GameObject:
   - component: {fileID: 3503878635003833288}
   - component: {fileID: 4523922169714761075}
   - component: {fileID: 5884661938653963154}
+  - component: {fileID: 5884661938653963155}
   m_Layer: 0
   m_Name: commercial_base.008
   m_TagString: Untagged
@@ -126943,7 +127097,7 @@ Transform:
   m_GameObject: {fileID: 8789474525187418157}
   serializedVersion: 2
   m_LocalRotation: {x: 0.000000053385076, y: 0.7071068, z: 0.70710677, w: -0.00000005338508}
-  m_LocalPosition: {x: 16.164738, y: 0.400001, z: 179.88304}
+  m_LocalPosition: {x: 16.164738, y: 0.5725834, z: 179.88304}
   m_LocalScale: {x: 183.95169, y: 183.95169, z: 183.95169}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -131922,7 +132076,7 @@ Transform:
   m_GameObject: {fileID: 6086688428570482170}
   serializedVersion: 2
   m_LocalRotation: {x: -0.70710677, y: -0, z: -0, w: 0.7071068}
-  m_LocalPosition: {x: 59.52371, y: 0.3999922, z: -66.575745}
+  m_LocalPosition: {x: 59.52371, y: 0.6285775, z: -66.575745}
   m_LocalScale: {x: 255.48845, y: 255.48845, z: 255.48845}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -133608,6 +133762,7 @@ GameObject:
   - component: {fileID: 414915336548793042}
   - component: {fileID: 4326786927038783740}
   - component: {fileID: 5871311178770155661}
+  - component: {fileID: 5871311178770155662}
   m_Layer: 0
   m_Name: commercial_base.035
   m_TagString: Untagged
@@ -134447,7 +134602,7 @@ Transform:
   m_GameObject: {fileID: 1903406352811824236}
   serializedVersion: 2
   m_LocalRotation: {x: -0.50000006, y: 0.49999994, z: 0.5, w: 0.50000006}
-  m_LocalPosition: {x: 245.76534, y: 0.39996883, z: 273.22675}
+  m_LocalPosition: {x: 245.76534, y: 0.5251251, z: 273.22675}
   m_LocalScale: {x: 255.48842, y: 141.3813, z: 255.48845}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -135996,6 +136151,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 4852293108161158249, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &5186195689372935408
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 105025154935169861}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 3
+  gripMultiplier: 0.45
+  driveMultiplier: 0.6
+  brakeMultiplier: 0.6
+  rollingResistance: 5
+  markColour: {r: 0.16, g: 0.22, b: 0.11, a: 0.5}
+  markStrength: 0.35
+  particleColour: {r: 0.3, g: 0.45, b: 0.16, a: 0.5}
+  particleAmount: 1.8
+  sprayWhenRolling: 1
 --- !u!4 &5189006004481962238
 Transform:
   m_ObjectHideFlags: 0
@@ -137122,6 +137299,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -9192197636149426645, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &5220517091271880376
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 623700735576185795}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 3
+  gripMultiplier: 0.45
+  driveMultiplier: 0.6
+  brakeMultiplier: 0.6
+  rollingResistance: 5
+  markColour: {r: 0.16, g: 0.22, b: 0.11, a: 0.5}
+  markStrength: 0.35
+  particleColour: {r: 0.3, g: 0.45, b: 0.16, a: 0.5}
+  particleAmount: 1.8
+  sprayWhenRolling: 1
 --- !u!4 &5221641134227998822
 Transform:
   m_ObjectHideFlags: 0
@@ -141830,6 +142029,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -1810396017455142407, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &5398898804069863209
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 875019987749250262}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!33 &5399726824324858775
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -143162,7 +143383,7 @@ Transform:
   m_GameObject: {fileID: 7574241565672508621}
   serializedVersion: 2
   m_LocalRotation: {x: -0.70710677, y: -0, z: -0, w: 0.7071068}
-  m_LocalPosition: {x: -98.705925, y: 0.3999922, z: -61.100372}
+  m_LocalPosition: {x: -98.705925, y: 0.62857914, z: -61.100372}
   m_LocalScale: {x: 255.48845, y: 255.48845, z: 255.48845}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -143328,7 +143549,7 @@ Transform:
   m_GameObject: {fileID: 8965120348757905838}
   serializedVersion: 2
   m_LocalRotation: {x: -0.58005893, y: 0.4043904, z: 0.40439042, w: 0.580059}
-  m_LocalPosition: {x: 161.76862, y: 0.39993763, z: 386.60614}
+  m_LocalPosition: {x: 161.76862, y: 0.5251236, z: 386.60614}
   m_LocalScale: {x: 255.4885, y: 141.38138, z: 255.48851}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -143635,6 +143856,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 2927098491259165342, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &5474120980967027508
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2041255915345568013}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!4 &5474588136166939925
 Transform:
   m_ObjectHideFlags: 0
@@ -143662,6 +143905,7 @@ GameObject:
   - component: {fileID: 8451225079808293636}
   - component: {fileID: 3607770578672115446}
   - component: {fileID: 8451225079808293637}
+  - component: {fileID: 8451225079808293638}
   m_Layer: 0
   m_Name: commercial_base.050
   m_TagString: Untagged
@@ -143983,6 +144227,7 @@ GameObject:
   - component: {fileID: 3627863932128822925}
   - component: {fileID: 2404035152161709042}
   - component: {fileID: 7941877986853341543}
+  - component: {fileID: 7941877986853341544}
   m_Layer: 0
   m_Name: parkbase02_sample.005
   m_TagString: Untagged
@@ -144262,6 +144507,7 @@ GameObject:
   - component: {fileID: 1979700276073877953}
   - component: {fileID: 2468942214673080300}
   - component: {fileID: 6905692120100142074}
+  - component: {fileID: 6905692120100142075}
   m_Layer: 0
   m_Name: parkbase02_sample.003
   m_TagString: Untagged
@@ -144737,6 +144983,7 @@ GameObject:
   - component: {fileID: 4490251493594341580}
   - component: {fileID: 8630311995347886708}
   - component: {fileID: 8630311995347886709}
+  - component: {fileID: 8630311995347886710}
   m_Layer: 0
   m_Name: parkbase03_sample
   m_TagString: Untagged
@@ -146871,6 +147118,7 @@ GameObject:
   - component: {fileID: 3656103532218217962}
   - component: {fileID: 1551349735032761346}
   - component: {fileID: 9017395731729002117}
+  - component: {fileID: 9017395731729002118}
   m_Layer: 0
   m_Name: commercial_base.056
   m_TagString: Untagged
@@ -147347,7 +147595,7 @@ Transform:
   m_GameObject: {fileID: 7569774896953679486}
   serializedVersion: 2
   m_LocalRotation: {x: -0.62192947, y: 0.3364576, z: 0.33645764, w: 0.6219295}
-  m_LocalPosition: {x: 136.62616, y: 0.39993763, z: 394.05038}
+  m_LocalPosition: {x: 136.62616, y: 0.5251243, z: 394.05038}
   m_LocalScale: {x: 255.48846, y: 141.38135, z: 255.48845}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -148070,6 +148318,7 @@ GameObject:
   - component: {fileID: 3414300065300913205}
   - component: {fileID: 470367120607646042}
   - component: {fileID: 5654572882036106498}
+  - component: {fileID: 5654572882036106499}
   m_Layer: 0
   m_Name: commercial_base.047
   m_TagString: Untagged
@@ -148099,6 +148348,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -5184171090438079590, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &5654572882036106499
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5654572882036106497}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!23 &5655373564571647002
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -150208,7 +150479,7 @@ Transform:
   m_GameObject: {fileID: 1890158765469932835}
   serializedVersion: 2
   m_LocalRotation: {x: -0.69407487, y: -0.13512988, z: -0.1351299, w: 0.6940749}
-  m_LocalPosition: {x: 169.31302, y: 0.39996883, z: 284.49927}
+  m_LocalPosition: {x: 169.31302, y: 0.50320745, z: 284.49927}
   m_LocalScale: {x: 255.48843, y: 255.4884, z: 255.48843}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -151418,6 +151689,7 @@ GameObject:
   - component: {fileID: 3714025803573502720}
   - component: {fileID: 262307390980451709}
   - component: {fileID: 8764490760124353855}
+  - component: {fileID: 8764490760124353856}
   m_Layer: 0
   m_Name: commercial_base.033
   m_TagString: Untagged
@@ -151888,6 +152160,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -1262173356294112285, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &5803390736177048810
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2331054815905865767}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!33 &5806002871889263181
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -153015,6 +153309,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -1135659950377153924, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &5871311178770155662
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5093172742557376872}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!1 &5872711905997247730
 GameObject:
   m_ObjectHideFlags: 0
@@ -153564,6 +153880,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -3103551247439728315, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &5884661938653963155
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4835350767723917192}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!1 &5885164350475246718
 GameObject:
   m_ObjectHideFlags: 0
@@ -153864,6 +154202,7 @@ GameObject:
   - component: {fileID: 6627201359072951183}
   - component: {fileID: 6468587643680996563}
   - component: {fileID: 6627201359072951184}
+  - component: {fileID: 6627201359072951185}
   m_Layer: 0
   m_Name: commercial_base.022
   m_TagString: Untagged
@@ -153952,7 +154291,7 @@ Transform:
   m_GameObject: {fileID: 7970010069290666959}
   serializedVersion: 2
   m_LocalRotation: {x: -0.000000053385076, y: 0.7071068, z: 0.70710677, w: 0.00000005338508}
-  m_LocalPosition: {x: -140.93971, y: 0.400001, z: -73.61015}
+  m_LocalPosition: {x: -140.93971, y: 0.572538, z: -73.61015}
   m_LocalScale: {x: 183.95169, y: 183.95169, z: 183.95169}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -156284,6 +156623,7 @@ GameObject:
   - component: {fileID: 2552255800757763435}
   - component: {fileID: 5279527087856451699}
   - component: {fileID: 5978343908891908545}
+  - component: {fileID: 5978343908891908546}
   m_Layer: 0
   m_Name: commercial_base.049
   m_TagString: Untagged
@@ -156313,6 +156653,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 4580260281118690631, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &5978343908891908546
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5978343908891908544}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!1 &5980592630864723960
 GameObject:
   m_ObjectHideFlags: 0
@@ -157035,6 +157397,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -6273689247439888046, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &5995632712568773806
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3311263577071693219}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 3
+  gripMultiplier: 0.45
+  driveMultiplier: 0.6
+  brakeMultiplier: 0.6
+  rollingResistance: 5
+  markColour: {r: 0.16, g: 0.22, b: 0.11, a: 0.5}
+  markStrength: 0.35
+  particleColour: {r: 0.3, g: 0.45, b: 0.16, a: 0.5}
+  particleAmount: 1.8
+  sprayWhenRolling: 1
 --- !u!33 &5996033099231814228
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -157325,6 +157709,7 @@ GameObject:
   - component: {fileID: 7303691590974736188}
   - component: {fileID: 2265732725566757226}
   - component: {fileID: 7303691590974736189}
+  - component: {fileID: 7303691590974736190}
   m_Layer: 0
   m_Name: commercial_base.021
   m_TagString: Untagged
@@ -157497,6 +157882,7 @@ GameObject:
   - component: {fileID: 3640895866415504573}
   - component: {fileID: 6198709233947398716}
   - component: {fileID: 6198709233947398717}
+  - component: {fileID: 6198709233947398718}
   m_Layer: 0
   m_Name: parkbase02_sample.001
   m_TagString: Untagged
@@ -159331,6 +159717,7 @@ GameObject:
   - component: {fileID: 4216319261669807785}
   - component: {fileID: 8000233295224776315}
   - component: {fileID: 8000233295224776316}
+  - component: {fileID: 8000233295224776317}
   m_Layer: 0
   m_Name: commercial_base.003
   m_TagString: Untagged
@@ -160634,6 +161021,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 652141905303518554, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &6107081829326803296
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4115788458730854709}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 3
+  gripMultiplier: 0.45
+  driveMultiplier: 0.6
+  brakeMultiplier: 0.6
+  rollingResistance: 5
+  markColour: {r: 0.16, g: 0.22, b: 0.11, a: 0.5}
+  markStrength: 0.35
+  particleColour: {r: 0.3, g: 0.45, b: 0.16, a: 0.5}
+  particleAmount: 1.8
+  sprayWhenRolling: 1
 --- !u!33 &6107919117808347626
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -160703,6 +161112,7 @@ GameObject:
   - component: {fileID: 1770813620519528411}
   - component: {fileID: 1457171916215367582}
   - component: {fileID: 9127192180850403221}
+  - component: {fileID: 9127192180850403222}
   m_Layer: 0
   m_Name: commercial_base.002
   m_TagString: Untagged
@@ -160906,6 +161316,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -8369320207435756228, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &6122616962651043985
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4733054742808606208}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!4 &6124075894272548571
 Transform:
   m_ObjectHideFlags: 0
@@ -162972,6 +163404,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -1572722628992632512, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &6191519475140257012
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 922450304335757789}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 3
+  gripMultiplier: 0.45
+  driveMultiplier: 0.6
+  brakeMultiplier: 0.6
+  rollingResistance: 5
+  markColour: {r: 0.16, g: 0.22, b: 0.11, a: 0.5}
+  markStrength: 0.35
+  particleColour: {r: 0.3, g: 0.45, b: 0.16, a: 0.5}
+  particleAmount: 1.8
+  sprayWhenRolling: 1
 --- !u!4 &6191685606781685162
 Transform:
   m_ObjectHideFlags: 0
@@ -163177,6 +163631,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -4290126049391644809, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &6198709233947398718
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6011163074378357370}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 3
+  gripMultiplier: 0.45
+  driveMultiplier: 0.6
+  brakeMultiplier: 0.6
+  rollingResistance: 5
+  markColour: {r: 0.16, g: 0.22, b: 0.11, a: 0.5}
+  markStrength: 0.35
+  particleColour: {r: 0.3, g: 0.45, b: 0.16, a: 0.5}
+  particleAmount: 1.8
+  sprayWhenRolling: 1
 --- !u!23 &6199344549117307098
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -168608,7 +169084,7 @@ Transform:
   m_GameObject: {fileID: 904626699921336212}
   serializedVersion: 2
   m_LocalRotation: {x: -0.6604557, y: 0.2525831, z: 0.25258312, w: 0.66045576}
-  m_LocalPosition: {x: 58.585827, y: 0.39993763, z: 394.65216}
+  m_LocalPosition: {x: 58.585827, y: 0.5251242, z: 394.65216}
   m_LocalScale: {x: 255.48846, y: 141.38133, z: 255.48845}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -168679,7 +169155,7 @@ Transform:
   m_GameObject: {fileID: 1278900230480778391}
   serializedVersion: 2
   m_LocalRotation: {x: -0.000000053385076, y: 0.7071068, z: 0.70710677, w: 0.00000005338508}
-  m_LocalPosition: {x: -136.83693, y: 0.400001, z: -73.61015}
+  m_LocalPosition: {x: -136.83693, y: 0.57253796, z: -73.61015}
   m_LocalScale: {x: 183.95169, y: 183.95169, z: 183.95169}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -173588,6 +174064,7 @@ GameObject:
   - component: {fileID: 6375078631620112359}
   - component: {fileID: 1980929108868697721}
   - component: {fileID: 7833834812322774317}
+  - component: {fileID: 7833834812322774318}
   m_Layer: 0
   m_Name: commercial_base.017
   m_TagString: Untagged
@@ -173786,7 +174263,7 @@ Transform:
   m_GameObject: {fileID: 4932098146898499457}
   serializedVersion: 2
   m_LocalRotation: {x: 0.000000053385076, y: 0.7071068, z: 0.70710677, w: -0.00000005338508}
-  m_LocalPosition: {x: -196.5584, y: 0.400001, z: 179.62675}
+  m_LocalPosition: {x: -196.5584, y: 0.5725831, z: 179.62675}
   m_LocalScale: {x: 183.95169, y: 183.95169, z: 183.95169}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -174165,6 +174642,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -8382376806772568196, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &6581910901150585701
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4015236934239788081}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!1 &6582805341984619785
 GameObject:
   m_ObjectHideFlags: 0
@@ -174807,6 +175306,7 @@ GameObject:
   - component: {fileID: 4683650303281755759}
   - component: {fileID: 148405506035890325}
   - component: {fileID: 6614144911990470306}
+  - component: {fileID: 6614144911990470307}
   m_Layer: 0
   m_Name: commercial_base.015
   m_TagString: Untagged
@@ -174836,6 +175336,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -1750244671621529061, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &6614144911990470307
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6614144911990470305}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!4 &6614205415690089705
 Transform:
   m_ObjectHideFlags: 0
@@ -175189,6 +175711,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -2225488233072844735, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &6627201359072951185
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5895336339019441856}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!33 &6631123602343564619
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -177260,6 +177804,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -7597588542964126860, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &6713415894987263772
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1354655494784970953}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!64 &6715192794157650937
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -179758,6 +180324,7 @@ GameObject:
   - component: {fileID: 4287747923666623188}
   - component: {fileID: 5723879275914450541}
   - component: {fileID: 6819466548339798750}
+  - component: {fileID: 6819466548339798751}
   m_Layer: 0
   m_Name: parkbase01_sample.003
   m_TagString: Untagged
@@ -179787,6 +180354,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 1301475353961093652, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &6819466548339798751
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6819466548339798749}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 3
+  gripMultiplier: 0.45
+  driveMultiplier: 0.6
+  brakeMultiplier: 0.6
+  rollingResistance: 5
+  markColour: {r: 0.16, g: 0.22, b: 0.11, a: 0.5}
+  markStrength: 0.35
+  particleColour: {r: 0.3, g: 0.45, b: 0.16, a: 0.5}
+  particleAmount: 1.8
+  sprayWhenRolling: 1
 --- !u!1 &6819753779216970924
 GameObject:
   m_ObjectHideFlags: 0
@@ -182385,6 +182974,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -7233857378232538790, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &6905692120100142075
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5500879951541788852}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 3
+  gripMultiplier: 0.45
+  driveMultiplier: 0.6
+  brakeMultiplier: 0.6
+  rollingResistance: 5
+  markColour: {r: 0.16, g: 0.22, b: 0.11, a: 0.5}
+  markStrength: 0.35
+  particleColour: {r: 0.3, g: 0.45, b: 0.16, a: 0.5}
+  particleAmount: 1.8
+  sprayWhenRolling: 1
 --- !u!4 &6907321521377457483
 Transform:
   m_ObjectHideFlags: 0
@@ -185837,6 +186448,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -5531031362238870702, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &7033628899615212912
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3134397853550976468}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!1 &7033644090467179922
 GameObject:
   m_ObjectHideFlags: 0
@@ -186067,6 +186700,7 @@ GameObject:
   - component: {fileID: 402761239580305405}
   - component: {fileID: 8438061424264404127}
   - component: {fileID: 8438061424264404128}
+  - component: {fileID: 8438061424264404129}
   m_Layer: 0
   m_Name: commercial_base.053
   m_TagString: Untagged
@@ -186547,8 +187181,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.0050812406, y: 0.009090713, z: 0.018636303}
-  m_Center: {x: -0.000027930504, y: -5.182925e-10, z: 0.0042087166}
+  m_Size: {x: 0.017257674, y: 0.004203821, z: 0.009454458}
+  m_Center: {x: 0.00006942788, y: -0.0000024854714, z: 0.004353316}
 --- !u!1 &7062957040228342810
 GameObject:
   m_ObjectHideFlags: 0
@@ -187299,6 +187933,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 5453567713360831264, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &7087233354383506805
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 712634010981757513}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!23 &7087619198319487117
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -189993,6 +190649,7 @@ GameObject:
   - component: {fileID: 2011125700032288206}
   - component: {fileID: 7309659334908743279}
   - component: {fileID: 7309659334908743280}
+  - component: {fileID: 7309659334908743281}
   m_Layer: 0
   m_Name: commercial_base.052
   m_TagString: Untagged
@@ -192050,6 +192707,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -1231169440578628688, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &7248272490201081449
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 237297164444815539}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 3
+  gripMultiplier: 0.45
+  driveMultiplier: 0.6
+  brakeMultiplier: 0.6
+  rollingResistance: 5
+  markColour: {r: 0.16, g: 0.22, b: 0.11, a: 0.5}
+  markStrength: 0.35
+  particleColour: {r: 0.3, g: 0.45, b: 0.16, a: 0.5}
+  particleAmount: 1.8
+  sprayWhenRolling: 1
 --- !u!1 &7248468034359581953
 GameObject:
   m_ObjectHideFlags: 0
@@ -193422,6 +194101,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 2087463825727802314, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &7303691590974736190
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6003432977593650574}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!1 &7305329937071824699
 GameObject:
   m_ObjectHideFlags: 0
@@ -193729,6 +194430,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -5378905152205894413, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &7309659334908743281
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7180598441821579920}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!1 &7312315950265932392
 GameObject:
   m_ObjectHideFlags: 0
@@ -195543,6 +196266,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 741683329882283287, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &7383147124777283765
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3509958106024920199}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!23 &7384185385264067284
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -196841,6 +197586,7 @@ GameObject:
   - component: {fileID: 3113494255192727708}
   - component: {fileID: 9188123376199429499}
   - component: {fileID: 9188123376199429500}
+  - component: {fileID: 9188123376199429501}
   m_Layer: 0
   m_Name: commercial_base.029
   m_TagString: Untagged
@@ -198049,6 +198795,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 1500362224063532779, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &7482649363830202261
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1220789366306807245}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!1 &7484551914710444250
 GameObject:
   m_ObjectHideFlags: 0
@@ -199193,6 +199961,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 1344687556005967170, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &7511574444782755380
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4111807866320510498}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!4 &7511784478815654055
 Transform:
   m_ObjectHideFlags: 0
@@ -200837,6 +201627,7 @@ GameObject:
   - component: {fileID: 2562418746823747532}
   - component: {fileID: 3156998472132342851}
   - component: {fileID: 7548507120671892428}
+  - component: {fileID: 7548507120671892429}
   m_Layer: 0
   m_Name: commercial_base.043
   m_TagString: Untagged
@@ -200866,6 +201657,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 187746150806315450, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &7548507120671892429
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7548507120671892427}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!23 &7549235414265826682
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -201197,6 +202010,7 @@ GameObject:
   - component: {fileID: 6516626744053520475}
   - component: {fileID: 5001772196446644125}
   - component: {fileID: 7569174227063263856}
+  - component: {fileID: 7569174227063263857}
   m_Layer: 0
   m_Name: commercial_base.006
   m_TagString: Untagged
@@ -201226,6 +202040,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -8272375291101294166, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &7569174227063263857
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7569174227063263855}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!1 &7569392129976883991
 GameObject:
   m_ObjectHideFlags: 0
@@ -206206,6 +207042,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 2884641330830411295, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &7728601141709045588
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2450517744889279543}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!64 &7729048375240015570
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -207587,6 +208445,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -1484570437573685098, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &7777573951460552524
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3399812900447050452}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!23 &7777916377734234065
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -208215,6 +209095,7 @@ GameObject:
   - component: {fileID: 590352899066768452}
   - component: {fileID: 2546461723189965242}
   - component: {fileID: 7791494067110924872}
+  - component: {fileID: 7791494067110924873}
   m_Layer: 0
   m_Name: commercial_base.025
   m_TagString: Untagged
@@ -208244,6 +209125,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -8639790572298463595, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &7791494067110924873
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7791494067110924871}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!1 &7791648696936090662
 GameObject:
   m_ObjectHideFlags: 0
@@ -209339,6 +210242,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 8724828504645798341, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &7833834812322774318
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6558443195284971441}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!23 &7834995525747720950
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -209564,6 +210489,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 3740391023203789151, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &7850808382979864295
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2947307802768413025}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 3
+  gripMultiplier: 0.45
+  driveMultiplier: 0.6
+  brakeMultiplier: 0.6
+  rollingResistance: 5
+  markColour: {r: 0.16, g: 0.22, b: 0.11, a: 0.5}
+  markStrength: 0.35
+  particleColour: {r: 0.3, g: 0.45, b: 0.16, a: 0.5}
+  particleAmount: 1.8
+  sprayWhenRolling: 1
 --- !u!1 &7852859914181389313
 GameObject:
   m_ObjectHideFlags: 0
@@ -210120,6 +211067,7 @@ GameObject:
   - component: {fileID: 707142464426727482}
   - component: {fileID: 6757895457132095507}
   - component: {fileID: 7861428934723808334}
+  - component: {fileID: 7861428934723808335}
   m_Layer: 0
   m_Name: commercial_base.026
   m_TagString: Untagged
@@ -210149,6 +211097,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 2781777770580408980, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &7861428934723808335
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7861428934723808333}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!1 &7861587885644587115
 GameObject:
   m_ObjectHideFlags: 0
@@ -212560,6 +213530,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -2813283301986821286, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &7941877986853341544
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5485582944718801335}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 3
+  gripMultiplier: 0.45
+  driveMultiplier: 0.6
+  brakeMultiplier: 0.6
+  rollingResistance: 5
+  markColour: {r: 0.16, g: 0.22, b: 0.11, a: 0.5}
+  markStrength: 0.35
+  particleColour: {r: 0.3, g: 0.45, b: 0.16, a: 0.5}
+  particleAmount: 1.8
+  sprayWhenRolling: 1
 --- !u!33 &7942758534097346158
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -212644,6 +213636,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 3314712388999979566, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &7947886432580698530
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3318343520535060830}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 3
+  gripMultiplier: 0.45
+  driveMultiplier: 0.6
+  brakeMultiplier: 0.6
+  rollingResistance: 5
+  markColour: {r: 0.16, g: 0.22, b: 0.11, a: 0.5}
+  markStrength: 0.35
+  particleColour: {r: 0.3, g: 0.45, b: 0.16, a: 0.5}
+  particleAmount: 1.8
+  sprayWhenRolling: 1
 --- !u!23 &7950123424354588792
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -214217,6 +215231,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 250368061722590460, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &8000233295224776317
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6065433319492006491}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!33 &8001601385075297221
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -215792,7 +216828,7 @@ Transform:
   m_GameObject: {fileID: 5632913605770344518}
   serializedVersion: 2
   m_LocalRotation: {x: -0.70710677, y: -0, z: -0, w: 0.7071068}
-  m_LocalPosition: {x: -87.767204, y: 0.3999922, z: -65.13901}
+  m_LocalPosition: {x: -87.767204, y: 0.5031612, z: -65.13901}
   m_LocalScale: {x: 255.48845, y: 255.48845, z: 255.48845}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -218523,6 +219559,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 3691444431455444970, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &8113348447049888813
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 718925668615410958}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!33 &8115285495289923457
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -218928,6 +219986,7 @@ GameObject:
   - component: {fileID: 2452677226301787075}
   - component: {fileID: 1023584934256162796}
   - component: {fileID: 8131757362246714443}
+  - component: {fileID: 8131757362246714444}
   m_Layer: 0
   m_Name: commercial_base.032
   m_TagString: Untagged
@@ -218957,6 +220016,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 7072547060097641570, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &8131757362246714444
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8131757362246714442}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!23 &8133026983285982778
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -220152,6 +221233,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 357322620659738810, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &8168805332361555337
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2950857698974547535}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 3
+  gripMultiplier: 0.45
+  driveMultiplier: 0.6
+  brakeMultiplier: 0.6
+  rollingResistance: 5
+  markColour: {r: 0.16, g: 0.22, b: 0.11, a: 0.5}
+  markStrength: 0.35
+  particleColour: {r: 0.3, g: 0.45, b: 0.16, a: 0.5}
+  particleAmount: 1.8
+  sprayWhenRolling: 1
 --- !u!23 &8169187496720764736
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -220503,7 +221606,7 @@ Transform:
   m_GameObject: {fileID: 8889855779298329874}
   serializedVersion: 2
   m_LocalRotation: {x: -0.7071068, y: -0, z: -0, w: 0.7071067}
-  m_LocalPosition: {x: 232.46141, y: 0.39999807, z: 151.94135}
+  m_LocalPosition: {x: 232.46141, y: 0.5746499, z: 151.94135}
   m_LocalScale: {x: 183.95169, y: 183.95166, z: 183.95166}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -223322,6 +224425,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 8542047345697698592, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &8279847163046174335
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1518151695182774019}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!1 &8279856961469139267
 GameObject:
   m_ObjectHideFlags: 0
@@ -223759,7 +224884,7 @@ Transform:
   m_GameObject: {fileID: 5844434619264511320}
   serializedVersion: 2
   m_LocalRotation: {x: -0.70700765, y: 0.011838994, z: 0.011838995, w: 0.7070077}
-  m_LocalPosition: {x: 218.7748, y: 0.39996883, z: 352.5988}
+  m_LocalPosition: {x: 218.7748, y: 0.50321925, z: 352.5988}
   m_LocalScale: {x: 255.48845, y: 255.4885, z: 255.48851}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -224806,6 +225931,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 5955813438164413390, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &8337442970325747898
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4116469569507563754}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!4 &8338866631816830495
 Transform:
   m_ObjectHideFlags: 0
@@ -224941,6 +226088,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 7607248828249477211, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &8343823156621030059
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 791621683886244639}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!1 &8344649897826744728
 GameObject:
   m_ObjectHideFlags: 0
@@ -225003,6 +226172,7 @@ GameObject:
   - component: {fileID: 3843477292541111729}
   - component: {fileID: 8925966784437191828}
   - component: {fileID: 8925966784437191827}
+  - component: {fileID: 8925966784437191829}
   m_Layer: 0
   m_Name: road_base
   m_TagString: Untagged
@@ -225339,6 +226509,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 1127231577934894534, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &8355993803914213554
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2574068497475436019}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!4 &8356628189362945784
 Transform:
   m_ObjectHideFlags: 0
@@ -225784,6 +226976,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -6958559025217584040, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &8372376315474869760
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3523868804607940972}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 3
+  gripMultiplier: 0.45
+  driveMultiplier: 0.6
+  brakeMultiplier: 0.6
+  rollingResistance: 5
+  markColour: {r: 0.16, g: 0.22, b: 0.11, a: 0.5}
+  markStrength: 0.35
+  particleColour: {r: 0.3, g: 0.45, b: 0.16, a: 0.5}
+  particleAmount: 1.8
+  sprayWhenRolling: 1
 --- !u!23 &8372426876818877016
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -227702,6 +228916,7 @@ GameObject:
   - component: {fileID: 4165780113028937957}
   - component: {fileID: 4092521379621130109}
   - component: {fileID: 8428903316897011782}
+  - component: {fileID: 8428903316897011783}
   m_Layer: 0
   m_Name: commercial_base.058
   m_TagString: Untagged
@@ -227731,6 +228946,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 4323440692996494439, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &8428903316897011783
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8428903316897011781}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!23 &8432069870205554172
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -228088,6 +229325,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 6660381865984555720, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &8437789687868794304
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2690454673821986673}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!23 &8438061424264404127
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -228159,6 +229418,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -2341149450654411898, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &8438061424264404129
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7039695455804384730}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!1 &8438695392993118701
 GameObject:
   m_ObjectHideFlags: 0
@@ -228752,6 +230033,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 4104060672579018825, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &8451225079808293638
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5474764103383395452}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!33 &8451499609628820709
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -229478,7 +230781,7 @@ Transform:
   m_GameObject: {fileID: 7432931076528246962}
   serializedVersion: 2
   m_LocalRotation: {x: -0.7071068, y: -0, z: -0, w: 0.7071067}
-  m_LocalPosition: {x: 228.35861, y: 0.39999807, z: 151.94135}
+  m_LocalPosition: {x: 228.35861, y: 0.5746499, z: 151.94135}
   m_LocalScale: {x: 183.95169, y: 183.95166, z: 183.95166}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -229695,6 +230998,7 @@ GameObject:
   - component: {fileID: 4442797971094503400}
   - component: {fileID: 7798912618899332121}
   - component: {fileID: 8481960792044906802}
+  - component: {fileID: 8481960792044906803}
   m_Layer: 0
   m_Name: commercial_base.041
   m_TagString: Untagged
@@ -229724,6 +231028,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 5008355885211981150, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &8481960792044906803
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8481960792044906801}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!33 &8482140339787463328
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -229897,6 +231223,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 1940671736298964159, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &8483598271458259423
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4824640626387405278}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!33 &8483982493344600950
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -230554,6 +231902,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 816939012409581437, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &8498357509634640134
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3383956505431544992}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!1 &8498530704231828046
 GameObject:
   m_ObjectHideFlags: 0
@@ -230899,6 +232269,7 @@ GameObject:
   - component: {fileID: 2737688738712158198}
   - component: {fileID: 2077132977945126837}
   - component: {fileID: 8506937283046806423}
+  - component: {fileID: 8506937283046806424}
   m_Layer: 0
   m_Name: commercial_base.037
   m_TagString: Untagged
@@ -230928,6 +232299,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 4482641059196171616, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &8506937283046806424
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8506937283046806422}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!1 &8507959141015432936
 GameObject:
   m_ObjectHideFlags: 0
@@ -232254,6 +233647,7 @@ GameObject:
   - component: {fileID: 798443775315678954}
   - component: {fileID: 2080642390263572485}
   - component: {fileID: 8544956195592667346}
+  - component: {fileID: 8544956195592667347}
   m_Layer: 0
   m_Name: commercial_base.005
   m_TagString: Untagged
@@ -232283,6 +233677,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 5633952968526551384, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &8544956195592667347
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8544956195592667345}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!4 &8545223693231879947
 Transform:
   m_ObjectHideFlags: 0
@@ -233326,6 +234742,7 @@ GameObject:
   - component: {fileID: 1750801023227353167}
   - component: {fileID: 6947807237256555141}
   - component: {fileID: 8686117786552535665}
+  - component: {fileID: 8686117786552535666}
   m_Layer: 0
   m_Name: commercial_base.016
   m_TagString: Untagged
@@ -233445,6 +234862,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -4006059308436187372, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &8568743049593686677
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2811927493778645718}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!23 &8568764523826687109
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -234411,6 +235850,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -7928038920860662533, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &8595695025001052082
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4283309427451713158}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 3
+  gripMultiplier: 0.45
+  driveMultiplier: 0.6
+  brakeMultiplier: 0.6
+  rollingResistance: 5
+  markColour: {r: 0.16, g: 0.22, b: 0.11, a: 0.5}
+  markStrength: 0.35
+  particleColour: {r: 0.3, g: 0.45, b: 0.16, a: 0.5}
+  particleAmount: 1.8
+  sprayWhenRolling: 1
 --- !u!1 &8597906161293647213
 GameObject:
   m_ObjectHideFlags: 0
@@ -234568,6 +236029,7 @@ GameObject:
   - component: {fileID: 6495343701687978555}
   - component: {fileID: 7902684297412336567}
   - component: {fileID: 9213742291599794402}
+  - component: {fileID: 9213742291599794403}
   m_Layer: 0
   m_Name: commercial_base.051
   m_TagString: Untagged
@@ -235416,6 +236878,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -5228023919277711627, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &8630311995347886710
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5518383102413003590}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 3
+  gripMultiplier: 0.45
+  driveMultiplier: 0.6
+  brakeMultiplier: 0.6
+  rollingResistance: 5
+  markColour: {r: 0.16, g: 0.22, b: 0.11, a: 0.5}
+  markStrength: 0.35
+  particleColour: {r: 0.3, g: 0.45, b: 0.16, a: 0.5}
+  particleAmount: 1.8
+  sprayWhenRolling: 1
 --- !u!1 &8630477322085694172
 GameObject:
   m_ObjectHideFlags: 0
@@ -235582,6 +237066,7 @@ GameObject:
   - component: {fileID: 8741558969381785644}
   - component: {fileID: 5222421987895337663}
   - component: {fileID: 8741558969381785645}
+  - component: {fileID: 8741558969381785646}
   m_Layer: 0
   m_Name: parkbase02_sample
   m_TagString: Untagged
@@ -235850,6 +237335,7 @@ GameObject:
   - component: {fileID: 2102464054611588860}
   - component: {fileID: 3800669010957793852}
   - component: {fileID: 8646686007912500556}
+  - component: {fileID: 8646686007912500557}
   m_Layer: 0
   m_Name: commercial_base.023
   m_TagString: Untagged
@@ -235879,6 +237365,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 1696789843961241463, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &8646686007912500557
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8646686007912500555}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!23 &8647113495706649837
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -236761,6 +238269,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -2530560466942274124, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &8674291725156209400
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 427244539906790765}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 3
+  gripMultiplier: 0.45
+  driveMultiplier: 0.6
+  brakeMultiplier: 0.6
+  rollingResistance: 5
+  markColour: {r: 0.16, g: 0.22, b: 0.11, a: 0.5}
+  markStrength: 0.35
+  particleColour: {r: 0.3, g: 0.45, b: 0.16, a: 0.5}
+  particleAmount: 1.8
+  sprayWhenRolling: 1
 --- !u!4 &8675411325223760597
 Transform:
   m_ObjectHideFlags: 0
@@ -237106,6 +238636,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -581686069057422664, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &8686117786552535666
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8566979323912296014}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!1 &8686216205932849008
 GameObject:
   m_ObjectHideFlags: 0
@@ -237484,6 +239036,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 7373524118037752854, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &8699491234030957100
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2303898691371185069}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!1 &8701405665000647280
 GameObject:
   m_ObjectHideFlags: 0
@@ -238474,6 +240048,7 @@ GameObject:
   - component: {fileID: 4062717392153921387}
   - component: {fileID: 2579015805448266317}
   - component: {fileID: 8734164902499098471}
+  - component: {fileID: 8734164902499098472}
   m_Layer: 0
   m_Name: commercial_base.010
   m_TagString: Untagged
@@ -238503,6 +240078,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 5438514978836471625, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &8734164902499098472
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8734164902499098470}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!33 &8735499773611033026
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -238743,6 +240340,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 3719854964362780189, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &8741558969381785646
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8636321309401186300}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 3
+  gripMultiplier: 0.45
+  driveMultiplier: 0.6
+  brakeMultiplier: 0.6
+  rollingResistance: 5
+  markColour: {r: 0.16, g: 0.22, b: 0.11, a: 0.5}
+  markStrength: 0.35
+  particleColour: {r: 0.3, g: 0.45, b: 0.16, a: 0.5}
+  particleAmount: 1.8
+  sprayWhenRolling: 1
 --- !u!23 &8742883198277274375
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -238941,6 +240560,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7511784478815654055}
   - component: {fileID: 8744834134912007419}
+  - component: {fileID: 8744834134912007420}
   m_Layer: 0
   m_Name: Roads_Parent
   m_TagString: Untagged
@@ -238970,6 +240590,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 0}
+--- !u!114 &8744834134912007420
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8744834134912007418}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 0
+  gripMultiplier: 1
+  driveMultiplier: 1
+  brakeMultiplier: 1
+  rollingResistance: 0
+  markColour: {r: 0.06, g: 0.06, b: 0.07, a: 0.75}
+  markStrength: 1
+  particleColour: {r: 0.62, g: 0.62, b: 0.64, a: 0.5}
+  particleAmount: 1
+  sprayWhenRolling: 0
 --- !u!1 &8745062951821363544
 GameObject:
   m_ObjectHideFlags: 0
@@ -239616,6 +241258,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -8376447360960823355, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &8764490760124353856
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5782077795311765924}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!33 &8764784526463915152
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -241273,8 +242937,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.0050812243, y: 0.009090713, z: 0.018636303}
-  m_Center: {x: -0.000027930504, y: -5.182925e-10, z: 0.0042087166}
+  m_Size: {x: 0.017257674, y: 0.004203821, z: 0.009454458}
+  m_Center: {x: 0.00006942788, y: -0.0000024854714, z: 0.004353316}
 --- !u!1 &8815836704347357311
 GameObject:
   m_ObjectHideFlags: 0
@@ -241420,6 +243084,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -6131426038988914986, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &8823405926144468080
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3148146277265157510}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!1 &8824215612930356175
 GameObject:
   m_ObjectHideFlags: 0
@@ -242055,6 +243741,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 4579551215510376335, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &8837459318807482061
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4832744761317276418}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!1 &8837937203986625882
 GameObject:
   m_ObjectHideFlags: 0
@@ -242067,6 +243775,7 @@ GameObject:
   - component: {fileID: 491102725153997509}
   - component: {fileID: 1895458174986734631}
   - component: {fileID: 8837937203986625883}
+  - component: {fileID: 8837937203986625884}
   m_Layer: 0
   m_Name: commercial_base.039
   m_TagString: Untagged
@@ -242096,6 +243805,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -5553642833618485980, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &8837937203986625884
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8837937203986625882}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!4 &8838662429054598821
 Transform:
   m_ObjectHideFlags: 0
@@ -244357,6 +246088,7 @@ GameObject:
   - component: {fileID: 6387000969945315776}
   - component: {fileID: 661563407457896252}
   - component: {fileID: 8917786229243722662}
+  - component: {fileID: 8917786229243722663}
   m_Layer: 0
   m_Name: parkbase01_sample.007
   m_TagString: Untagged
@@ -244386,6 +246118,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -334632669236793920, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &8917786229243722663
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8917786229243722661}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 3
+  gripMultiplier: 0.45
+  driveMultiplier: 0.6
+  brakeMultiplier: 0.6
+  rollingResistance: 5
+  markColour: {r: 0.16, g: 0.22, b: 0.11, a: 0.5}
+  markStrength: 0.35
+  particleColour: {r: 0.3, g: 0.45, b: 0.16, a: 0.5}
+  particleAmount: 1.8
+  sprayWhenRolling: 1
 --- !u!33 &8918386226303973889
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -244610,6 +246364,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -1691156107788365181, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &8925966784437191829
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8347204178991766535}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 0
+  gripMultiplier: 1
+  driveMultiplier: 1
+  brakeMultiplier: 1
+  rollingResistance: 0
+  markColour: {r: 0.06, g: 0.06, b: 0.07, a: 0.75}
+  markStrength: 1
+  particleColour: {r: 0.62, g: 0.62, b: 0.64, a: 0.5}
+  particleAmount: 1
+  sprayWhenRolling: 0
 --- !u!4 &8926033274699183786
 Transform:
   m_ObjectHideFlags: 0
@@ -246800,7 +248576,7 @@ Transform:
   m_GameObject: {fileID: 7151106223595163154}
   serializedVersion: 2
   m_LocalRotation: {x: 0.50000006, y: 0.49999997, z: 0.5, w: -0.5}
-  m_LocalPosition: {x: -216.69203, y: 0.39999807, z: 176.42706}
+  m_LocalPosition: {x: -216.69203, y: 0.5746505, z: 176.42706}
   m_LocalScale: {x: 183.95169, y: 183.95169, z: 183.95169}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -247845,6 +249621,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -2856544646188912675, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &9017395731729002118
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5600324549145028463}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!4 &9018078465835820288
 Transform:
   m_ObjectHideFlags: 0
@@ -248487,6 +250285,7 @@ GameObject:
   - component: {fileID: 5806002871889263181}
   - component: {fileID: 7228098085855034467}
   - component: {fileID: 9031868451586118301}
+  - component: {fileID: 9031868451586118302}
   m_Layer: 0
   m_Name: commercial_base.057
   m_TagString: Untagged
@@ -248516,6 +250315,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 7823891549966589099, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &9031868451586118302
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9031868451586118300}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!4 &9032399435819349074
 Transform:
   m_ObjectHideFlags: 0
@@ -248723,6 +250544,7 @@ GameObject:
   - component: {fileID: 5351744193524422551}
   - component: {fileID: 7719052836064754882}
   - component: {fileID: 9045858048186812388}
+  - component: {fileID: 9045858048186812389}
   m_Layer: 0
   m_Name: commercial_base.045
   m_TagString: Untagged
@@ -248752,6 +250574,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 8360327624697187693, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &9045858048186812389
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9045858048186812387}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!4 &9047020580348780559
 Transform:
   m_ObjectHideFlags: 0
@@ -250288,7 +252132,7 @@ Transform:
   m_GameObject: {fileID: 1918438282380552081}
   serializedVersion: 2
   m_LocalRotation: {x: -0.000000053385076, y: 0.7071068, z: 0.70710677, w: 0.00000005338508}
-  m_LocalPosition: {x: -181.647, y: 0.400001, z: -73.61015}
+  m_LocalPosition: {x: -181.647, y: 0.5746308, z: -73.61015}
   m_LocalScale: {x: 183.95169, y: 183.95169, z: 183.95169}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -250418,6 +252262,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 3551679156568049031, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &9087550159085263148
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 448230714509467266}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 3
+  gripMultiplier: 0.45
+  driveMultiplier: 0.6
+  brakeMultiplier: 0.6
+  rollingResistance: 5
+  markColour: {r: 0.16, g: 0.22, b: 0.11, a: 0.5}
+  markStrength: 0.35
+  particleColour: {r: 0.3, g: 0.45, b: 0.16, a: 0.5}
+  particleAmount: 1.8
+  sprayWhenRolling: 1
 --- !u!33 &9087666799834292095
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -252159,6 +254025,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 7271497649739809983, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &9127192180850403222
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6112792950682033979}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!23 &9129715054011614886
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -253312,7 +255200,7 @@ Transform:
   m_GameObject: {fileID: 5336792011701216679}
   serializedVersion: 2
   m_LocalRotation: {x: 0.000000053385076, y: 0.7071068, z: 0.70710677, w: -0.00000005338508}
-  m_LocalPosition: {x: 12.061954, y: 0.400001, z: 179.88304}
+  m_LocalPosition: {x: 12.061954, y: 0.5725833, z: 179.88304}
   m_LocalScale: {x: 183.95169, y: 183.95169, z: 183.95169}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -253611,7 +255499,7 @@ Transform:
   m_GameObject: {fileID: 2538491472718036887}
   serializedVersion: 2
   m_LocalRotation: {x: -0.70267403, y: -0.07905201, z: -0.079052016, w: 0.7026741}
-  m_LocalPosition: {x: 15.679624, y: 0.39993763, z: 394.50085}
+  m_LocalPosition: {x: 15.679624, y: 0.5251241, z: 394.50085}
   m_LocalScale: {x: 255.48846, y: 141.38133, z: 255.48848}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -254353,6 +256241,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 1472765712759006463, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &9188123376199429501
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7440834168485154262}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!23 &9188803717523111470
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -254481,6 +256391,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 4636285515935125092, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &9191465998245097776
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3839030788116276524}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 3
+  gripMultiplier: 0.45
+  driveMultiplier: 0.6
+  brakeMultiplier: 0.6
+  rollingResistance: 5
+  markColour: {r: 0.16, g: 0.22, b: 0.11, a: 0.5}
+  markStrength: 0.35
+  particleColour: {r: 0.3, g: 0.45, b: 0.16, a: 0.5}
+  particleAmount: 1.8
+  sprayWhenRolling: 1
 --- !u!33 &9193175580091207178
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -255130,6 +257062,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 5465971006069067155, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &9213742291599794403
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8602964288819523860}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!1 &9214704664232949196
 GameObject:
   m_ObjectHideFlags: 0
@@ -255220,6 +257174,7 @@ GameObject:
   - component: {fileID: 8273853826674039875}
   - component: {fileID: 3402303425104810977}
   - component: {fileID: 9215700572053004871}
+  - component: {fileID: 9215700572053004872}
   m_Layer: 0
   m_Name: commercial_base.031
   m_TagString: Untagged
@@ -255249,6 +257204,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 5644111352456469329, guid: 9880d46381ad3d7419bbc4b65517906e, type: 3}
+--- !u!114 &9215700572053004872
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9215700572053004870}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c5eae1aeacb5341adbe50a1c9f4a67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.SurfaceType
+  kind: 6
+  gripMultiplier: 0.92
+  driveMultiplier: 0.97
+  brakeMultiplier: 0.93
+  rollingResistance: 0
+  markColour: {r: 0.18, g: 0.18, b: 0.19, a: 0.6}
+  markStrength: 0.8
+  particleColour: {r: 0.72, g: 0.7, b: 0.66, a: 0.45}
+  particleAmount: 0.9
+  sprayWhenRolling: 0
 --- !u!33 &9215809324838576058
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -255660,3 +257637,4 @@ SceneRoots:
   - {fileID: 2163776120296448117}
   - {fileID: 2111511746644404905}
   - {fileID: 1583934761877164027}
+  - {fileID: 681793357}
