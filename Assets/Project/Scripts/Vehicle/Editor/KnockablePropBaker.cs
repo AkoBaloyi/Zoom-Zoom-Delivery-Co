@@ -39,10 +39,12 @@ namespace ZoomZoom.Vehicle.EditorTools
     /// Giving a body to an object under the floor does nothing a player can see and wastes a
     /// physics slot, so anything below MinimumWorldY is left alone and counted as skipped.
     ///
-    /// MASS
-    /// The car is 900 kg. A bin at 40 kg goes flying, a toilet at 150 kg lurches and tips, a cone
-    /// at 4 kg barely registers. Nothing here should ever stop the car; walls and buildings stay
-    /// static and still do.
+    /// MASS AND SIZE ARE SEPARATE DECISIONS
+    /// The city is modelled two to five times larger than the car and is not being resized. So the
+    /// collider is fitted to the mesh at whatever size it is, and the mass is a fixed feel number
+    /// per family chosen so the 900 kg car always wins: bins 60 kg, tables 120, toilets 180,
+    /// blockers 25. The inertia tensor is capped to that of a compact object so a 9 m table turns
+    /// like a 2 m one instead of swinging round as a 9 m lever. Walls and buildings stay static.
     ///
     /// THE TOOL SAVES THE SCENE
     /// Pressing Play snapshots the saved scene and leaving Play restores it. A bake that is only
@@ -57,24 +59,32 @@ namespace ZoomZoom.Vehicle.EditorTools
         {
             public string Label;
             public Regex Name;
-            /// <summary>Mass the prop would have at the size a real one is, kilograms.</summary>
+            /// <summary>Mass in kilograms, fixed, whatever size the mesh is. This is a FEEL number
+            /// against the car's 900 kg, not a physics derivation: it answers "does the car move
+            /// it, and how much does it resist", and nothing else.</summary>
             public float MassKg;
-            /// <summary>Longest side of a real one, metres. Mass scales with the cube of the
-            /// ratio between the measured object and this, so a prop modelled at twice life size
-            /// weighs eight times as much and the car's shove reads the same either way.</summary>
-            public float RealSizeM;
         }
 
         // The playtest set. Lamps, fences, traffic lights, bus stops and mailboxes are deliberately
         // NOT here yet: if this lot feels right the list grows, if the car gets caught on tumbling
         // furniture it shrinks. One line per family.
+        //
+        // WHY MASS IS NOT DERIVED FROM SIZE
+        // An earlier version scaled mass by the cube of the measured size, on the argument that a
+        // 9 m table should weigh what a 9 m table weighs. It produced a 4 tonne table the car
+        // bounced off, which is physically right and the wrong game: the request was "things move
+        // when the car hits them", the city is built two to five times larger than the car and is
+        // not going to be rebuilt this week, and nobody playing a delivery game checks whether the
+        // furniture obeys the cube law. So mass is a plain feel number per family, chosen so the
+        // car always wins and heavier families resist more. The size the mesh happens to be only
+        // decides the collider; it never decides whether the thing moves.
         private static readonly Family[] Families =
         {
-            new Family { Label = "trash container", Name = new Regex(@"^trashcontainer", RegexOptions.IgnoreCase), MassKg = 40f,  RealSizeM = 1.3f },
-            new Family { Label = "picnic table",    Name = new Regex(@"^picnictable",    RegexOptions.IgnoreCase), MassKg = 60f,  RealSizeM = 1.8f },
-            new Family { Label = "mobile toilet",   Name = new Regex(@"^mobile_toilet",  RegexOptions.IgnoreCase), MassKg = 150f, RealSizeM = 2.3f },
-            new Family { Label = "traffic cone",    Name = new Regex(@"^cone_type",      RegexOptions.IgnoreCase), MassKg = 4f,   RealSizeM = 0.7f },
-            new Family { Label = "road blocker",    Name = new Regex(@"^RoadBlocker",    RegexOptions.IgnoreCase), MassKg = 12f,  RealSizeM = 1.5f },
+            new Family { Label = "trash container", Name = new Regex(@"^trashcontainer", RegexOptions.IgnoreCase), MassKg = 60f  },
+            new Family { Label = "picnic table",    Name = new Regex(@"^picnictable",    RegexOptions.IgnoreCase), MassKg = 120f },
+            new Family { Label = "mobile toilet",   Name = new Regex(@"^mobile_toilet",  RegexOptions.IgnoreCase), MassKg = 180f },
+            new Family { Label = "traffic cone",    Name = new Regex(@"^cone_type",      RegexOptions.IgnoreCase), MassKg = 5f   },
+            new Family { Label = "road blocker",    Name = new Regex(@"^RoadBlocker",    RegexOptions.IgnoreCase), MassKg = 25f  },
         };
 
         /// <summary>Props below this world height are not on the map and are skipped. The road
@@ -132,9 +142,7 @@ namespace ZoomZoom.Vehicle.EditorTools
                 if (!sample.ContainsKey(f.Label))
                 {
                     var mk = t.GetComponent<KnockableProp>();
-                    float ratio = longest / f.RealSizeM;
-                    sample[f.Label] = $"{t.name}: box {ws.x:0.0}x{ws.y:0.0}x{ws.z:0.0} m, {mk.bakedMassKg:0} kg, " +
-                                      $"{ratio:0.0}x life size" +
+                    sample[f.Label] = $"{t.name}: box {ws.x:0.0}x{ws.y:0.0}x{ws.z:0.0} m, {mk.bakedMassKg:0} kg" +
                                       (mk.strayVertexFraction > 0.05f ? $", ignored {mk.strayVertexFraction:P0} stray" : "");
                 }
             }
@@ -158,11 +166,10 @@ namespace ZoomZoom.Vehicle.EditorTools
 
             if (oversized.Count > 0)
             {
-                sb.Append($"\n{oversized.Count} props are over 6 m on a side. The collider matches the mesh and the " +
-                          "mass follows the size, so at this scale they weigh more than the 900 kg car and the car " +
-                          "will bounce off them rather than move them. That is correct physics for the size they " +
-                          "are, and the size is the city's problem, not the baker's: these were modelled for a " +
-                          "larger world than a 4.5 m car. Shrink the level or swap the mesh; do not lighten the mass.");
+                sb.Append($"\n{oversized.Count} props are over 6 m on a side. They are knockable all the same: mass is a " +
+                          "fixed feel number per family, so the car moves them regardless of size. Listed because a " +
+                          "9 m picnic table that tumbles like a light object will look like one, and that is a " +
+                          "known trade: the city is modelled larger than the car and is not being resized for this.");
                 foreach (string s in oversized) sb.Append("\n   " + s);
             }
 
@@ -297,18 +304,21 @@ namespace ZoomZoom.Vehicle.EditorTools
             }
 
             // 4. The body. Starts asleep so 50 bodies at rest cost nothing on frame one.
-            //    Mass follows the measured size: this city's props are two to five times life
-            //    size, and a 9 m table at a real table's 60 kg would be shoved like a paper cup.
-            //    Cubing the size ratio keeps the density, so the car's push reads the same whether
-            //    the level ends up at this scale or gets shrunk to fit the car.
-            float sizeRatio = Mathf.Max(world.size.x, world.size.y, world.size.z) / Mathf.Max(0.05f, family.RealSizeM);
-            float mass = family.MassKg * sizeRatio * sizeRatio * sizeRatio;
-            mass = Mathf.Clamp(mass, 1f, 4000f);
+            //    Mass is the family's feel number, not a function of size; see Families.
+            float mass = family.MassKg;
 
             var rb = Undo.AddComponent<Rigidbody>(go);
             rb.mass = mass;
             rb.linearDamping = 0.2f;
-            rb.angularDamping = 0.8f;
+            // Stronger than a normal prop because these are large: a 9 m table hit on one corner
+            // is a 9 m lever and will pivot for a long time without this. Settles the swing.
+            rb.angularDamping = 1.5f;
+            // Inertia as if the object were compact. PhysX derives inertia from the collider's
+            // extent, and a 9 m box at 120 kg has enormous rotational inertia: it swings slowly
+            // and heavily and can roll back through the car. Capping the tensor to what a 2 m box
+            // of the same mass would have makes a big prop turn like a small one, which is what
+            // "knockable" means in an arcade game.
+            rb.inertiaTensor = CompactInertia(mass, 2f);
             rb.interpolation = RigidbodyInterpolation.None;
             rb.collisionDetectionMode = CollisionDetectionMode.Discrete;
             rb.sleepThreshold = 0.05f;
@@ -322,6 +332,14 @@ namespace ZoomZoom.Vehicle.EditorTools
             marker.strayVertexFraction = rejectedFraction;
 
             return true;
+        }
+
+        /// <summary>Inertia tensor of a solid cube of the given mass and side, so an oversized prop
+        /// rotates like a compact one. Solid cube: I = m * s^2 / 6 about each axis.</summary>
+        private static Vector3 CompactInertia(float mass, float sideMetres)
+        {
+            float i = mass * sideMetres * sideMetres / 6f;
+            return new Vector3(i, i, i);
         }
 
         /// <summary>
