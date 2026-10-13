@@ -548,6 +548,7 @@ namespace ZoomZoom.Vehicle
                 case SurfaceKind.Grass: return new Color(0.24f, 0.42f, 0.18f);
                 case SurfaceKind.Ice: return new Color(0.74f, 0.85f, 0.92f);
                 case SurfaceKind.Metal: return new Color(0.52f, 0.54f, 0.58f);
+                case SurfaceKind.Concrete: return new Color(0.66f, 0.65f, 0.62f);
                 default: return new Color(0.32f, 0.34f, 0.36f);
             }
         }

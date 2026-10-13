@@ -601,7 +601,7 @@ namespace ZoomZoom.Vehicle
             if (count == 0) return;
 
             float inverse = 1f / count;
-            Surface = new SurfaceProfile
+            var blended = new SurfaceProfile
             {
                 kind = dominant,
                 sprayWhenRolling = spray,
@@ -614,6 +614,11 @@ namespace ZoomZoom.Vehicle
                 markColour = mark * inverse,
                 particleColour = particleColour * inverse
             };
+
+            // Weather is applied last and once, to the blend, never per wheel. Dry leaves the
+            // blend untouched, so with no WeatherState in the scene this line is a no-op and
+            // every lab measurement is still describing the car that ships.
+            Surface = SurfaceType.ApplyWeather(blended, WeatherState.Current);
         }
 
         /// <summary>

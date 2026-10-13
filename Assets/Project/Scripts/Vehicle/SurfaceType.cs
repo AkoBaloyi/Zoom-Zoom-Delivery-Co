@@ -14,7 +14,24 @@ namespace ZoomZoom.Vehicle
         Dirt,
         Grass,
         Ice,
-        Metal
+        Metal,
+        // Appended, never inserted: the lab scene and its tuning store these as integers, and
+        // inserting a value above would silently turn every saved Grass patch into Dirt.
+        Concrete
+    }
+
+    /// <summary>
+    /// The weather the whole city is under. One value for the scene, applied on top of every
+    /// surface's own numbers, so "it is raining" is a single switch rather than a hunt through
+    /// six hundred road pieces. Dry changes nothing at all, which keeps every measurement taken
+    /// so far valid.
+    /// </summary>
+    public enum WeatherKind
+    {
+        Dry,
+        Rain,
+        Snow,
+        Ice
     }
 
     /// <summary>
@@ -216,8 +233,89 @@ namespace ZoomZoom.Vehicle
                         sprayWhenRolling = false
                     };
 
+                case SurfaceKind.Concrete:
+                    // Pavement, forecourts and the bases buildings stand on. Deliberately a small
+                    // step DOWN from tarmac, not up: concrete is smoother and dustier than asphalt,
+                    // and the player should feel a slight loosening when they cut across a
+                    // forecourt rather than a reward for leaving the road. Marks are paler because
+                    // the surface is paler; rubber on grey reads grey.
+                    return new SurfaceProfile
+                    {
+                        kind = kind,
+                        gripMultiplier = 0.92f,
+                        driveMultiplier = 0.97f,
+                        brakeMultiplier = 0.93f,
+                        rollingResistance = 0f,
+                        markColour = new Color(0.18f, 0.18f, 0.19f, 0.6f),
+                        markStrength = 0.8f,
+                        particleColour = new Color(0.72f, 0.7f, 0.66f, 0.45f),
+                        particleAmount = 0.9f,
+                        sprayWhenRolling = false
+                    };
+
                 default:
                     return Default;
+            }
+        }
+
+        /// <summary>
+        /// What the weather does to a surface. Multiplied INTO the surface's profile, so rain on
+        /// concrete and rain on tarmac come out different, which is right: the same storm makes
+        /// the smoother surface the worse one. Grass is barely changed by rain because it was
+        /// already loose; snow and ice flatten every surface towards the same low grip because
+        /// the tyre is no longer touching the ground, it is touching what lies on it.
+        ///
+        /// Dry returns the profile unchanged. That is the contract every lab reading relies on.
+        /// </summary>
+        public static SurfaceProfile ApplyWeather(SurfaceProfile ground, WeatherKind weather)
+        {
+            switch (weather)
+            {
+                case WeatherKind.Rain:
+                    {
+                        bool loose = ground.kind == SurfaceKind.Grass || ground.kind == SurfaceKind.Dirt;
+                        float grip = loose ? 0.85f : 0.65f;
+                        float brake = loose ? 0.9f : 0.7f;
+                        ground.gripMultiplier *= grip;
+                        ground.driveMultiplier *= loose ? 0.9f : 0.88f;
+                        ground.brakeMultiplier *= brake;
+                        ground.markStrength *= 0.5f;
+                        ground.particleColour = Color.Lerp(ground.particleColour, new Color(0.75f, 0.8f, 0.85f, 0.4f), 0.6f);
+                        ground.particleAmount *= 1.3f;
+                        ground.sprayWhenRolling = true;
+                        return ground;
+                    }
+
+                case WeatherKind.Snow:
+                    {
+                        // Snow sits on top of everything, so the ground underneath matters less.
+                        ground.gripMultiplier = Mathf.Min(ground.gripMultiplier, 1f) * 0.45f;
+                        ground.driveMultiplier *= 0.6f;
+                        ground.brakeMultiplier *= 0.5f;
+                        ground.rollingResistance += 2f;
+                        ground.markColour = new Color(0.55f, 0.6f, 0.68f, 0.5f);
+                        ground.markStrength = 0.7f;
+                        ground.particleColour = new Color(0.95f, 0.97f, 1f, 0.5f);
+                        ground.particleAmount = Mathf.Max(ground.particleAmount, 1.6f);
+                        ground.sprayWhenRolling = true;
+                        return ground;
+                    }
+
+                case WeatherKind.Ice:
+                    {
+                        // Black ice: the surface looks like itself and drives like the Ice kind.
+                        SurfaceProfile ice = DefaultsFor(SurfaceKind.Ice);
+                        ground.gripMultiplier = Mathf.Min(ground.gripMultiplier, ice.gripMultiplier);
+                        ground.driveMultiplier = Mathf.Min(ground.driveMultiplier, ice.driveMultiplier);
+                        ground.brakeMultiplier = Mathf.Min(ground.brakeMultiplier, ice.brakeMultiplier);
+                        ground.markStrength *= 0.2f;
+                        ground.particleAmount *= 0.6f;
+                        ground.sprayWhenRolling = false;
+                        return ground;
+                    }
+
+                default:
+                    return ground;
             }
         }
 

@@ -63,6 +63,12 @@ namespace ZoomZoom.Vehicle.EditorTools
             /// against the car's 900 kg, not a physics derivation: it answers "does the car move
             /// it, and how much does it resist", and nothing else.</summary>
             public float MassKg;
+            /// <summary>Optional. Name of one scene object whose BoxCollider was fitted by hand;
+            /// every member of this family copies that box in world metres instead of using the
+            /// measured one. For props whose geometry fools the measurement, a human eye wins.</summary>
+            public string ReferenceObject;
+            /// <summary>Resolved at bake time from ReferenceObject. Not set in the table.</summary>
+            public BoxCollider CopyBoxFrom;
         }
 
         // The playtest set. Lamps, fences, traffic lights, bus stops and mailboxes are deliberately
@@ -84,7 +90,10 @@ namespace ZoomZoom.Vehicle.EditorTools
             new Family { Label = "picnic table",    Name = new Regex(@"^picnictable",    RegexOptions.IgnoreCase), MassKg = 120f },
             new Family { Label = "mobile toilet",   Name = new Regex(@"^mobile_toilet",  RegexOptions.IgnoreCase), MassKg = 180f },
             new Family { Label = "traffic cone",    Name = new Regex(@"^cone_type",      RegexOptions.IgnoreCase), MassKg = 5f   },
-            new Family { Label = "road blocker",    Name = new Regex(@"^RoadBlocker",    RegexOptions.IgnoreCase), MassKg = 25f  },
+            // Blockers copy the box Ako fitted by hand on RoadBlocker04.002 on 13 October, which
+            // looks right on the model where the measured one was a slab the size of the mesh's
+            // stray geometry. One object tuned by eye, applied to all of them.
+            new Family { Label = "road blocker",    Name = new Regex(@"^RoadBlocker",    RegexOptions.IgnoreCase), MassKg = 25f,  ReferenceObject = "RoadBlocker04.002" },
         };
 
         /// <summary>Props below this world height are not on the map and are skipped. The road
@@ -96,7 +105,7 @@ namespace ZoomZoom.Vehicle.EditorTools
         {
             var scene = EditorSceneManager.GetActiveScene();
             var counts = new Dictionary<string, int>();
-            int underground = 0, already = 0, noMesh = 0;
+            int underground = 0, already = 0, noMesh = 0, refitted = 0;
 
             Undo.SetCurrentGroupName("Make Props Knockable");
             int group = Undo.GetCurrentGroup();
@@ -115,9 +124,41 @@ namespace ZoomZoom.Vehicle.EditorTools
             var suspect = new List<string>();
             var oversized = new List<string>();
 
-            foreach ((Transform t, Family f) in targets)
+            // Resolve each family's hand-fitted reference once, before anything is re-fitted.
+            // The reference object itself is excluded from the bake so the copy source is never
+            // overwritten by its own copy.
+            var references = new Dictionary<string, BoxCollider>();
+            foreach (Family f in Families)
+                if (!string.IsNullOrEmpty(f.ReferenceObject) && !references.ContainsKey(f.Label))
+                    references[f.Label] = FindReferenceBox(f.ReferenceObject);
+
+            for (int i = 0; i < targets.Count; i++)
             {
-                if (t.GetComponent<KnockableProp>() != null) { already++; continue; }
+                (Transform t, Family f) = targets[i];
+                references.TryGetValue(f.Label, out f.CopyBoxFrom);
+                if (f.CopyBoxFrom != null && f.CopyBoxFrom.transform == t) { already++; continue; }
+
+                // Already knockable: re-fit in place rather than skip. The seating fix and the
+                // reference boxes have to reach props from earlier bakes, and asking the user to
+                // undo and redo is the kind of step that gets forgotten.
+                var existing = t.GetComponent<KnockableProp>();
+                if (existing != null)
+                {
+                    var oldBox = t.GetComponent<BoxCollider>();
+                    if (oldBox != null)
+                    {
+                        if (f.CopyBoxFrom != null) ApplyReferenceBox(t.gameObject, oldBox, f.CopyBoxFrom);
+                        SeatOnRoad(t, oldBox);
+                        var rb = t.GetComponent<Rigidbody>();
+                        if (rb != null) { Undo.RecordObject(rb, "refit mass"); rb.mass = f.MassKg; rb.inertiaTensor = CompactInertia(f.MassKg, 2f); }
+                        Undo.RecordObject(existing, "refit marker"); existing.bakedMassKg = f.MassKg;
+                        counts.TryGetValue(f.Label, out int re); counts[f.Label] = re + 1;
+                        refitted++;
+                    }
+                    else already++;
+                    continue;
+                }
+
                 if (t.position.y < MinimumWorldY) { underground++; continue; }
                 if (!MakeKnockable(t, f)) { noMesh++; continue; }
 
@@ -142,7 +183,10 @@ namespace ZoomZoom.Vehicle.EditorTools
                 if (!sample.ContainsKey(f.Label))
                 {
                     var mk = t.GetComponent<KnockableProp>();
-                    sample[f.Label] = $"{t.name}: box {ws.x:0.0}x{ws.y:0.0}x{ws.z:0.0} m, {mk.bakedMassKg:0} kg" +
+                    float bottom = t.TransformPoint(box.center).y - ws.y * 0.5f;
+                    sample[f.Label] = $"{t.name}: box {ws.x:0.0}x{ws.y:0.0}x{ws.z:0.0} m, {mk.bakedMassKg:0} kg, " +
+                                      $"box bottom at y={bottom:0.00}" +
+                                      (f.CopyBoxFrom != null ? $", box copied from {f.CopyBoxFrom.name}" : "") +
                                       (mk.strayVertexFraction > 0.05f ? $", ignored {mk.strayVertexFraction:P0} stray" : "");
                 }
             }
@@ -155,8 +199,9 @@ namespace ZoomZoom.Vehicle.EditorTools
             int total = 0;
             foreach (var kv in counts) { sb.Append($"{kv.Value} {kv.Key}, "); total += kv.Value; }
             sb.Append($"{total} props made knockable in '{scene.name}'.");
+            if (refitted > 0) sb.Append($" {refitted} of those were already knockable and were re-seated on the road in place.");
             if (underground > 0) sb.Append($" {underground} skipped: below the map (y < {MinimumWorldY}).");
-            if (already > 0) sb.Append($" {already} already knockable.");
+            if (already > 0) sb.Append($" {already} left alone (hand-fitted reference, or no box to refit).");
             if (noMesh > 0) sb.Append($" {noMesh} skipped: no mesh or renderer.");
             sb.Append(saved
                 ? " Scene saved; it will survive Play."
@@ -293,15 +338,18 @@ namespace ZoomZoom.Vehicle.EditorTools
                 world.size.y / Mathf.Max(s.y, 1e-4f),
                 world.size.z / Mathf.Max(s.z, 1e-4f));
 
-            // Props from this import sit with their pivot at ground level and their bounds
-            // overlapping the road collider by a few centimetres. A body that starts inside
-            // another collider gets shoved out on frame one and may launch. Lift it clear.
-            float sink = (world.min.y) - 0.0f;
-            if (sink < 0.02f)
-            {
-                Undo.RecordObject(t, "lift prop clear of road");
-                t.position += Vector3.up * (0.02f - sink);
-            }
+            // 3b. Blockers take the hand-fitted box instead of the measured one. See CopyBoxFrom.
+            if (family.CopyBoxFrom != null) ApplyReferenceBox(go, box, family.CopyBoxFrom);
+
+            // 3c. Sit the box ON the road. This was the actual reason nothing moved. The props'
+            //     bounds reach well below the visible object (tables to -0.59, toilets to -1.61)
+            //     while the road collider under them sits at +0.40, so every body began a metre or
+            //     more INSIDE a static collider. PhysX treats that as a penetration to resolve, not
+            //     a contact to push, and it pins the body in place; the car's shove never reaches
+            //     it. The first version lifted by 2 cm against y = 0, which was neither the road's
+            //     height nor the box's bottom. Now the road is found the way the car finds it, with
+            //     a raycast from above, and the box bottom is placed a hair above the hit.
+            SeatOnRoad(t, box);
 
             // 4. The body. Starts asleep so 50 bodies at rest cost nothing on frame one.
             //    Mass is the family's feel number, not a function of size; see Families.
@@ -332,6 +380,75 @@ namespace ZoomZoom.Vehicle.EditorTools
             marker.strayVertexFraction = rejectedFraction;
 
             return true;
+        }
+
+        /// <summary>
+        /// Lowers or raises the prop so the bottom face of its box rests just above whatever static
+        /// ground is under it. Casts down from well above the prop, ignoring the prop's own collider
+        /// and any other knockable body, so it lands on the road and not on a neighbour. Falls back
+        /// to leaving the position alone if nothing is hit (an object off the map), and says so.
+        /// </summary>
+        private static void SeatOnRoad(Transform t, BoxCollider box)
+        {
+            const float clearance = 0.03f;
+            Vector3 worldCentre = t.TransformPoint(box.center);
+            Vector3 worldHalf = Vector3.Scale(box.size, t.lossyScale) * 0.5f;
+            float boxBottom = worldCentre.y - Mathf.Abs(worldHalf.y);
+
+            Vector3 from = new Vector3(worldCentre.x, worldCentre.y + Mathf.Abs(worldHalf.y) + 50f, worldCentre.z);
+            RaycastHit[] hits = Physics.RaycastAll(from, Vector3.down, 200f, ~0, QueryTriggerInteraction.Ignore);
+            float roadY = float.NaN;
+            float best = float.PositiveInfinity;
+            foreach (RaycastHit h in hits)
+            {
+                if (h.collider.transform.IsChildOf(t)) continue;                     // itself
+                if (h.collider.GetComponentInParent<KnockableProp>() != null) continue; // another prop
+                if (h.collider.attachedRigidbody != null) continue;                   // anything dynamic
+                if (h.distance < best) { best = h.distance; roadY = h.point.y; }
+            }
+            if (float.IsNaN(roadY)) return;
+
+            float lift = (roadY + clearance) - boxBottom;
+            if (Mathf.Abs(lift) < 0.001f) return;
+            Undo.RecordObject(t, "seat prop on road");
+            t.position += Vector3.up * lift;
+        }
+
+        /// <summary>
+        /// Gives this prop the same box, in world metres, as a hand-fitted reference object. The
+        /// reference's box is converted to world size and world offset from its pivot, then
+        /// re-expressed in this prop's local scale, so a 230x object and a 0.55x object end up with
+        /// an identical box on screen. Centre offset is scaled by the ratio of the two objects'
+        /// scales along each axis so the box sits at the same place on the model.
+        /// </summary>
+        private static void ApplyReferenceBox(GameObject go, BoxCollider box, BoxCollider reference)
+        {
+            Transform rt = reference.transform;
+            Transform t = go.transform;
+            Vector3 worldSize = Vector3.Scale(reference.size, Abs(rt.lossyScale));
+            Vector3 worldOffset = Vector3.Scale(reference.center, rt.lossyScale);
+            Vector3 s = Abs(t.lossyScale);
+            box.size = new Vector3(worldSize.x / Mathf.Max(s.x, 1e-4f), worldSize.y / Mathf.Max(s.y, 1e-4f), worldSize.z / Mathf.Max(s.z, 1e-4f));
+            box.center = new Vector3(worldOffset.x / Mathf.Max(s.x, 1e-4f), worldOffset.y / Mathf.Max(s.y, 1e-4f), worldOffset.z / Mathf.Max(s.z, 1e-4f));
+        }
+
+        private static Vector3 Abs(Vector3 v) => new Vector3(Mathf.Abs(v.x), Mathf.Abs(v.y), Mathf.Abs(v.z));
+
+        /// <summary>Finds the scene object whose box every member of a family should copy. Named
+        /// in the family table; returns null, with a warning, if it is not in the scene.</summary>
+        private static BoxCollider FindReferenceBox(string objectName)
+        {
+            if (string.IsNullOrEmpty(objectName)) return null;
+            foreach (GameObject root in EditorSceneManager.GetActiveScene().GetRootGameObjects())
+                foreach (Transform x in root.GetComponentsInChildren<Transform>(true))
+                    if (x.name == objectName)
+                    {
+                        var b = x.GetComponent<BoxCollider>();
+                        if (b != null) return b;
+                    }
+            Debug.LogWarning($"[KnockablePropBaker] Reference object '{objectName}' not found or has no BoxCollider; " +
+                             "its family will use measured boxes instead.");
+            return null;
         }
 
         /// <summary>Inertia tensor of a solid cube of the given mass and side, so an oversized prop
