@@ -114,6 +114,12 @@ namespace ZoomZoom.Vehicle.EditorTools
         /// instead; see ReferenceClearance.</summary>
         private const float DefaultClearance = 0.03f;
 
+        /// <summary>Last-resort box size in WORLD metres for a mesh with no usable vertices. One
+        /// metre: small enough to be obviously a placeholder next to props that measure 2 to 9 m,
+        /// and the size this path produced before the box fit moved into local space. See
+        /// RobustLocalBounds for why it cannot just be a local 1.</summary>
+        private const float EmptyMeshFallbackMetres = 1f;
+
         /// <summary>Reference objects already reported for a rotation mismatch this bake, so the
         /// warning fires once per reference instead of once per prop. Cleared by Bake().</summary>
         private static readonly HashSet<string> rotationWarned = new HashSet<string>();
@@ -212,7 +218,11 @@ namespace ZoomZoom.Vehicle.EditorTools
                         // for every prop in this import; see FitBoxToMesh. Seating a wrong box
                         // would move a prop that is currently in the right place.
                         var filter = t.GetComponent<MeshFilter>();
-                        if (f.CopyBoxFrom != null) ApplyReferenceBox(t.gameObject, oldBox, f.CopyBoxFrom);
+                        if (f.CopyBoxFrom != null)
+                        {
+                            Undo.RecordObject(oldBox, "refit box");
+                            ApplyReferenceBox(t.gameObject, oldBox, f.CopyBoxFrom);
+                        }
                         else if (filter != null && filter.sharedMesh != null)
                         {
                             Undo.RecordObject(oldBox, "refit box");
@@ -253,6 +263,14 @@ namespace ZoomZoom.Vehicle.EditorTools
             if (underground > 0) sb.Append($" {underground} skipped: below the map (y < {MinimumWorldY}).");
             if (already > 0) sb.Append($" {already} left alone (hand-fitted reference, or no box to refit).");
             if (noMesh > 0) sb.Append($" {noMesh} skipped: no mesh or renderer.");
+            // The refusal count belongs on the FIRST line, not only in the warning underneath.
+            // Four earlier versions of this tool reported a clean bake while nothing in the scene
+            // had moved, and that is exactly what a headline reading "33 props made knockable...
+            // Scene saved" would say again if the road's hit normals ever flipped and every prop
+            // was refused. A bake with refusals is not a clean bake, so it never logs at info
+            // level either; see the severity ladder below.
+            if (unseated.Count > 0)
+                sb.Append($" {unseated.Count} NOT SEATED: left exactly where they were, each one named below.");
             sb.Append(saved
                 ? " Scene saved; it will survive Play."
                 : " SCENE NOT SAVED: Unity refused the save. Press Ctrl+S before Play or this is lost.");
@@ -276,6 +294,12 @@ namespace ZoomZoom.Vehicle.EditorTools
                 Debug.LogError(sb.ToString());
             }
             else if (!saved) Debug.LogWarning(sb.ToString());
+            // Refusals are a warning, not an error: the props are still in the scene and still
+            // knockable, they are just where they already were. Oversized boxes stay a warning
+            // too, deliberately: a 9 m picnic table is the mesh being oversized, not the bake
+            // failing. Only a box under 10 cm is an error, because that one cannot have been
+            // fitted to anything real.
+            else if (unseated.Count > 0) Debug.LogWarning(sb.ToString());
             else if (oversized.Count > 0) Debug.LogWarning(sb.ToString());
             else Debug.Log(sb.ToString());
 
@@ -667,18 +691,34 @@ namespace ZoomZoom.Vehicle.EditorTools
         /// </summary>
         private static void FitBoxToMesh(BoxCollider box, Mesh mesh, out float rejectedFraction)
         {
-            Bounds local = RobustLocalBounds(mesh, out rejectedFraction);
+            Bounds local = RobustLocalBounds(mesh, Abs(box.transform.lossyScale), out rejectedFraction);
             box.center = local.center;
             box.size = local.size;
         }
 
-        /// <summary>Local-space bounds of the vertices that actually form the object, ignoring
-        /// strays. See FitBoxToMesh for why this is local and why it is percentile-based.</summary>
-        private static Bounds RobustLocalBounds(Mesh mesh, out float rejectedFraction)
+        /// <summary>
+        /// Local-space bounds of the vertices that actually form the object, ignoring strays. See
+        /// FitBoxToMesh for why this is local and why it is percentile-based.
+        ///
+        /// A mesh with no usable vertices gets a fallback box EmptyMeshFallbackMetres across in
+        /// WORLD space, which means dividing by <paramref name="worldScale"/>, because box.size is
+        /// LOCAL. A local size of 1 is not a 1 m box on these props: the import keeps its metres
+        /// in the transform scale, so local 1 is a 230 m collider on a road blocker and 255 m on a
+        /// picnic table. No prop in this scene reaches here (MakeKnockable already skips a null
+        /// sharedMesh, and every mesh in the bake has vertices), but this import is on record for
+        /// dropping geometry, and a 230 m dynamic body would be loud in the viewport and quiet in
+        /// the console: an oversized box is a warning, not an error, so the bake would still read
+        /// as a success. Pinned by section 7 of docs/tooling/seat_math_check.py.
+        /// </summary>
+        private static Bounds RobustLocalBounds(Mesh mesh, Vector3 worldScale, out float rejectedFraction)
         {
             Vector3[] verts = mesh.vertices;
             rejectedFraction = 0f;
-            if (verts.Length == 0) return new Bounds(Vector3.zero, Vector3.one);
+            if (verts.Length == 0)
+                return new Bounds(Vector3.zero, new Vector3(
+                    EmptyMeshFallbackMetres / Mathf.Max(worldScale.x, 1e-4f),
+                    EmptyMeshFallbackMetres / Mathf.Max(worldScale.y, 1e-4f),
+                    EmptyMeshFallbackMetres / Mathf.Max(worldScale.z, 1e-4f)));
 
             var xs = new float[verts.Length];
             var ys = new float[verts.Length];
