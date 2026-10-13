@@ -117,7 +117,11 @@ namespace ZoomZoom.Vehicle.EditorTools
                 if (longest < 0.1f || longest > 6f)
                     suspect.Add($"{t.name} box {ws.x:0.00}x{ws.y:0.00}x{ws.z:0.00} m");
                 if (!sample.ContainsKey(f.Label))
-                    sample[f.Label] = $"{t.name}: box {ws.x:0.0}x{ws.y:0.0}x{ws.z:0.0} m at y={t.position.y:0.00}";
+                {
+                    float stray = t.GetComponent<KnockableProp>().strayVertexFraction;
+                    sample[f.Label] = $"{t.name}: box {ws.x:0.0}x{ws.y:0.0}x{ws.z:0.0} m at y={t.position.y:0.00}" +
+                                      (stray > 0.05f ? $"  (ignored {stray:P0} of raw extent as stray vertices)" : "");
+                }
             }
 
             Undo.CollapseUndoOperations(group);
@@ -209,13 +213,17 @@ namespace ZoomZoom.Vehicle.EditorTools
             Transform originalParent = t.parent;
             Vector3 originalLocalScale = t.localScale;
 
-            // Measure what the player actually sees BEFORE touching the transform. The renderer's
-            // world bounds are the truth about the prop's size, whatever chain of weird scales
-            // produced it. Everything below is fitted to this, so it cannot be wrong by a factor of
-            // the parent scale the way a local-bounds box was.
+            // Measure the prop BEFORE touching the transform, and do not trust either
+            // mesh.bounds or renderer.bounds to do it. This FBX is a Blender scene export: every
+            // prop is its own unique mesh, Unity discarded self-intersecting polygons from it on
+            // import, and the bounds it reports are several times the visible object (a picnic
+            // table came back 9 m square). That is the known symptom of stray vertices far from the
+            // drawn geometry, which the renderer skips but the bounds include. So the size is taken
+            // from the vertex cloud itself with the outliers thrown away. The amount discarded is
+            // recorded on the marker, so the correction is visible rather than silent.
             var renderer = go.GetComponent<Renderer>();
             if (renderer == null) return false;
-            Bounds world = renderer.bounds;
+            Bounds world = RobustWorldBounds(filter.sharedMesh, t, out float rejectedFraction);
 
             // 1. Out of the broken hierarchy. World position and rotation are kept; scale is reset
             //    to exactly 1 so the Rigidbody lives in a clean, positive, uniform transform.
@@ -277,8 +285,57 @@ namespace ZoomZoom.Vehicle.EditorTools
             marker.bakedMassKg = family.MassKg;
             marker.originalParent = originalParent;
             marker.originalLocalScale = originalLocalScale;
+            marker.strayVertexFraction = rejectedFraction;
 
             return true;
+        }
+
+        /// <summary>
+        /// World-space bounds of the vertices that actually form the object, ignoring strays.
+        ///
+        /// Per axis, the vertex coordinates are sorted and the box is taken from the 2nd to the
+        /// 98th percentile, then widened by 4% so a legitimately thin extreme (a table's
+        /// outermost leg) is not clipped. A handful of vertices parked far from the mesh, which is
+        /// what inflates Unity's own bounds, land outside those percentiles and are ignored. On a
+        /// clean mesh the result is within a few percent of the true bounds; on this import it is
+        /// the difference between a 9 m box and a 1.8 m one.
+        ///
+        /// Transformed with the object's CURRENT world matrix, before the baker normalises it, so
+        /// it measures what is on screen right now.
+        /// </summary>
+        private static Bounds RobustWorldBounds(Mesh mesh, Transform t, out float rejectedFraction)
+        {
+            Vector3[] verts = mesh.vertices;
+            rejectedFraction = 0f;
+            if (verts.Length == 0) return new Bounds(t.position, Vector3.one);
+
+            Matrix4x4 m = t.localToWorldMatrix;
+            var xs = new float[verts.Length];
+            var ys = new float[verts.Length];
+            var zs = new float[verts.Length];
+            for (int i = 0; i < verts.Length; i++)
+            {
+                Vector3 w = m.MultiplyPoint3x4(verts[i]);
+                xs[i] = w.x; ys[i] = w.y; zs[i] = w.z;
+            }
+            System.Array.Sort(xs); System.Array.Sort(ys); System.Array.Sort(zs);
+
+            int lo = Mathf.FloorToInt(verts.Length * 0.02f);
+            int hi = Mathf.Max(lo, Mathf.CeilToInt(verts.Length * 0.98f) - 1);
+            var min = new Vector3(xs[lo], ys[lo], zs[lo]);
+            var max = new Vector3(xs[hi], ys[hi], zs[hi]);
+            Vector3 pad = (max - min) * 0.04f;
+            min -= pad; max += pad;
+
+            // How much of the raw extent was thrown away, as a fraction, so the log can show it.
+            Vector3 rawSize = new Vector3(xs[xs.Length - 1] - xs[0], ys[ys.Length - 1] - ys[0], zs[zs.Length - 1] - zs[0]);
+            Vector3 keptSize = max - min;
+            float rawMax = Mathf.Max(rawSize.x, rawSize.y, rawSize.z);
+            if (rawMax > 1e-4f) rejectedFraction = 1f - Mathf.Max(keptSize.x, keptSize.y, keptSize.z) / rawMax;
+
+            var b = new Bounds();
+            b.SetMinMax(min, max);
+            return b;
         }
     }
 }

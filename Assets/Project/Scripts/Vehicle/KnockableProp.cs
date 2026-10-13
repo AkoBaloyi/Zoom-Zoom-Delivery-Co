@@ -31,5 +31,12 @@ namespace ZoomZoom.Vehicle
 
         [Tooltip("The local scale it had under that parent, restored on undo.")]
         public Vector3 originalLocalScale = Vector3.one;
+
+        [Tooltip("How much of the mesh's raw extent the baker discarded as stray vertices when " +
+                 "fitting the collider, 0 to 1. This city's FBX reports bounds several times the " +
+                 "visible object; a value above 0.5 here means the box would have been that much " +
+                 "too big without the correction. For reading, not editing.")]
+        [Range(0f, 1f)]
+        public float strayVertexFraction;
     }
 }
