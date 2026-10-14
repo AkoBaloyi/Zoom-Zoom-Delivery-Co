@@ -167,3 +167,45 @@ Assets/_Project/
 # machine, appended forever. The curated record is docs/playtesting/playtest_sessions.csv, which
 # a human fills from these; the raw file is a local scratch source, not submission material.
 /PlaytestLogs/
+
+# Local addition: git worktrees. These are full second checkouts of the project, Assets and all.
+#
+# Agents are given a worktree under here so they can edit scripts without making Unity reload the
+# domain mid-playtest. A worktree is a complete working copy, so leaving the path untracked puts a
+# second copy of every LFS-tracked .fbx into the untracked set.
+#
+# That is the same shape as the Assets/_Project incident recorded above: the editor's source control
+# integration polls `git status --untracked-files=normal`, then runs `git hash-object --stdin-paths`
+# over whatever it finds, with the LFS filters live. A worktree in the untracked set would feed it
+# the whole Assets tree on every poll. One `git add -A` would also commit the entire duplicate.
+#
+# Worktrees are disposable by design: `git worktree add` recreates one in seconds, and the branch
+# it points at is the durable artefact. Nothing in here belongs in a commit.
+/.worktrees/
+
+# Local addition: Hypothesis's example database, written by the property-based tests under
+# docs/tooling/repo-checks. It is a per-machine cache of failing examples, regenerated on demand.
+.hypothesis/
+
+# Local addition: Python bytecode from the scripts under docs/tooling. Regenerated on every run.
+__pycache__/
+*.py[cod]
+
+# Local addition: editor-local workspace settings. Nothing here is shared with the group, and the
+# upstream template only covers Visual Studio's .vs/, not VS Code's .vscode/.
+.vscode/
+
+# Local addition: the husk meta file left beside the dead Assets/_Project folder.
+#
+# Assets/_Project/ is ignored twenty lines above for the disk-filling reason recorded there, but a
+# directory pattern does not cover the sibling .meta file Unity wrote for it, so the orphan kept
+# surfacing as untracked. Ignoring Unity .meta files is normally wrong; this one is an exception
+# because the folder it describes is already ignored and slated for deletion.
+Assets/_Project.meta
+
+# Local addition: per-machine measurement scratch files written by the F6 capture in VehicleLab.
+#
+# The tracked record is VehicleLab_Measurements/vehicle_measurements.csv, which .gitattributes
+# routes through merge=union so two people capturing at once do not conflict. Files suffixed
+# _local are one person's unmerged working capture, not group data.
+VehicleLab_Measurements/*_local.csv
