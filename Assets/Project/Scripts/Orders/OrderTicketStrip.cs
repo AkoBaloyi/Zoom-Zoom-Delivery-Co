@@ -36,6 +36,9 @@ namespace ZoomZoom.Orders.UI
         [SerializeField] private Vector2 stripOrigin = new Vector2(24f, -24f);
         [SerializeField] private Vector2 ticketSize = new Vector2(210f, 150f);
         [SerializeField] private float ticketGap = 10f;
+        [Tooltip("Scales every ticket, including its text and the gaps between tickets. 1 is the " +
+                 "original size, 1.05 is 5% bigger.")]
+        [SerializeField] private float ticketScale = 1.05f;
 
         [Header("Behaviour")]
         [SerializeField] private float urgentBelowSeconds = 8f;
@@ -99,6 +102,7 @@ namespace ZoomZoom.Orders.UI
             }
 
             _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            HudSkin.LogStatus(skin, "OrderTicketStrip", this);
             BuildCanvas();
 
             orderManager.OrderResolved += HandleOrderResolved;
@@ -428,6 +432,7 @@ namespace ZoomZoom.Orders.UI
             _stripRoot.pivot = new Vector2(0f, 1f);
             _stripRoot.anchoredPosition = stripOrigin;
             _stripRoot.sizeDelta = new Vector2(100f, ticketSize.y);
+            _stripRoot.localScale = Vector3.one * Mathf.Max(0.1f, ticketScale);
 
             // Banner sits centred near the top, clear of both the strip and the right-hand HUD.
             var bannerGO = new GameObject("Banner");

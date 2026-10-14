@@ -6913,8 +6913,8 @@ MonoBehaviour:
   playerProgression: {fileID: 816895047}
   skin: {fileID: 11400000, guid: 8ce8086168a1fa847a1d4ff5a2a48667, type: 2}
   panelPosition: {x: -8, y: -8}
-  panelSize: {x: 420, y: 340}
-  fontSize: 26
+  panelSize: {x: 380, y: 210}
+  fontSize: 34
   urgentShiftSeconds: 30
 --- !u!4 &1027706771
 Transform:

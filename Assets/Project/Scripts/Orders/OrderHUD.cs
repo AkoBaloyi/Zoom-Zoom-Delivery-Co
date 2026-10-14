@@ -22,7 +22,9 @@ namespace ZoomZoom.Orders.UI
         [Tooltip("Optional. When assigned, a level/XP line and bar are added.")]
         [SerializeField] private PlayerProgression playerProgression;
 
-        [Header("Art")]
+        [Header("Art (optional)")]
+        [Tooltip("Same HudSkin asset as OrderTicketStrip. Uses its stats panel, bar, XP star and " +
+                 "cargo slot sprites. Leave empty for the flat dark panel.")]
         [SerializeField] private HudSkin skin;
 
         [Header("Layout")]
@@ -61,6 +63,7 @@ namespace ZoomZoom.Orders.UI
                 return;
             }
 
+            HudSkin.LogStatus(skin, "OrderHUD", this);
             BuildCanvas();
             orderManager.OrderResolved += HandleOrderResolved;
         }
