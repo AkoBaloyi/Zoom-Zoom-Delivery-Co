@@ -29,6 +29,7 @@ neither number says alone.
 | Column | Type | Source |
 | --- | --- | --- |
 | `session_id` | text | `S01`, `S02`... one per sitting, shared by every tester in that sitting |
+| `session_type` | `human` / `machine-log` / `ai-qa` / `mixed-ai-user` | What produced the row. Only `human` rows count toward the minimum below. See "Why this column exists" |
 | `date` | ISO date | |
 | `build` | commit hash or tag | `git rev-parse --short HEAD` on the build that was played. A row without this cannot be tied to a version and is worthless |
 | `variant` | one of the names in `QUESTIONS.md` | Which single factor was changed for this session. `baseline` if none. Two rows with different variants are not comparable with each other; rows sharing a variant are |
@@ -52,11 +53,42 @@ neither number says alone.
 
 Free text containing commas must be in double quotes. Quotes inside quotes are doubled.
 
+## Why `session_type` exists
+
+Telemetry rows and AI-operated QA rows are useful engineering evidence and belong in the record.
+They are not playtest sessions, and a row count alone cannot tell the two apart. The honest
+caveats live in `observer_notes`, which is the last of thirty-three columns and therefore far
+off-screen in any spreadsheet. Five rows in a sheet whose stated minimum is five testers invites
+exactly the wrong conclusion.
+
+`session_type` puts the distinction in column two, where it cannot be missed, and makes "how many
+real testers do we have" a filter rather than a careful read. Count `human` rows and nothing else.
+
 ## Minimum that counts as a playtest
 
 Five testers, at least two who answered `never` or `sometimes`, all on the same `build`, all asked
 the same questions in the same order. Fewer than that is a demo, not a test, and should not be
-written up as one.
+written up as one. `session_type` must be `human` for all five; machine and AI rows do not count
+toward it, however many there are.
+
+As of 14 October 2026 the sheet holds **zero `human` rows**. The current state of the data and
+what it does and does not support is written up in `M2-PLAYTEST-WRITEUP.md`.
+
+## Recording a row without retyping the numbers
+
+`docs/tooling/playtest_row.py` reads the shift log and emits a sheet row with the eleven measured
+columns already filled and the thirteen asked columns left blank:
+
+```
+python docs/tooling/playtest_row.py --list
+python docs/tooling/playtest_row.py --session S01 --tester T01 --experience sometimes \
+    --build $(git rev-parse --short HEAD) --play-minutes 6 --append
+```
+
+It reads the sheet's own header rather than carrying its own column list, so it cannot drift if a
+column is added. It refuses to write a `human` row without a session id, a tester id and a build
+hash, because a row missing any of those cannot be compared with another row. For a run with no
+participant, pass `--type ai-qa` or `--type machine-log`.
 
 ## Running a session
 
