@@ -6,6 +6,10 @@ public class ButtonsUI : MonoBehaviour
     [Header("UI Panels")]
     public GameObject pausePanel;
 
+    [Header("Scenes")]
+    [Tooltip("Exact name of the main menu scene file, without .unity. It must be in File > Build Profiles > Scene List.")]
+    public string mainMenuSceneName = "MainMenu";
+
     private void Start()
     {
         // Ensure the pause panel is closed when starting
@@ -35,23 +39,39 @@ public class ButtonsUI : MonoBehaviour
         }
     }
 
-    // Assign to Main Menu / Restart Button On Click ()
-    //
-    // Reloads the scene that is running rather than a scene called "MainMenu". No scene by that
-    // name exists in the project or in Build Settings, so the Restart button was throwing a
-    // "Scene couldn't be loaded" error in every build. The method keeps its name because the
-    // button's On Click entry in the scene references it by name, and renaming it would silently
-    // unhook the button. Once a real main menu scene exists, point this at it.
+    // Assign to Main Menu Button On Click ()
+    // Loads the main menu scene named in the Inspector.
     public void GoToMainMenu()
     {
         Time.timeScale = 1f; // Always reset time scale before scene change
+
+        if (!Application.CanStreamedLevelBeLoaded(mainMenuSceneName))
+        {
+            Debug.LogError($"[ButtonsUI] Cannot load scene \"{mainMenuSceneName}\". Check the name " +
+                           "on this component and that the scene is in File > Build Profiles > Scene List.", this);
+            return;
+        }
+
+        SceneManager.LoadScene(mainMenuSceneName);
+    }
+
+    // Assign to Restart Button On Click ()
+    // Reloads the scene that is currently running.
+    public void RestartLevel()
+    {
+        Time.timeScale = 1f;
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 
     // Assign to Exit Button On Click ()
     public void ExitGame()
     {
-        Debug.Log("Exiting Game...");
+        Debug.Log("[ButtonsUI] Exiting game.");
+
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false; // Quit does nothing in the editor
+#else
         Application.Quit();
+#endif
     }
 }
