@@ -15,6 +15,37 @@ Run them from the repository root with Python 3.11 or newer.
 | `place_delivery_points.py` | Writes the `Delivery Points` hierarchy into a scene and wires it into `OrderManager`. Refuses to run twice and refuses to run if a `fileID` would collide. |
 | `order_distances.py` | Costs all 36 pickup and drop-off pairs and reports how many are completable inside a given order time limit. |
 | `validate_scene.py` | Structural check on a scene: duplicate anchors, dangling local `fileID` references, transforms that are neither parented nor registered in `SceneRoots`, and non-reciprocal parent/child links. Also fails on CRLF, which `.gitattributes` forbids for Unity YAML. |
+| `fbx_mesh_bounds.py` | Reads local-space mesh bounds out of a binary FBX. Exists because a `MeshCollider` keeps its size in the model asset rather than in the scene, so without this there is no way to say how wide a street is without opening Unity. `--json` writes a map the script below loads. |
+| `corner_geometry.py` | Sizes the level against the car. Reports every collider with a world footprint where one can be derived, the free corridor at each delivery anchor, the widest-bottleneck route in from the car's start, and the turning radius the tuning asset allows at a range of speeds. |
+
+## How the corner widths were found
+
+`find_roads.py` measures kerb pivot to kerb pivot, which recovers the street grid but not the width
+the car can use: the greybox kerbs are 0.24 m tall and the car's body collider starts at 0.50 m, so
+it drives straight over them. The only things it can hit are the blocks that stand above the
+suspension's reach.
+
+So `corner_geometry.py` works from colliders instead. Box colliders state their own size. Mesh
+colliders do not, so it loads `fbx_mesh_bounds.py` output and calibrates the model-to-world
+convention rather than assuming it: of six candidate axis-order and unit-factor combinations it keeps
+whichever puts the bottom of a typical object closest to the ground, on the grounds that a city rests
+on the floor. In the greybox that winner is off by 0.09 m and the runner-up by 3.35 m, and the same
+calibration run against `Easy.unity` independently picks the same convention. As a third check, the
+box colliders it reports in the city scene match the figures `KnockablePropBaker` logs from inside
+Unity to within a few centimetres.
+
+From the footprints it builds an occupancy grid clipped to the drivable slab, takes the distance to
+the nearest obstacle at every free cell, and runs a max-min Dijkstra from the car's start. That last
+step answers the question a turning circle actually has to pass: not "how wide is this street" but
+"on the roomiest route to this anchor, how wide is the tightest point".
+
+For the tiled city scenes there are no usable mesh bounds for 1295 separate pack models, so
+`--road=<regex>` measures the carriageway instead: a modular road abuts, so the spacing between
+adjacent tile centres IS the tile size. That gives 8.18 m for `Hard.unity` and 13.81 m for
+`Medium.unity`, each confirmed a second way.
+
+The figures these produce, and what they mean for the reverse-gear playtest finding, are written up
+in `.agents/tasks/turning-geometry-2026-10-14/report.md`.
 
 ## How the delivery points were found
 
