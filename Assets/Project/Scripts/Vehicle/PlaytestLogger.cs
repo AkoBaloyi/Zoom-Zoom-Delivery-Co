@@ -77,7 +77,21 @@ namespace ZoomZoom.Vehicle
         private int _flipsAtStart;
         private float _supersonicSeconds;
         private float _longestRecovery;
-        private float _shiftStartTime;
+
+        // Captured once at shift start instead of reconstructed at the end. WriteRow can run from
+        // OnDestroy with the ShiftTimer component already destroyed, Unity reports a destroyed
+        // component as null, and the old code then wrote shift_seconds 0 - which is exactly what two
+        // of the logged rows show. ShiftTimer.StartShift sets TimeRemaining = shiftDurationSeconds on
+        // the line before it fires ShiftStarted, so the value read in HandleShiftStarted IS the
+        // configured length. ShiftTimer lives in Assets/Project/Scripts/Orders/ and belongs to a
+        // teammate, so it is not given a getter for that length; capturing it here costs nothing.
+        private float _shiftLengthSeconds;
+
+        // Accumulated in FixedUpdate rather than computed as Time.time minus a start stamp. The stamp
+        // was re-taken by every HandleShiftStarted call, including the catch-up call in Awake, so a
+        // logger that attached mid-session wrote play_seconds 0.0 against a clock that still had
+        // minutes on it. A sum of physics steps cannot be poisoned by a stale stamp.
+        private float _playSeconds;
 
         // Per-step state.
         private float _previousSpeed;
@@ -86,6 +100,7 @@ namespace ZoomZoom.Vehicle
         private float _recoveryStart;
         private bool _shiftRunning;
         private bool _rowWritten;
+        private bool _attachedMidShift;
 
         private const string Header =
             "timestamp,scene,shift_seconds,play_seconds,delivered,late,value,boost_activations," +
@@ -116,7 +131,25 @@ namespace ZoomZoom.Vehicle
 
             // ShiftTimer starts the shift in its own Awake when startAutomatically is on, which may
             // have run before this Awake subscribed. Catch that case rather than miss the shift.
-            if (shiftTimer.IsShiftActive) HandleShiftStarted();
+            if (shiftTimer.IsShiftActive)
+            {
+                // The ordinary case is both Awakes running on the first frame, where nothing was
+                // missed. A later frame means this logger attached part-way through a shift that was
+                // already under way, and then both duration fields describe only the part of the
+                // shift it saw. The configured length cannot be recovered from here - ShiftTimer
+                // exposes TimeRemaining and nothing else, and it is off limits - so the row says what
+                // it measured and the console says why it is short. Honest rather than silently wrong.
+                _attachedMidShift = Time.frameCount > 1;
+                HandleShiftStarted();
+
+                if (_attachedMidShift)
+                {
+                    Debug.LogWarning(
+                        "[PlaytestLogger] Attached part-way through a shift that was already running. " +
+                        "play_seconds and shift_seconds in this row cover only the part of the shift " +
+                        "this logger saw, not the configured shift length.", this);
+                }
+            }
         }
 
         private void OnDestroy()
@@ -128,9 +161,22 @@ namespace ZoomZoom.Vehicle
                 shiftTimer.ShiftEnded -= HandleShiftEnded;
             }
 
-            // A shift cut short by stopping Play mode still gets its row, flagged by a shorter
-            // play_seconds than shift_seconds. Losing the data because the tester quit early is
-            // worse than a row that says they quit early.
+            // A shift cut short by stopping Play mode still gets its row. It is flagged by a
+            // play_seconds shorter than shift_seconds, which is what makes an abandoned run
+            // distinguishable from a completed one: a full shift writes the two within rounding of
+            // each other, a quit at halfway writes half. That claim was false while play_seconds came
+            // from a start stamp that could be re-taken, and it is true now that the clock is
+            // accumulated and the length is captured at the start. Losing the data because the tester
+            // quit early is worse than a row that says they quit early.
+            if (_shiftRunning && !_rowWritten) WriteRow();
+        }
+
+        private void OnApplicationQuit()
+        {
+            // The third exit path. A built player closed with the window button quits without
+            // necessarily running OnDestroy on this component first, so the row would be lost. WriteRow
+            // sets _rowWritten and clears _shiftRunning, so whichever of the three paths arrives first
+            // writes the row and the other two do nothing.
             if (_shiftRunning && !_rowWritten) WriteRow();
         }
 
@@ -147,7 +193,8 @@ namespace ZoomZoom.Vehicle
             _flipsAtStart = jumpFlip != null ? jumpFlip.FlipCount : 0;
             _supersonicSeconds = 0f;
             _longestRecovery = 0f;
-            _shiftStartTime = Time.time;
+            _shiftLengthSeconds = shiftTimer != null ? shiftTimer.TimeRemaining : 0f;
+            _playSeconds = 0f;
 
             _previousSpeed = car.Speed;
             _wasBoosting = false;
@@ -191,6 +238,10 @@ namespace ZoomZoom.Vehicle
                 if (!_wasBoosting) _boostActivations++;
             }
             _wasBoosting = car.IsBoosting;
+
+            // The play clock, summed one step at a time so it only ever counts seconds this logger
+            // was actually running for.
+            _playSeconds += dt;
 
             if (car.Drive.handbrake) _handbrakeSeconds += dt;
             if (car.IsSupersonic) _supersonicSeconds += dt;
@@ -240,8 +291,6 @@ namespace ZoomZoom.Vehicle
                 if (recovery > _longestRecovery) _longestRecovery = recovery;
             }
 
-            float playSeconds = Time.time - _shiftStartTime;
-            float shiftSeconds = shiftTimer != null ? ShiftLengthSeconds() : 0f;
             int flips = jumpFlip != null ? jumpFlip.FlipCount - _flipsAtStart : 0;
             float boostEarned = car.TotalBoostEarned - _boostEarnedAtStart;
 
@@ -249,8 +298,8 @@ namespace ZoomZoom.Vehicle
             string row = string.Join(",",
                 DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", inv),
                 Csv(SceneManager.GetActiveScene().name),
-                shiftSeconds.ToString("0", inv),
-                playSeconds.ToString("0.0", inv),
+                _shiftLengthSeconds.ToString("0", inv),
+                _playSeconds.ToString("0.0", inv),
                 _delivered.ToString(inv),
                 _late.ToString(inv),
                 _value.ToString("0", inv),
@@ -292,14 +341,6 @@ namespace ZoomZoom.Vehicle
                     $"supersonic {_supersonicSeconds:0.0} s, longest recovery {_longestRecovery:0.0} s\n" +
                     $"written to {path}");
             }
-        }
-
-        private float ShiftLengthSeconds()
-        {
-            // ShiftTimer does not expose its configured length, only TimeRemaining. At shift end
-            // that is 0, so the length is what elapsed. For an early quit, play_seconds is shorter
-            // and the difference is the signal.
-            return Mathf.Round(Time.time - _shiftStartTime + shiftTimer.TimeRemaining);
         }
 
         private string OutputPath()
