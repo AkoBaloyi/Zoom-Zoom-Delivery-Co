@@ -649,6 +649,27 @@ namespace ZoomZoom.Vehicle
             return found;
         }
 
+        /// <summary>
+        /// Is there ground within <paramref name="distance"/> metres straight below the car?
+        ///
+        /// WHY WORLD DOWN, AND NOT -transform.up. The suspension rays that decide IsGrounded are
+        /// cast along the car's own down, which on an overturned car points at the sky. That is the
+        /// whole reason a car resting on its roof reports itself airborne and every grounded-only
+        /// move is refused in exactly the state it exists for. A world-down probe answers the
+        /// different question recovery actually needs, "is the car lying on something?", whichever
+        /// way up the car happens to be.
+        ///
+        /// Read-only on purpose: it casts one ray, applies no force and writes no state, so nothing
+        /// about the handling changes by asking.
+        /// </summary>
+        public bool ProbeGroundBelow(float distance, out RaycastHit hit)
+        {
+            hit = default;
+            if (tuning == null) return false;
+
+            return TryRaycast(transform.position, Vector3.down, distance, out hit);
+        }
+
         private bool IsOwnCollider(Collider c)
         {
             if (c == null) return true;
@@ -1182,10 +1203,20 @@ namespace ZoomZoom.Vehicle
         }
 
         /// <summary>
-        /// Drops the car at a position with no leftover speed or spin. Every measurement starts
-        /// with this, so no reading can be contaminated by the run before it.
+        /// Puts the car at a pose with no leftover speed or spin, and nothing else.
+        ///
+        /// This is the half of Teleport that is safe for a recovery to use. Teleport also refills
+        /// BoostRemaining and zeroes TotalBoostEarned, which is right for a measurement starting
+        /// from a known state and badly wrong for a self-right: if rolling the car handed back a
+        /// full tank, rolling the car would be the cheapest way to buy boost, and boost_earned in
+        /// the shift log would stop describing driving. So the self-right calls this and never
+        /// Teleport.
+        ///
+        /// _stuckTimer is cleared here so the automatic righting torque in ApplyStuckRecovery and a
+        /// deliberate pose write do not fight each other: after a recovery the car starts its stuck
+        /// countdown from zero rather than carrying in the seconds it already spent on its roof.
         /// </summary>
-        public void Teleport(Vector3 position, Quaternion rotation)
+        public void SetPoseAndClearMotion(Vector3 position, Quaternion rotation)
         {
             if (_rb == null) _rb = GetComponent<Rigidbody>();
 
@@ -1203,10 +1234,23 @@ namespace ZoomZoom.Vehicle
 
             _rb.interpolation = previous;
 
+            _stuckTimer = 0f;
+        }
+
+        /// <summary>
+        /// Drops the car at a position with no leftover speed or spin. Every measurement starts
+        /// with this, so no reading can be contaminated by the run before it.
+        ///
+        /// The pose work lives in SetPoseAndClearMotion; what stays here is only what a MEASUREMENT
+        /// needs on top of it: dropped input, a reset steering filter and a known boost state.
+        /// </summary>
+        public void Teleport(Vector3 position, Quaternion rotation)
+        {
+            SetPoseAndClearMotion(position, rotation);
+
             Drive = default;
             SteerAmount = 0f;
             _steerVelocity = 0f;
-            _stuckTimer = 0f;
 
             // A measured run has to start from a known boost state, or one reading gets a full tank
             // and the next gets whatever was left over.
