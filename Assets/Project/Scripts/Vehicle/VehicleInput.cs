@@ -70,6 +70,20 @@ namespace ZoomZoom.Vehicle
         /// <summary>Right stick / mouse movement this frame. The camera reads this itself.</summary>
         public Vector2 CameraLook { get; private set; }
 
+        /// <summary>
+        /// True when the latest CameraLook value came from a mouse rather than a stick.
+        ///
+        /// The camera has to know, because a mouse delta is a displacement and a stick is a rate:
+        /// one must NOT be scaled by frame time and the other must. Scaling the mouse by
+        /// Time.deltaTime is what made the look sensitivity change with the frame rate.
+        ///
+        /// Sticky by design. activeControl is null while the action sits at rest, so there is
+        /// nothing to read between movements, and the last device the player actually used is the
+        /// right answer for as long as nothing is moving. Defaults to mouse because keyboard and
+        /// mouse is what every playtest has run on.
+        /// </summary>
+        public bool CameraLookIsMouse { get; private set; } = true;
+
         /// <summary>True when everything is wired up and the actions were found.</summary>
         public bool IsReady => _map != null;
 
@@ -323,6 +337,14 @@ namespace ZoomZoom.Vehicle
             Vector2 look = _cameraLook != null ? _cameraLook.ReadValue<Vector2>() : Vector2.zero;
             if (invertCameraLookY) look.y = -look.y;
             CameraLook = look;
+
+            // Only ask which device moved it while it IS moving: activeControl is null at rest, and
+            // a null answer must leave the last known device alone rather than guess.
+            if (_cameraLook != null && look.sqrMagnitude > 0f)
+            {
+                InputDevice device = _cameraLook.activeControl?.device;
+                if (device != null) CameraLookIsMouse = device is Mouse;
+            }
         }
 
         private static float Read(InputAction action)

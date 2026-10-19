@@ -37,6 +37,20 @@ namespace ZoomZoom.Vehicle
     /// all. And the clamp is applied AFTER the follow smoothing, never to the smoothing target,
     /// so a wall cannot lag through the easing and the follow state is untouched when the wall
     /// ends. The car's own colliders are ignored the same way the wheel raycasts ignore them.
+    ///
+    /// WHY THE CAMERA SWINGS ROUND WHEN THE CAR REVERSES
+    /// Everything above assumes the car is going forwards. Reversing used to aim the shot at a point
+    /// up to 34 m in FRONT of a car travelling backwards at up to 8 m/s, so the player was reversing
+    /// blind down the one axis they could not see, which is why recovering from a mistake felt worse
+    /// than the mistake. So sustained backward motion swings the view round to the nose and carries
+    /// the look-ahead point behind the tail. It is a timed, eased, hysteretic swing rather than a
+    /// sign test, because forward speed crosses zero constantly and a camera that whips round every
+    /// time the player brakes would be worse than the problem it fixes.
+    ///
+    /// WHY MOUSE AND STICK ARE SCALED DIFFERENTLY
+    /// They arrive merged into one Vector2, but a mouse delta is a displacement and a stick reading
+    /// is a rate. Only one of them may be multiplied by frame time. Scaling both by it, which is
+    /// what this file used to do, made the mouse sensitivity depend on the frame rate.
     /// </summary>
     [RequireComponent(typeof(Camera))]
     [DisallowMultipleComponent]
@@ -58,6 +72,54 @@ namespace ZoomZoom.Vehicle
                  "buildings, which it does.")]
         [SerializeField] private LayerMask collisionLayers = Physics.DefaultRaycastLayers;
 
+        [Header("Reverse view")]
+        [Tooltip("Forward speed (m/s, negative) at and below which the camera starts swinging round " +
+                 "to show where the car is reversing. -1.5 matches the velocity gate ComputeHeading " +
+                 "already uses, so the two agree about when backwards motion is real rather than noise.")]
+        [SerializeField] private float reverseViewEnterSpeed = -1.5f;
+
+        [Tooltip("Forward speed at and above which the camera starts coming back. The gap between " +
+                 "this and the enter speed is the dead zone: inside it nothing changes, which is what " +
+                 "stops the camera whipping round every time the player brakes to a standstill. " +
+                 "-0.5 matches the controller's own reverse gate in ApplyDriveAndBrake.")]
+        [SerializeField] private float reverseViewExitSpeed = -0.5f;
+
+        [Tooltip("Seconds the car must stay below the enter speed before the swing begins. A brief " +
+                 "backward roll on a slope, or overrunning the brake, is ignored.")]
+        [SerializeField] private float reverseViewHoldTime = 0.25f;
+
+        [Tooltip("Seconds for the full 180 degree swing, eased in and out. Never a snap. The existing " +
+                 "precedent in this file is cameraSwivelRecentreDelay at 1.2 s for letting go of the " +
+                 "mouse; a reverse swing has to be quicker than that or the player reverses blind " +
+                 "while they wait for it.")]
+        [SerializeField] private float reverseViewTransitionTime = 0.45f;
+
+        [Tooltip("Seconds above the exit speed before the camera starts coming back, so shuffling " +
+                 "back and forth in a three point turn does not swing the camera twice per shuffle.")]
+        [SerializeField] private float reverseViewReturnDelay = 0.35f;
+
+        [Header("Mouse look")]
+        [Tooltip("Degrees of camera yaw per pixel of mouse movement, at any frame rate. Mouse delta " +
+                 "is a displacement, not a rate, so it is deliberately NOT multiplied by " +
+                 "Time.deltaTime; the right stick still is, because a stick IS a rate. 0.05 is the " +
+                 "top of the 0.03-0.05 band this kind of auxiliary look lands in, and it is also " +
+                 "exactly what the old code gave at 144 fps, so the fastest machine feels no change " +
+                 "and the 60 fps case stops being twice as fast as intended.")]
+        [SerializeField] private float mouseLookDegreesPerPixel = 0.05f;
+
+        [Tooltip("Mouse movement smaller than this is ignored, in pixels. The old gate was 0.0001 on " +
+                 "the squared processed vector, i.e. 0.167 px, which a resting hand clears six times " +
+                 "over - and any movement also restarts the auto-recentre delay, so a resting hand " +
+                 "used to hold the camera permanently off centre. Above about 2 px this starts to " +
+                 "feel sticky.")]
+        [SerializeField] private float mouseLookDeadzonePixels = 1f;
+
+        // The ScaleVector2(x=0.06,y=0.06) processor on the <Mouse>/delta binding, in
+        // VehicleControls.inputactions and duplicated in VehicleInput.BuildFallbackControls. One
+        // pixel of mouse movement therefore arrives here as 0.06, and dividing by this gets the
+        // pixels back so the sensitivity dial above can be stated in the unit a player understands.
+        private const float MouseBindingDeltaScale = 0.06f;
+
         private Camera _camera;
 
         // Smoothing state.
@@ -77,6 +139,14 @@ namespace ZoomZoom.Vehicle
         private float _yawOffset;
         private float _pitchOffset;
         private float _timeSinceSwivel;
+
+        // Reverse view. _reverseTarget is where the swing is headed (0 behind the car, 1 round at
+        // the nose), _reverseBlend is where it has actually got to, and the two timers are the
+        // hold periods that stop a momentary speed sign change from starting or ending a swing.
+        private float _reverseBlend;
+        private float _reverseTarget;
+        private float _reverseHold;
+        private float _forwardHold;
 
         // Degrees currently added to the field of view by boost. Eased, never snapped.
         private float _fovKick;
@@ -117,6 +187,11 @@ namespace ZoomZoom.Vehicle
         /// Jump straight to where the camera should be, with no easing. Used at startup and at the
         /// start of every measurement, so a reading is never taken while the camera is still
         /// sliding in from somewhere else.
+        ///
+        /// The reverse swing is reset here as well, and it has to be: VehicleMeasurement.ResetCar
+        /// calls this before every reading, so without the reset a reading taken after a reversing
+        /// run would start with the camera half swung round and the road-ahead number would be
+        /// measured down the wrong axis.
         /// </summary>
         public void SnapToTarget()
         {
@@ -128,11 +203,17 @@ namespace ZoomZoom.Vehicle
             _pitchOffset = 0f;
             _wallPullIn = 1f;
             _fovKick = 0f;
+            _reverseBlend = 0f;
+            _reverseTarget = 0f;
+            _reverseHold = 0f;
+            _forwardHold = 0f;
 
-            _position = ComputeDesiredPosition(_smoothedHeading);
+            Vector3 viewHeading = ApplyReverseView(_smoothedHeading);
+
+            _position = ComputeDesiredPosition(viewHeading);
             // dt of zero: any wall in the way pulls in immediately, nothing eases.
             _renderPosition = KeepOutOfWalls(_position, 0f);
-            _rotation = ComputeDesiredRotation(_renderPosition, _smoothedHeading);
+            _rotation = ComputeDesiredRotation(_renderPosition, viewHeading);
 
             transform.SetPositionAndRotation(_renderPosition, _rotation);
             ApplyLens();
@@ -157,17 +238,23 @@ namespace ZoomZoom.Vehicle
             _smoothedHeading = SmoothDirection(_smoothedHeading, desiredHeading,
                 Tuning.cameraRotationSmoothTime, dt);
 
-            // 2. Where the camera wants to be, then ease towards it.
-            Vector3 desiredPosition = ComputeDesiredPosition(_smoothedHeading);
+            // 2. Reverse. The swing is applied AFTER the smoothing above and never inside
+            //    ComputeHeading, so _smoothedHeading stays in nose space: its own Vector3.Slerp
+            //    therefore never sees a 180 degree step and can never become the degenerate case.
+            UpdateReverseView(dt);
+            Vector3 viewHeading = ApplyReverseView(_smoothedHeading);
+
+            // 3. Where the camera wants to be, then ease towards it.
+            Vector3 desiredPosition = ComputeDesiredPosition(viewHeading);
             _position = Vector3.SmoothDamp(_position, desiredPosition, ref _positionVelocity,
                 Tuning.cameraFollowSmoothTime, Mathf.Infinity, dt);
 
-            // 3. If a wall is between the car and that point, stop short of it. Applied to the
+            // 4. If a wall is between the car and that point, stop short of it. Applied to the
             //    smoothed result, not the target, so the wall never lags through the easing.
             _renderPosition = KeepOutOfWalls(_position, dt);
 
-            // 4. Aim at the look-ahead point from where the camera actually is.
-            Quaternion desiredRotation = ComputeDesiredRotation(_renderPosition, _smoothedHeading);
+            // 5. Aim at the look-ahead point from where the camera actually is.
+            Quaternion desiredRotation = ComputeDesiredRotation(_renderPosition, viewHeading);
             _rotation = SmoothRotation(_rotation, desiredRotation,
                 Tuning.cameraRotationSmoothTime, dt);
 
@@ -264,10 +351,86 @@ namespace ZoomZoom.Vehicle
             if (velocity.magnitude < 1.5f || Tuning.cameraVelocityInfluence <= 0f)
                 return ApplySwivel(nose);
 
-            Vector3 blended = Vector3.Slerp(nose, velocity.normalized,
+            Vector3 velocityDirection = velocity.normalized;
+
+            // Vector3.Slerp has no defined rotation axis between two opposite vectors, and once the
+            // car is travelling backwards nose and velocity ARE opposite, so the blend below is
+            // ill-conditioned exactly when reversing. It also has nothing useful left to say: the
+            // reverse swing is already telling the framing where the car is going. -0.95 is about
+            // 162 degrees, and driftSlipAngleThreshold is 12 degrees, so no normal slide is anywhere
+            // near this and drifting is untouched.
+            const float AntiparallelDot = -0.95f;
+            if (Vector3.Dot(nose, velocityDirection) <= AntiparallelDot) return ApplySwivel(nose);
+
+            Vector3 blended = Vector3.Slerp(nose, velocityDirection,
                 Tuning.cameraVelocityInfluence);
 
             return ApplySwivel(blended.sqrMagnitude > 0.0001f ? blended.normalized : nose);
+        }
+
+        // ==================================================================
+        // REVERSE VIEW
+        // ==================================================================
+
+        /// <summary>
+        /// Decides whether the camera should be looking behind the car, and moves the blend towards
+        /// that decision.
+        ///
+        /// WHY THIS NEEDS A STATE MACHINE AND NOT JUST A SIGN TEST
+        /// Forward speed crosses zero every time the player brakes hard, bumps a kerb or rolls back
+        /// on a slope. A bare `ForwardSpeed &lt; 0` test would swing the camera round on all of those,
+        /// which is far worse than never swinging at all. So there are two different speeds with a
+        /// dead zone between them, and a hold time on each side: the swing only starts after the car
+        /// has genuinely been going backwards for a moment, and only ends after it has genuinely
+        /// stopped doing so. Inside the dead zone nothing changes at all, which is what makes a
+        /// three point turn swing the camera once rather than twice per shuffle.
+        /// </summary>
+        private void UpdateReverseView(float dt)
+        {
+            float forwardSpeed = target.ForwardSpeed;
+
+            if (forwardSpeed <= reverseViewEnterSpeed)
+            {
+                _forwardHold = 0f;
+                _reverseHold += dt;
+                if (_reverseHold >= reverseViewHoldTime) _reverseTarget = 1f;
+            }
+            else if (forwardSpeed >= reverseViewExitSpeed)
+            {
+                _reverseHold = 0f;
+                _forwardHold += dt;
+                if (_forwardHold >= reverseViewReturnDelay) _reverseTarget = 0f;
+            }
+            // else: the dead zone between the two speeds. Both timers are held where they are and
+            // the target is left alone, so braking to a standstill decides nothing either way.
+
+            // MoveTowards rather than an exponential ease, so a full swing takes exactly
+            // reverseViewTransitionTime seconds and that number means what it says on the tooltip.
+            // The ease at both ends comes from the SmoothStep in ApplyReverseView.
+            _reverseBlend = Mathf.MoveTowards(_reverseBlend, _reverseTarget,
+                dt / Mathf.Max(0.0001f, reverseViewTransitionTime));
+        }
+
+        /// <summary>
+        /// Rotates the heading round towards the back of the car by however far the reverse swing
+        /// has got.
+        ///
+        /// WHY ONE ROTATION ABOUT WORLD UP
+        /// ComputeDesiredPosition puts the camera at carPos - heading * distance and
+        /// ComputeDesiredRotation aims at carPos + heading * lookAhead, which is 28 m out on
+        /// Balanced and 34 m on Loose. Negating just the look-ahead would put the aim point about
+        /// 21 m BEHIND the camera and the car would leave the frame entirely. Lerping the two signs
+        /// through zero instead walks the camera straight through the car. A single 180 degree
+        /// rotation about world up carries the camera round the side of the car to the nose and the
+        /// aim point round to 28 m behind the tail, keeps the car framed the whole way, is
+        /// continuous, and has an explicitly named axis so it can never be ill-conditioned the way
+        /// a Slerp between opposite vectors is.
+        /// </summary>
+        private Vector3 ApplyReverseView(Vector3 heading)
+        {
+            float eased = Mathf.SmoothStep(0f, 1f, _reverseBlend);
+            if (eased <= 0.0001f) return heading;
+            return Quaternion.AngleAxis(180f * eased, Vector3.up) * heading;
         }
 
         private Vector3 ComputeDesiredPosition(Vector3 heading)
@@ -349,11 +512,37 @@ namespace ZoomZoom.Vehicle
         // MANUAL LOOK AROUND
         // ==================================================================
 
+        /// <summary>
+        /// Reads the look input and turns it into a yaw and pitch offset.
+        ///
+        /// TWO DEVICES, TWO UNITS, TWO BRANCHES
+        /// A mouse delta is a DISPLACEMENT: it already says how far the hand moved during this
+        /// frame, so multiplying it by frame time is simply wrong and makes the same hand movement
+        /// turn the camera 2.4x further at 60 fps than at 144. A stick is a RATE: it says how fast
+        /// to turn, so it must be multiplied by frame time. Both arrive merged into one Vector2, so
+        /// the device is asked for and the two are scaled differently on purpose. If the device
+        /// cannot be identified the mouse path is taken, because keyboard and mouse is what the
+        /// playtests ran on.
+        /// </summary>
         private void ReadSwivelInput(float dt)
         {
             Vector2 look = input != null ? input.CameraLook : Vector2.zero;
+            bool usingMouse = input == null || input.CameraLookIsMouse;
 
-            if (look.sqrMagnitude > 0.0001f)
+            if (usingMouse)
+            {
+                // Back to pixels, so the sensitivity dial is stated in a unit a player understands.
+                Vector2 pixels = look / MouseBindingDeltaScale;
+                if (pixels.magnitude >= mouseLookDeadzonePixels)
+                {
+                    _yawOffset += pixels.x * mouseLookDegreesPerPixel;
+                    _pitchOffset = Mathf.Clamp(
+                        _pitchOffset - pixels.y * mouseLookDegreesPerPixel, -35f, 55f);
+                    _timeSinceSwivel = 0f;
+                    return;
+                }
+            }
+            else if (look.sqrMagnitude > 0.0001f)
             {
                 _yawOffset += look.x * Tuning.cameraSwivelSpeed * dt;
                 _pitchOffset = Mathf.Clamp(
@@ -434,8 +623,10 @@ namespace ZoomZoom.Vehicle
             if (target == null || Tuning == null) return;
 
             Vector3 carPos = target.transform.position;
+            // While running, the reverse swing is part of where the camera is actually looking, so
+            // the gizmo has to include it or the drawn sightline disagrees with the shot on screen.
             Vector3 heading = Application.isPlaying && _smoothedHeading.sqrMagnitude > 0.0001f
-                ? _smoothedHeading
+                ? ApplyReverseView(_smoothedHeading)
                 : Flatten(target.transform.forward).normalized;
 
             if (heading.sqrMagnitude < 0.0001f) return;
