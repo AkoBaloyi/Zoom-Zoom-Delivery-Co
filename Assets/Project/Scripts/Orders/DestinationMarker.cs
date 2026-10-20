@@ -12,16 +12,15 @@ namespace ZoomZoom.Orders.UI
     /// just off to the side, the arrow clamps to the screen edge and rotates to keep pointing the
     /// right way, the same convention as a race game's off-track waypoint arrow.
     ///
+    /// SIZE AND COLOUR
+    /// Arrows grow as the car gets closer to their target and shrink as it gets further away, so
+    /// the nearest job stands out. An order already in the cargo hold uses the carried colour and
+    /// orders still waiting to be picked up use the waiting colour, so the active job is obvious.
+    ///
     /// WHY THIS EXISTS SEPARATELY FROM ORDERHUD
     /// OrderHUD is a list, useful for checking status at a glance. This is spatial, useful while
     /// actually driving, and it needs camera projection math OrderHUD has no reason to carry.
     /// Keeping them separate means either can be turned off without losing the other.
-    ///
-    /// WHY THIS IS DIFFERENT FROM ako'S OrderMarkers
-    /// OrderMarkers draws world-space rings on the ground, and is explicitly a development tool
-    /// meant to be switched off once real UI exists, by his own comment in that file. This is
-    /// that real UI: screen-space, works even when a target is far away or genuinely out of view,
-    /// and does not disappear if the world-space ring's draw distance is exceeded.
     /// </summary>
     [DisallowMultipleComponent]
     public class DestinationMarker : MonoBehaviour
@@ -37,9 +36,24 @@ namespace ZoomZoom.Orders.UI
         [SerializeField] private int distanceFontSize = 22;
         [SerializeField] private int idFontSize = 30;
 
-        [Tooltip("Seconds of order time left below which an arrow blends toward red. Colours " +
-                 "themselves come from OrderPalette so arrow, beacon and ticket agree.")]
+        [Header("Colours")]
+        [Tooltip("Orders already picked up and in the cargo hold, i.e. the job in progress.")]
+        [SerializeField] private Color carriedColour = OrderPalette.Deliver;
+        [Tooltip("Orders still waiting at their pickup.")]
+        [SerializeField] private Color waitingColour = OrderPalette.Pickup;
+        [Tooltip("Seconds of order time left below which an arrow blends toward red.")]
         [SerializeField] private float urgentBelowSeconds = 8f;
+
+        [Header("Size by distance (closer is bigger)")]
+        [Tooltip("Distance is measured from this. Found automatically: the car (the object with " +
+                 "ZoneDetection), or the camera if there is no car.")]
+        [SerializeField] private Transform distanceFrom;
+        [Tooltip("Metres. At or closer than this, an arrow is at Near Scale.")]
+        [SerializeField] private float nearDistance = 20f;
+        [Tooltip("Metres. At or further than this, an arrow is at Far Scale.")]
+        [SerializeField] private float farDistance = 250f;
+        [SerializeField] private float nearScale = 1.4f;
+        [SerializeField] private float farScale = 0.6f;
 
         [Header("Pulse, so an arrow demands attention rather than sitting static")]
         [SerializeField] private float pulseSpeed = 4f;
@@ -61,6 +75,12 @@ namespace ZoomZoom.Orders.UI
         {
             if (orderManager == null) orderManager = FindAnyObjectByType<OrderManager>();
             if (targetCamera == null) targetCamera = Camera.main;
+            if (distanceFrom == null)
+            {
+                ZoneDetection car = FindAnyObjectByType<ZoneDetection>();
+                if (car != null) distanceFrom = car.transform;
+                else if (targetCamera != null) distanceFrom = targetCamera.transform;
+            }
 
             if (orderManager == null || targetCamera == null)
             {
@@ -88,17 +108,31 @@ namespace ZoomZoom.Orders.UI
 
                 Vector3 target = order.CurrentTarget;
 
+                bool carried = order.CurrentStep != OrderStep.Pickup;
                 Color colour = OrderPalette.WithUrgency(
-                    OrderPalette.ForOrder(order), order.TimeRemaining, urgentBelowSeconds);
+                    carried ? carriedColour : waitingColour, order.TimeRemaining, urgentBelowSeconds);
+
+                float distance = Vector3.Distance(DistanceOrigin, target);
+                float sizeScale = ScaleForDistance(distance);
 
                 string label = $"#{order.Id}";
 
-                PlaceMarker(_slots[used], target, colour, label);
+                PlaceMarker(_slots[used], target, colour, label, distance, sizeScale);
                 used++;
             }
 
             for (int i = used; i < _slots.Count; i++)
                 _slots[i].Root.gameObject.SetActive(false);
+        }
+
+        private Vector3 DistanceOrigin =>
+            distanceFrom != null ? distanceFrom.position : targetCamera.transform.position;
+
+        /// <summary>Near Scale up close, Far Scale far away, a smooth blend in between.</summary>
+        private float ScaleForDistance(float distance)
+        {
+            float t = Mathf.InverseLerp(nearDistance, Mathf.Max(nearDistance + 0.01f, farDistance), distance);
+            return Mathf.Lerp(nearScale, farScale, t);
         }
 
         /// <summary>
@@ -122,9 +156,11 @@ namespace ZoomZoom.Orders.UI
         /// Camera-local direction (right/up relative to the camera, from InverseTransformDirection)
         /// has no such singularity in any direction, including straight behind.
         /// </summary>
-        private void PlaceMarker(MarkerSlot slot, Vector3 target, Color colour, string label)
+        private void PlaceMarker(MarkerSlot slot, Vector3 target, Color colour, string label,
+            float distance, float sizeScale)
         {
             slot.Root.gameObject.SetActive(true);
+            slot.Root.localScale = Vector3.one * sizeScale;
 
             Vector3 toTarget = target - targetCamera.transform.position;
             Vector3 localDir = targetCamera.transform.InverseTransformDirection(toTarget);
@@ -160,8 +196,10 @@ namespace ZoomZoom.Orders.UI
                 if (dir.sqrMagnitude < 0.0001f) dir = Vector2.up;
                 dir.Normalize();
 
-                float availableW = halfW - edgeMargin;
-                float availableH = halfH - edgeMargin;
+                // A bigger arrow needs more room from the screen edge so it is not cut off.
+                float margin = edgeMargin * Mathf.Max(1f, sizeScale);
+                float availableW = halfW - margin;
+                float availableH = halfH - margin;
 
                 float scaleX = Mathf.Abs(dir.x) > 0.0001f ? availableW / Mathf.Abs(dir.x) : float.MaxValue;
                 float scaleY = Mathf.Abs(dir.y) > 0.0001f ? availableH / Mathf.Abs(dir.y) : float.MaxValue;
@@ -192,7 +230,6 @@ namespace ZoomZoom.Orders.UI
             slot.IdLabel.text = label;
             slot.IdLabel.color = colour;
 
-            float distance = Vector3.Distance(targetCamera.transform.position, target);
             slot.Distance.text = onScreen ? $"{distance:0}m" : $"{distance:0}m \u2192";
         }
 
@@ -282,9 +319,8 @@ namespace ZoomZoom.Orders.UI
         }
 
         /// <summary>
-        /// A small upward-pointing triangle, generated in code rather than imported as art, same
-        /// reasoning as the ring mesh in OrderMarkers: it is a handful of numbers, not a picture,
-        /// so it is crisp at any size and needs no asset dependency.
+        /// A small upward-pointing triangle, generated in code rather than imported as art: it is a
+        /// handful of numbers, not a picture, so it is crisp at any size and needs no asset dependency.
         /// </summary>
         private static Sprite _cachedArrowSprite;
 
