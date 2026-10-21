@@ -136,15 +136,11 @@ namespace ZoomZoom.Orders.UI
             // Frozen once the whistle has gone. See the class comment.
             if (IsShowing) return;
 
-            if (order.State == OrderState.Delivered)
-            {
-                Delivered++;
-                Value += value;
-            }
-            else
-            {
-                Late++;
-            }
+            // Value is negative for a cancelled order (the penalty), so it counts toward money too.
+            Value += value;
+
+            if (order.State == OrderState.Delivered) Delivered++;
+            else Late++;
         }
 
         private void HandleXpGained(float amount, Order order)
@@ -169,21 +165,10 @@ namespace ZoomZoom.Orders.UI
 
             _deliveredLine.text = $"Delivered   {Delivered}";
             _lateLine.text = $"Late        {Late}";
-            _valueLine.text = $"Value       {Value:0}";
+            _valueLine.text = $"Money       R{Value:0}";
 
-            if (_xpLine != null)
-            {
-                if (playerProgression != null)
-                {
-                    string levelUpTag = LeveledUpThisShift ? "   LEVEL UP!" : "";
-                    _xpLine.text = $"XP earned   {XpEarned:0}   " +
-                                    $"(Level {playerProgression.Level}){levelUpTag}";
-                }
-                else
-                {
-                    _xpLine.gameObject.SetActive(false);
-                }
-            }
+            // Levels and XP are no longer shown in the game, only money.
+            if (_xpLine != null) _xpLine.gameObject.SetActive(false);
 
             _panel.SetActive(true);
 
