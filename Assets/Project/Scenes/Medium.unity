@@ -11070,6 +11070,8 @@ MonoBehaviour:
   numberHeightAboveBeam: 1.5
   carriedColour: {r: 0.2, g: 0.85, b: 0.35, a: 1}
   waitingColour: {r: 0.2, g: 0.6, b: 1, a: 1}
+  cookColour: {r: 0.98, g: 0.55, b: 0.12, a: 1}
+  readyColour: {r: 0.2, g: 0.85, b: 0.35, a: 1}
   urgentBelowSeconds: 8
   distanceFrom: {fileID: 0}
   nearDistance: 30
@@ -35043,6 +35045,43 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 513680812}
   m_Mesh: {fileID: 6688693442639567902, guid: 258d50c72324f46a992936f34aeac84b, type: 3}
+--- !u!1 &515482589
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 515482590}
+  m_Layer: 0
+  m_Name: Kitchen
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &515482590
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 515482589}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 14.9, y: 0.2525897, z: 193.3}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1976740432}
+  - {fileID: 1488020828}
+  - {fileID: 733534617}
+  - {fileID: 2018257416}
+  - {fileID: 2140822169}
+  - {fileID: 2082597736}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &516164933
 GameObject:
   m_ObjectHideFlags: 0
@@ -39218,9 +39257,9 @@ MonoBehaviour:
   orderManager: {fileID: 816895044}
   cargoSystem: {fileID: 935175481}
   pickupRadius: 6
+  bayRadius: 7
   dropOffRadius: 6
   checkInterval: 0.1
-  logActivity: 1
   drawGizmos: 1
 --- !u!114 &592668317
 MonoBehaviour:
@@ -46280,7 +46319,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.UI.ShiftResults
   shiftTimer: {fileID: 816895046}
   orderManager: {fileID: 816895044}
-  playerProgression: {fileID: 816895047}
   mainMenuSceneName: MainMenu
   panelSize: {x: 620, y: 400}
   titleFontSize: 48
@@ -46290,7 +46328,6 @@ MonoBehaviour:
   textColour: {r: 1, g: 1, b: 1, a: 1}
   deliveredColour: {r: 0.15, g: 1, b: 0.3, a: 1}
   lateColour: {r: 1, g: 0.05, b: 0.05, a: 1}
-  xpColour: {r: 0.7, g: 0.5, b: 1, a: 1}
   buttonColour: {r: 0.16, g: 0.16, b: 0.16, a: 1}
 --- !u!114 &700100050
 MonoBehaviour:
@@ -49267,6 +49304,59 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 733315503}
   m_Mesh: {fileID: 6688693442639567902, guid: 258d50c72324f46a992936f34aeac84b, type: 3}
+--- !u!1 &733534616
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 733534617}
+  - component: {fileID: 733534618}
+  m_Layer: 0
+  m_Name: Market
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &733534617
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 733534616}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -37.8, y: 0, z: -41.5}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 515482590}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &733534618
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 733534616}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bb3c23f179a75524bb1361c391054a21, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.IngredientSource
+  placeName: Market
+  supplies:
+  - {fileID: 11400000, guid: 017c2dfb84fcd8644a89fdbd651fd6ce, type: 2}
+  - {fileID: 11400000, guid: 0c8a9fadf83b92c41a133883fcdbe491, type: 2}
+  - {fileID: 11400000, guid: 634a5e5f832acf643aecf61156e0a173, type: 2}
+  showLabel: 1
+  labelHeight: 6
+  labelCharacterSize: 0.18
+  labelColour: {r: 0.2, g: 0.6, b: 1, a: 1}
 --- !u!1 &735144709
 GameObject:
   m_ObjectHideFlags: 0
@@ -54292,13 +54382,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.OrderManager
   tuning: {fileID: 11400000, guid: d45a48eeca7d4364896ca1448c017ed2, type: 2}
-  pickupPoints:
-  - {fileID: 700100004}
-  - {fileID: 700100006}
-  - {fileID: 700100008}
-  - {fileID: 700100010}
-  - {fileID: 700100012}
-  - {fileID: 700100014}
   dropOffPoints:
   - {fileID: 700100016}
   - {fileID: 700100018}
@@ -54306,6 +54389,7 @@ MonoBehaviour:
   - {fileID: 700100022}
   - {fileID: 700100024}
   - {fileID: 700100026}
+  pickupPoints: []
   floorBounds: {fileID: 1551314018}
   floorEdgeMargin: 5
   generateTestPointsIfEmpty: 1
@@ -54355,7 +54439,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cdd06e60aa8338a4bb39e087cbb6958d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.PlayerProgression
-  tuning: {fileID: 11400000, guid: b7cde7f517a195741a027c88a0445852, type: 2}
   orderManager: {fileID: 816895044}
   logActivity: 1
 --- !u!1 &820129812
@@ -62226,6 +62309,7 @@ MonoBehaviour:
   orderManager: {fileID: 816895044}
   cargoCondition: {fileID: 592668317}
   capacity: 2
+  ingredientCapacity: 4
   logActivity: 1
 --- !u!4 &935175482
 Transform:
@@ -68926,6 +69010,8 @@ MonoBehaviour:
   idFontSize: 30
   carriedColour: {r: 0.2, g: 0.85, b: 0.35, a: 1}
   waitingColour: {r: 0.2, g: 0.6, b: 1, a: 1}
+  cookColour: {r: 0.98, g: 0.55, b: 0.12, a: 1}
+  readyColour: {r: 0.2, g: 0.85, b: 0.35, a: 1}
   urgentBelowSeconds: 8
   distanceFrom: {fileID: 0}
   nearDistance: 20
@@ -68992,8 +69078,11 @@ MonoBehaviour:
   ticketGap: 10
   ticketScale: 1.05
   urgentBelowSeconds: 8
+  burnWarningSeconds: 4
   resolvedLingerSeconds: 1.1
   popupSeconds: 1.8
+  popupOnIngredient: 1
+  repeatWarningSeconds: 3
 --- !u!1 &1029030780
 GameObject:
   m_ObjectHideFlags: 0
@@ -102682,6 +102771,59 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1487225674}
   m_Mesh: {fileID: 6688693442639567902, guid: 258d50c72324f46a992936f34aeac84b, type: 3}
+--- !u!1 &1488020827
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1488020828}
+  - component: {fileID: 1488020829}
+  m_Layer: 0
+  m_Name: Bakery
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1488020828
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1488020827}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 53.8, y: 0, z: -159.2}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 515482590}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1488020829
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1488020827}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bb3c23f179a75524bb1361c391054a21, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.IngredientSource
+  placeName: Bakery
+  supplies:
+  - {fileID: 11400000, guid: f3fefa36721bf9f44b0faf6b94e7cd28, type: 2}
+  - {fileID: 11400000, guid: d5f863769d2e1ac41aeeabcfdf165299, type: 2}
+  - {fileID: 11400000, guid: 5ed332811b4527044bbb387113680a15, type: 2}
+  showLabel: 1
+  labelHeight: 6
+  labelCharacterSize: 0.18
+  labelColour: {r: 0.2, g: 0.6, b: 1, a: 1}
 --- !u!1 &1490472713
 GameObject:
   m_ObjectHideFlags: 0
@@ -137328,6 +137470,58 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1976213803}
   m_CullTransparentMesh: 1
+--- !u!1 &1976740431
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1976740432}
+  - component: {fileID: 1976740433}
+  m_Layer: 0
+  m_Name: Butcher
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1976740432
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1976740431}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 84, y: 0, z: -69.6}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 515482590}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1976740433
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1976740431}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bb3c23f179a75524bb1361c391054a21, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.IngredientSource
+  placeName: Butcher
+  supplies:
+  - {fileID: 11400000, guid: a384bf4c8cd3f884089d9d62bb1fee56, type: 2}
+  - {fileID: 11400000, guid: dcc631b69cf792c488f12aec5bc8e0a0, type: 2}
+  showLabel: 1
+  labelHeight: 6
+  labelCharacterSize: 0.18
+  labelColour: {r: 0.2, g: 0.6, b: 1, a: 1}
 --- !u!1 &1980925331
 GameObject:
   m_ObjectHideFlags: 0
@@ -140091,6 +140285,57 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2014408660}
   m_Mesh: {fileID: 6688693442639567902, guid: 258d50c72324f46a992936f34aeac84b, type: 3}
+--- !u!1 &2018257415
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2018257416}
+  - component: {fileID: 2018257417}
+  m_Layer: 0
+  m_Name: Fish Market
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2018257416
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2018257415}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 111.3, y: 0, z: 70.6}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 515482590}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2018257417
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2018257415}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bb3c23f179a75524bb1361c391054a21, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.IngredientSource
+  placeName: Fish Market
+  supplies:
+  - {fileID: 11400000, guid: f62fd393a963a604eb7e04fea765d279, type: 2}
+  showLabel: 1
+  labelHeight: 6
+  labelCharacterSize: 0.18
+  labelColour: {r: 0.2, g: 0.6, b: 1, a: 1}
 --- !u!1 &2018885186
 GameObject:
   m_ObjectHideFlags: 0
@@ -145046,6 +145291,63 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2082305198}
   m_Mesh: {fileID: 3365615680376802459, guid: 38a4c5ebc9a2f4ea3841e7ebbc45b8b6, type: 3}
+--- !u!1 &2082597735
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2082597736}
+  - component: {fileID: 2082597737}
+  m_Layer: 0
+  m_Name: Bay 1
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2082597736
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2082597735}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 2, y: 0, z: -214.3}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 515482590}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2082597737
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2082597735}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5a287aef2c132e94bb90462c2eb20dfc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.ProcessingBay
+  bayName: 
+  orderManager: {fileID: 0}
+  zoneDetection: {fileID: 0}
+  buildVisual: 1
+  stoveHeight: 2.5
+  stoveRadius: 1.4
+  barWidth: 5
+  barHeight: 0.6
+  barY: 6
+  labelY: 7.2
+  labelCharacterSize: 0.2
+  warnBelowSeconds: 4
+  logActivity: 1
 --- !u!1 &2082948336
 GameObject:
   m_ObjectHideFlags: 0
@@ -148891,6 +149193,59 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2138471447}
   m_Mesh: {fileID: 6688693442639567902, guid: 258d50c72324f46a992936f34aeac84b, type: 3}
+--- !u!1 &2140822168
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2140822169}
+  - component: {fileID: 2140822170}
+  m_Layer: 0
+  m_Name: Dairy
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2140822169
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2140822168}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -118, y: -0.1735953, z: 93}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 515482590}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2140822170
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2140822168}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bb3c23f179a75524bb1361c391054a21, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.IngredientSource
+  placeName: Dairy
+  supplies:
+  - {fileID: 11400000, guid: 23429fbc5c6c797418d6e6a9b6e5f762, type: 2}
+  - {fileID: 11400000, guid: 4d143904259731b4da622bea079672db, type: 2}
+  - {fileID: 11400000, guid: 7c20a0c1fe7b6a349b951a2ef2bc0e11, type: 2}
+  showLabel: 1
+  labelHeight: 6
+  labelCharacterSize: 0.18
+  labelColour: {r: 0.2, g: 0.6, b: 1, a: 1}
 --- !u!1 &2142024397
 GameObject:
   m_ObjectHideFlags: 0
@@ -187158,3 +187513,4 @@ SceneRoots:
   - {fileID: 4440113130438213935}
   - {fileID: 990570197332184970}
   - {fileID: 1541219244}
+  - {fileID: 515482590}

@@ -24,14 +24,6 @@ namespace ZoomZoom.Orders.UI
     /// time. The HUD will count it; this screen will not, because a delivery after the whistle is not
     /// part of the shift.
     ///
-    /// XP EARNED THIS SHIFT (added alongside the original delivered/late/value tally)
-    /// PlayerProgression.XpGained fires from the same OrderResolved event, just one hop further
-    /// along, so it freezes under the exact same rule as everything else here: the moment
-    /// ShiftEnded fires, no more counting, whatever XP arrives after that belongs to the next
-    /// shift's HUD, not this screen. Optional, same as CargoCondition and CargoSystem's other
-    /// optional references: without a PlayerProgression in the scene this screen behaves exactly
-    /// as it did before, no XP line, no level, nothing missing that used to be there.
-    ///
     /// TIME UP AND THE START SCREEN (added alongside the original panel)
     /// The panel is titled TIME UP and has a Main Menu button next to Restart and Quit, which
     /// loads the start screen scene. Restart reloads the current scene, so it keeps the same
@@ -53,10 +45,6 @@ namespace ZoomZoom.Orders.UI
         [Tooltip("Found automatically if left empty.")]
         [SerializeField] private OrderManager orderManager;
 
-        [Tooltip("Optional. Found automatically if present. Adds an XP-earned-this-shift line " +
-                 "and a level-up callout when one happened during the shift.")]
-        [SerializeField] private PlayerProgression playerProgression;
-
         [Header("Scenes")]
         [Tooltip("Exact name of the start screen scene. It must be in File > Build Profiles > Scene List.")]
         [SerializeField] private string mainMenuSceneName = "MainMenu";
@@ -72,14 +60,11 @@ namespace ZoomZoom.Orders.UI
         [SerializeField] private Color textColour = Color.white;
         [SerializeField] private Color deliveredColour = new Color(0.15f, 1f, 0.3f, 1f);
         [SerializeField] private Color lateColour = new Color(1f, 0.05f, 0.05f, 1f);
-        [SerializeField] private Color xpColour = new Color(0.7f, 0.5f, 1f, 1f);
         [SerializeField] private Color buttonColour = new Color(0.16f, 0.16f, 0.16f, 1f);
 
         public int Delivered { get; private set; }
         public int Late { get; private set; }
         public float Value { get; private set; }
-        public float XpEarned { get; private set; }
-        public bool LeveledUpThisShift { get; private set; }
         public bool IsShowing { get; private set; }
 
         private GameObject _panel;
@@ -87,13 +72,11 @@ namespace ZoomZoom.Orders.UI
         private Text _deliveredLine;
         private Text _lateLine;
         private Text _valueLine;
-        private Text _xpLine;
 
         private void Awake()
         {
             if (shiftTimer == null) shiftTimer = FindAnyObjectByType<ShiftTimer>();
             if (orderManager == null) orderManager = FindAnyObjectByType<OrderManager>();
-            if (playerProgression == null) playerProgression = FindAnyObjectByType<PlayerProgression>();
 
             if (shiftTimer == null || orderManager == null)
             {
@@ -111,24 +94,12 @@ namespace ZoomZoom.Orders.UI
 
             orderManager.OrderResolved += HandleOrderResolved;
             shiftTimer.ShiftEnded += HandleShiftEnded;
-
-            if (playerProgression != null)
-            {
-                playerProgression.XpGained += HandleXpGained;
-                playerProgression.LevelUp += HandleLevelUp;
-            }
         }
 
         private void OnDestroy()
         {
             if (orderManager != null) orderManager.OrderResolved -= HandleOrderResolved;
             if (shiftTimer != null) shiftTimer.ShiftEnded -= HandleShiftEnded;
-
-            if (playerProgression != null)
-            {
-                playerProgression.XpGained -= HandleXpGained;
-                playerProgression.LevelUp -= HandleLevelUp;
-            }
         }
 
         private void HandleOrderResolved(Order order, float value)
@@ -143,18 +114,6 @@ namespace ZoomZoom.Orders.UI
             else Late++;
         }
 
-        private void HandleXpGained(float amount, Order order)
-        {
-            if (IsShowing) return; // same freeze rule as HandleOrderResolved
-            XpEarned += amount;
-        }
-
-        private void HandleLevelUp(int newLevel)
-        {
-            if (IsShowing) return;
-            LeveledUpThisShift = true;
-        }
-
         private void HandleShiftEnded()
         {
             IsShowing = true;
@@ -165,18 +124,11 @@ namespace ZoomZoom.Orders.UI
 
             _deliveredLine.text = $"Delivered   {Delivered}";
             _lateLine.text = $"Late        {Late}";
-            _valueLine.text = $"Money       R{Value:0}";
-
-            // Levels and XP are no longer shown in the game, only money.
-            if (_xpLine != null) _xpLine.gameObject.SetActive(false);
+            _valueLine.text = Value < 0f ? $"Money       -R{-Value:0}" : $"Money       R{Value:0}";
 
             _panel.SetActive(true);
 
-            string xpSuffix = playerProgression != null
-                ? $", {XpEarned:0} XP{(LeveledUpThisShift ? " (levelled up)" : "")}"
-                : "";
-            Debug.Log($"[ShiftResults] Shift over: {Delivered} delivered, {Late} late, " +
-                      $"{Value:0} value{xpSuffix}.");
+            Debug.Log($"[ShiftResults] Shift over: {Delivered} delivered, {Late} late, R{Value:0}.");
         }
 
         /// <summary>Reloads the current scene. Also wired to the Restart button.</summary>
@@ -279,8 +231,6 @@ namespace ZoomZoom.Orders.UI
                 lateColour, TextAnchor.UpperCenter);
             _valueLine = CreateLine(panelRect, "Value", ref y, lineHeight, fontSize,
                 textColour, TextAnchor.UpperCenter);
-            _xpLine = CreateLine(panelRect, "Xp", ref y, lineHeight, fontSize,
-                xpColour, TextAnchor.UpperCenter);
 
             // Buttons sit on the panel's bottom edge, side by side.
             var buttonSize = new Vector2(190f, 64f);

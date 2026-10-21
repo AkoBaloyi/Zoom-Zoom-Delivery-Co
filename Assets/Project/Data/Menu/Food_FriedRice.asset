@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c7b797602c2581c47a8f2581719fd653, type: 3}
+  m_Name: Food_FriedRice
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.FoodType
+  displayName: Fried Rice
+  icon: {fileID: 0}
+  cardColour: {r: 0.93, g: 0.36, b: 0.27, a: 1}
+  ingredients:
+  - {fileID: 11400000, guid: 0c8a9fadf83b92c41a133883fcdbe491, type: 2}
+  - {fileID: 11400000, guid: 017c2dfb84fcd8644a89fdbd651fd6ce, type: 2}
+  cookSeconds: 8
+  burnSeconds: 12
+  basePay: 250
+  spawnWeight: 1.2

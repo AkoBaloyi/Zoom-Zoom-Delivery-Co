@@ -7,12 +7,15 @@ namespace ZoomZoom.Orders.UI
     /// <summary>
     /// Overcooked style order cards along the top left of the screen, oldest on the left.
     ///
-    /// Each card shows the order number, the food and the seconds left, PICK and DROP step
-    /// badges, where to pick up and where to deliver, what the order pays right now (early, on
-    /// time or late), and its own patience bar, separate from the shift clock, with marks where
-    /// early ends and late begins. The card shakes when the bar is nearly empty. When an order
-    /// ends, a stamp lands on its card (EARLY, ON TIME, LATE or CANCELLED), a short message says
-    /// what it paid or cost, and the card slides away.
+    /// Each card shows the order number, the food and the seconds left, then a row of chips: one
+    /// per ingredient (filled in once collected), a COOK chip (counts down while cooking, then
+    /// flashes green while ready and red when about to burn), and a DROP chip. Under the chips
+    /// is one line saying exactly what to do next, what the order pays right now (early, on time
+    /// or late), and its own patience bar, with marks where early ends and late begins.
+    ///
+    /// When an order ends, a stamp lands on its card (EARLY, ON TIME, LATE, CANCELLED or
+    /// BURNED), a short message says what it paid or cost, and the card slides away. Short
+    /// messages also confirm each ingredient, each bay load and food becoming ready.
     ///
     /// Built in code, nothing to wire. All pay numbers come from the Order Tuning asset.
     /// </summary>
@@ -40,13 +43,28 @@ namespace ZoomZoom.Orders.UI
         [Header("Behaviour")]
         [Tooltip("Seconds left below which a card's bar shakes.")]
         [SerializeField] private float urgentBelowSeconds = 8f;
+        [Tooltip("Seconds before burning at which the COOK chip flashes red.")]
+        [SerializeField] private float burnWarningSeconds = 4f;
         [Tooltip("Seconds a stamp stays on a card before it slides away.")]
         [SerializeField] private float resolvedLingerSeconds = 1.1f;
         [Tooltip("Seconds each message stays on screen.")]
         [SerializeField] private float popupSeconds = 1.8f;
+        [Tooltip("Show a short message for every ingredient collected.")]
+        [SerializeField] private bool popupOnIngredient = true;
+        [Tooltip("Seconds before the same warning (for example \"car full\") can show again.")]
+        [SerializeField] private float repeatWarningSeconds = 3f;
 
-        private static readonly string[] StepLabels = { "PICK", "DROP" };
-        private static readonly OrderStep[] Steps = { OrderStep.Pickup, OrderStep.Deliver };
+        private enum ChipKind { Ingredient, Cook, Drop }
+
+        private class Chip
+        {
+            public ChipKind Kind;
+            public IngredientStop Stop;
+            public RectTransform Rect;
+            public Image Background;
+            public Image Icon;
+            public Text Label;
+        }
 
         private class Card
         {
@@ -56,12 +74,8 @@ namespace ZoomZoom.Orders.UI
             public Text Title;
             public Text TimeText;
             public Image FoodIcon;
-            public RectTransform[] BadgeRects;
-            public Image[] Badges;
-            public Image[] BadgeIcons;
-            public Text[] BadgeLabels;
-            public Text FromText;
-            public Text ToText;
+            public List<Chip> Chips = new List<Chip>();
+            public Text StepText;
             public Text PayText;
             public RectTransform BarFill;
             public Image BarFillImage;
@@ -79,11 +93,15 @@ namespace ZoomZoom.Orders.UI
         private readonly List<Card> _cards = new List<Card>();
         private readonly Dictionary<Order, Card> _byOrder = new Dictionary<Order, Card>();
         private readonly Queue<KeyValuePair<string, Color>> _popupQueue = new Queue<KeyValuePair<string, Color>>();
+        private readonly Dictionary<string, float> _lastWarning = new Dictionary<string, float>();
 
         private RectTransform _stripRoot;
         private Text _popup;
         private float _popupTimer;
         private Font _font;
+
+        private static readonly Color DoneText = new Color(1f, 1f, 1f, 1f);
+        private static readonly Color GoodGreen = new Color(0.1f, 0.5f, 0.2f, 1f);
 
         private float BarWidth => cardSize.x - 20f;
 
@@ -107,13 +125,25 @@ namespace ZoomZoom.Orders.UI
             BuildCanvas();
 
             orderManager.OrderPaid += HandleOrderPaid;
-            if (cargoSystem != null) cargoSystem.CapacityChanged += HandleCapacityChanged;
+            ProcessingBay.AnyBayEvent += HandleBayEvent;
+            if (cargoSystem != null)
+            {
+                cargoSystem.CapacityChanged += HandleCapacityChanged;
+                cargoSystem.IngredientCollected += HandleIngredientCollected;
+                cargoSystem.Refused += HandleRefused;
+            }
         }
 
         private void OnDestroy()
         {
             if (orderManager != null) orderManager.OrderPaid -= HandleOrderPaid;
-            if (cargoSystem != null) cargoSystem.CapacityChanged -= HandleCapacityChanged;
+            ProcessingBay.AnyBayEvent -= HandleBayEvent;
+            if (cargoSystem != null)
+            {
+                cargoSystem.CapacityChanged -= HandleCapacityChanged;
+                cargoSystem.IngredientCollected -= HandleIngredientCollected;
+                cargoSystem.Refused -= HandleRefused;
+            }
         }
 
         // ---- events ---------------------------------------------------------------------------
@@ -136,6 +166,9 @@ namespace ZoomZoom.Orders.UI
                     case DeliveryTiming.Late:
                         ShowStamp(card, "LATE", new Color(1f, 0.55f, 0.1f, 1f), SkinSprite(s => s.stampLate));
                         break;
+                    case DeliveryTiming.Burned:
+                        ShowStamp(card, "BURNED", OrderPalette.Urgent, null);
+                        break;
                     default:
                         ShowStamp(card, "CANCELLED", OrderPalette.Urgent, null);
                         break;
@@ -153,10 +186,44 @@ namespace ZoomZoom.Orders.UI
                 case DeliveryTiming.Late:
                     PushPopup($"Order #{order.Id} late, +R{payout.Total:0}", new Color(1f, 0.6f, 0.15f, 1f));
                     break;
+                case DeliveryTiming.Burned:
+                    PushPopup($"{order.FoodName} #{order.Id} burned, minus R{-payout.Penalty:0}", OrderPalette.Urgent);
+                    break;
                 default:
                     PushPopup($"Order #{order.Id} cancelled, minus R{-payout.Penalty:0}", OrderPalette.Urgent);
                     break;
             }
+        }
+
+        private void HandleIngredientCollected(Order order, IngredientStop stop)
+        {
+            if (!popupOnIngredient) return;
+
+            string text = order.AllIngredientsCollected && order.NeedsCooking
+                ? $"Got {stop.Name}. #{order.Id} {order.FoodName} ready to cook!"
+                : $"Got {stop.Name} for #{order.Id}";
+            PushPopup(text, OrderPalette.Pickup);
+        }
+
+        private void HandleBayEvent(ProcessingBay bay, Order order, string what)
+        {
+            switch (what)
+            {
+                case "cooking":
+                    PushPopup($"#{order.Id} {order.FoodName} cooking, {order.CookSeconds:0}s", OrderPalette.Cook);
+                    break;
+                case "ready":
+                    PushPopup($"#{order.Id} {order.FoodName} ready at {bay.BayName}!", OrderPalette.Deliver);
+                    break;
+            }
+        }
+
+        private void HandleRefused(string reason)
+        {
+            float now = Time.unscaledTime;
+            if (_lastWarning.TryGetValue(reason, out float last) && now - last < repeatWarningSeconds) return;
+            _lastWarning[reason] = now;
+            PushPopup(reason, OrderPalette.Warning);
         }
 
         private void HandleCapacityChanged(int capacity)
@@ -242,6 +309,7 @@ namespace ZoomZoom.Orders.UI
             Order order = c.Order;
             OrderTuning tuning = orderManager.Tuning;
             float pulse = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 6f);
+            float fastPulse = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 14f);
 
             c.TimeText.text = order.IsTerminal ? "" : $"{Mathf.CeilToInt(order.TimeRemaining)}s";
 
@@ -251,53 +319,16 @@ namespace ZoomZoom.Orders.UI
             Color paperBase = SkinSprite(s => s.ticketPaper) != null ? Color.white : OrderPalette.Paper;
             c.Paper.color = Color.Lerp(paperBase, new Color(1f, 0.78f, 0.72f, 1f), urgency * pulse);
 
-            // Step badges
-            int current = order.CurrentStep == OrderStep.Pickup ? 0 : 1;
-            bool finished = order.State == OrderState.Delivered;
-            bool icons = SkinSprite(s => s.iconPickup) != null && SkinSprite(s => s.iconDropOff) != null;
+            foreach (Chip chip in c.Chips) RefreshChip(chip, order, pulse, fastPulse);
 
-            for (int i = 0; i < Steps.Length; i++)
-            {
-                bool done = finished || i < current;
-                bool isCurrent = !finished && i == current && !order.IsTerminal;
-                Color stepColour = OrderPalette.ForStep(Steps[i]);
-                Sprite stepIcon = icons ? (Steps[i] == OrderStep.Pickup ? skin.iconPickup : skin.iconDropOff) : null;
-
-                if (done)
-                {
-                    c.Badges[i].color = Color.Lerp(stepColour, OrderPalette.Ink, 0.25f);
-                    c.BadgeRects[i].localScale = Vector3.one;
-                    Sprite doneIcon = SkinSprite(s => s.iconDone);
-                    if (doneIcon != null) SetBadgeIcon(c, i, doneIcon, 1f);
-                    else if (icons) SetBadgeIcon(c, i, stepIcon, 1f);
-                    else SetBadgeText(c, i, "OK", Color.white);
-                }
-                else if (isCurrent)
-                {
-                    c.Badges[i].color = stepColour;
-                    c.BadgeRects[i].localScale = Vector3.one * (1f + 0.08f * pulse);
-                    if (icons) SetBadgeIcon(c, i, stepIcon, 1f);
-                    else SetBadgeText(c, i, StepLabels[i], OrderPalette.Ink);
-                }
-                else
-                {
-                    c.Badges[i].color = OrderPalette.BadgeOff;
-                    c.BadgeRects[i].localScale = Vector3.one;
-                    if (icons) SetBadgeIcon(c, i, stepIcon, 0.45f);
-                    else SetBadgeText(c, i, StepLabels[i], new Color(OrderPalette.Ink.r, OrderPalette.Ink.g, OrderPalette.Ink.b, 0.55f));
-                }
-            }
-
-            // Where to go: the line for the current step is bold.
-            c.FromText.fontStyle = current == 0 && !order.IsTerminal ? FontStyle.Bold : FontStyle.Normal;
-            c.ToText.fontStyle = current == 1 && !order.IsTerminal ? FontStyle.Bold : FontStyle.Normal;
+            RefreshStepText(c, order);
 
             // What it pays right now
             if (order.IsTerminal && order.Payout != null)
             {
                 float total = order.Payout.Total;
                 c.PayText.text = total >= 0f ? $"Paid R{total:0}" : $"Lost R{-total:0}";
-                c.PayText.color = total >= 0f ? new Color(0.1f, 0.5f, 0.2f, 1f) : OrderPalette.Urgent;
+                c.PayText.color = total >= 0f ? GoodGreen : OrderPalette.Urgent;
             }
             else if (tuning != null)
             {
@@ -319,6 +350,146 @@ namespace ZoomZoom.Orders.UI
                 : OrderPalette.Warning;
         }
 
+        private void RefreshChip(Chip chip, Order order, float pulse, float fastPulse)
+        {
+            bool live = !order.IsTerminal;
+            OrderStep step = order.CurrentStep;
+            Color off = OrderPalette.BadgeOff;
+            Color offText = new Color(OrderPalette.Ink.r, OrderPalette.Ink.g, OrderPalette.Ink.b, 0.6f);
+            float scale = 1f;
+
+            switch (chip.Kind)
+            {
+                case ChipKind.Ingredient:
+                    {
+                        Color ingredientColour = chip.Stop.Ingredient != null ? chip.Stop.Ingredient.colour : OrderPalette.Pickup;
+                        if (chip.Stop.Collected)
+                        {
+                            chip.Background.color = ingredientColour;
+                            SetChip(chip, chip.Stop.ChipLabel, DoneText, 1f);
+                        }
+                        else
+                        {
+                            // Still needed: cream chip that pulses while this order is gathering.
+                            bool needed = live && step == OrderStep.Gather;
+                            chip.Background.color = needed ? Color.Lerp(off, OrderPalette.Pickup, 0.35f * pulse) : off;
+                            SetChip(chip, chip.Stop.ChipLabel, needed ? OrderPalette.Ink : offText, 0.5f);
+                            if (needed) scale = 1f + 0.06f * pulse;
+                        }
+                        break;
+                    }
+
+                case ChipKind.Cook:
+                    {
+                        if (order.State == OrderState.Cooking)
+                        {
+                            chip.Background.color = OrderPalette.Cook;
+                            SetChip(chip, $"{Mathf.CeilToInt(order.BayTimeRemaining)}s", DoneText, 1f);
+                        }
+                        else if (order.State == OrderState.Ready)
+                        {
+                            bool burning = order.BayTimeRemaining <= burnWarningSeconds;
+                            chip.Background.color = burning
+                                ? Color.Lerp(OrderPalette.Deliver, OrderPalette.Urgent, fastPulse)
+                                : OrderPalette.Deliver;
+                            SetChip(chip, burning ? $"{Mathf.CeilToInt(order.BayTimeRemaining)}s" : "READY", DoneText, 1f);
+                            scale = 1f + 0.1f * pulse;
+                        }
+                        else if (order.State == OrderState.Carried || order.State == OrderState.Delivered)
+                        {
+                            chip.Background.color = Color.Lerp(OrderPalette.Cook, OrderPalette.Ink, 0.25f);
+                            SetChip(chip, "COOK", DoneText, 1f);
+                        }
+                        else if (live && step == OrderStep.Cook)
+                        {
+                            // Every ingredient is in the car: go to a bay.
+                            chip.Background.color = OrderPalette.Cook;
+                            SetChip(chip, "COOK", OrderPalette.Ink, 1f);
+                            scale = 1f + 0.08f * pulse;
+                        }
+                        else
+                        {
+                            chip.Background.color = off;
+                            SetChip(chip, "COOK", offText, 0.5f);
+                        }
+                        break;
+                    }
+
+                default: // Drop
+                    {
+                        if (order.State == OrderState.Delivered)
+                        {
+                            chip.Background.color = Color.Lerp(OrderPalette.Deliver, OrderPalette.Ink, 0.25f);
+                            SetDropChip(chip, true, DoneText, 1f);
+                        }
+                        else if (live && step == OrderStep.Deliver)
+                        {
+                            chip.Background.color = OrderPalette.Deliver;
+                            SetDropChip(chip, false, OrderPalette.Ink, 1f);
+                            scale = 1f + 0.08f * pulse;
+                        }
+                        else
+                        {
+                            chip.Background.color = off;
+                            SetDropChip(chip, false, offText, 0.45f);
+                        }
+                        break;
+                    }
+            }
+
+            chip.Rect.localScale = Vector3.one * scale;
+        }
+
+        private void RefreshStepText(Card c, Order order)
+        {
+            if (order.IsTerminal)
+            {
+                c.StepText.text = string.Empty;
+                return;
+            }
+
+            string text;
+            Color colour = OrderPalette.Ink;
+
+            switch (order.State)
+            {
+                case OrderState.Cooking:
+                    text = $"Cooking at {order.BayName}";
+                    colour = Color.Lerp(OrderPalette.Cook, OrderPalette.Ink, 0.3f);
+                    break;
+
+                case OrderState.Ready:
+                    bool burning = order.BayTimeRemaining <= burnWarningSeconds;
+                    text = burning ? $"Burning! Get it from {order.BayName}" : $"Ready! Collect at {order.BayName}";
+                    colour = burning ? OrderPalette.Urgent : GoodGreen;
+                    break;
+
+                case OrderState.Carried:
+                    text = $"Deliver to {order.DropOffName}";
+                    colour = GoodGreen;
+                    break;
+
+                default:
+                    if (order.CurrentStep == OrderStep.Cook)
+                    {
+                        text = order.HasBay ? $"Take to {order.BayName}" : "Take to a bay";
+                        colour = Color.Lerp(OrderPalette.Cook, OrderPalette.Ink, 0.3f);
+                    }
+                    else
+                    {
+                        IngredientStop next = order.NextStop;
+                        int left = order.Stops.Count - order.IngredientsCollected;
+                        text = next == null ? "" : $"Get {next.Name}: {next.PlaceName}";
+                        if (left > 1) text += $" +{left - 1}";
+                        colour = Color.Lerp(OrderPalette.Pickup, OrderPalette.Ink, 0.45f);
+                    }
+                    break;
+            }
+
+            c.StepText.text = Shorten(text, 30);
+            c.StepText.color = colour;
+        }
+
         /// <summary>What delivering this order right now would pay, and which bracket it is in.</summary>
         private void PreviewPay(Order order, OrderTuning tuning, out string label, out float pay, out Color colour)
         {
@@ -329,7 +500,7 @@ namespace ZoomZoom.Orders.UI
             {
                 label = "Early";
                 pay = basePay * (1f + tuning.earlyBonus);
-                colour = new Color(0.1f, 0.5f, 0.2f, 1f);
+                colour = GoodGreen;
             }
             else if (fraction < tuning.lateBelowPatienceLeft)
             {
@@ -368,7 +539,7 @@ namespace ZoomZoom.Orders.UI
                 _popup.rectTransform.localScale = Vector3.one * Mathf.Lerp(1.25f, 1f, fadeIn);
 
                 // Shorten the wait when more popups are queued, so a burst never falls far behind.
-                if (_popupQueue.Count > 1 && _popupTimer > 0.8f) _popupTimer = 0.8f;
+                if (_popupQueue.Count > 0 && _popupTimer > 0.8f) _popupTimer = 0.8f;
 
                 if (_popupTimer <= 0f) _popup.text = string.Empty;
                 return;
@@ -410,7 +581,7 @@ namespace ZoomZoom.Orders.UI
             popupGO.transform.SetParent(canvasGO.transform, false);
             _popup = popupGO.AddComponent<Text>();
             _popup.font = _font;
-            _popup.fontSize = 42;
+            _popup.fontSize = 40;
             _popup.fontStyle = FontStyle.Bold;
             _popup.alignment = TextAnchor.MiddleCenter;
             _popup.horizontalOverflow = HorizontalWrapMode.Overflow;
@@ -421,7 +592,7 @@ namespace ZoomZoom.Orders.UI
             popupRect.anchorMin = popupRect.anchorMax = new Vector2(0.5f, 1f);
             popupRect.pivot = new Vector2(0.5f, 1f);
             popupRect.anchoredPosition = new Vector2(0f, -240f);
-            popupRect.sizeDelta = new Vector2(1200f, 70f);
+            popupRect.sizeDelta = new Vector2(1400f, 70f);
             AddOutline(popupGO, 3f);
         }
 
@@ -444,7 +615,7 @@ namespace ZoomZoom.Orders.UI
             shadow.effectColor = new Color(0f, 0f, 0f, 0.45f);
             shadow.effectDistance = new Vector2(4f, -4f);
 
-            // Header: food colour, icon, "#1 FRIED RICE", seconds left
+            // Header: food colour, icon, "#1 BURGER", seconds left
             RectTransform header = MakeRect(c.Root, "Header", Vector2.zero, new Vector2(w, 34f));
             Image headerImage = header.gameObject.AddComponent<Image>();
             headerImage.color = order.Food != null ? order.Food.cardColour : OrderPalette.TicketHeader(order.Id);
@@ -463,57 +634,62 @@ namespace ZoomZoom.Orders.UI
 
             c.Title = MakeText(header, "Title", new Vector2(titleX, -2f), new Vector2(w - titleX - 52f, 30f),
                 17, Color.white, TextAnchor.MiddleLeft, true);
-            c.Title.text = $"#{order.Id} {order.FoodName.ToUpper()}";
+            c.Title.text = $"#{order.Id} {Shorten(order.FoodName.ToUpper(), 16)}";
             AddOutline(c.Title.gameObject, 2f);
 
             c.TimeText = MakeText(header, "Time", new Vector2(w - 52f, -2f), new Vector2(44f, 30f),
                 18, Color.white, TextAnchor.MiddleRight, true);
             AddOutline(c.TimeText.gameObject, 2f);
 
-            // Step badges on the left
+            // Chip row: one per ingredient, then COOK (if this scene has bays), then DROP.
+            var kinds = new List<KeyValuePair<ChipKind, IngredientStop>>();
+            foreach (IngredientStop stop in order.Stops) kinds.Add(new KeyValuePair<ChipKind, IngredientStop>(ChipKind.Ingredient, stop));
+            if (order.NeedsCooking) kinds.Add(new KeyValuePair<ChipKind, IngredientStop>(ChipKind.Cook, null));
+            kinds.Add(new KeyValuePair<ChipKind, IngredientStop>(ChipKind.Drop, null));
+
+            const float chipGap = 4f, chipH = 32f, chipTop = -40f;
+            float chipW = Mathf.Min(52f, (w - 16f - chipGap * (kinds.Count - 1)) / kinds.Count);
             bool badgeArt = SkinSprite(s => s.badgeBackground) != null;
-            Vector2 badgeSize = new Vector2(40f, 40f);
-            c.BadgeRects = new RectTransform[Steps.Length];
-            c.Badges = new Image[Steps.Length];
-            c.BadgeIcons = new Image[Steps.Length];
-            c.BadgeLabels = new Text[Steps.Length];
-            for (int i = 0; i < Steps.Length; i++)
+
+            for (int i = 0; i < kinds.Count; i++)
             {
-                RectTransform badge = MakeRect(c.Root, $"Badge {i}", Vector2.zero, badgeSize);
-                badge.pivot = new Vector2(0.5f, 0.5f);
-                badge.anchoredPosition = new Vector2(8f + badgeSize.x * 0.5f + i * (badgeSize.x + 6f), -42f - badgeSize.y * 0.5f);
-                c.BadgeRects[i] = badge;
+                var chip = new Chip { Kind = kinds[i].Key, Stop = kinds[i].Value };
+                chip.Rect = MakeRect(c.Root, $"Chip {i}", Vector2.zero, new Vector2(chipW, chipH));
+                chip.Rect.pivot = new Vector2(0.5f, 0.5f);
+                chip.Rect.anchoredPosition = new Vector2(8f + chipW * 0.5f + i * (chipW + chipGap), chipTop - chipH * 0.5f);
 
-                c.Badges[i] = badge.gameObject.AddComponent<Image>();
-                c.Badges[i].raycastTarget = false;
-                if (badgeArt) HudSkin.ApplyIcon(c.Badges[i], skin.badgeBackground);
+                chip.Background = chip.Rect.gameObject.AddComponent<Image>();
+                chip.Background.raycastTarget = false;
+                if (badgeArt) HudSkin.ApplyIcon(chip.Background, skin.badgeBackground);
+                if (badgeArt) chip.Background.preserveAspect = false;
 
-                RectTransform iconRect = MakeRect(badge, "Icon", Vector2.zero, badgeSize * 0.7f);
+                RectTransform iconRect = MakeRect(chip.Rect, "Icon", Vector2.zero, new Vector2(chipH * 0.75f, chipH * 0.75f));
                 iconRect.anchorMin = iconRect.anchorMax = iconRect.pivot = new Vector2(0.5f, 0.5f);
                 iconRect.anchoredPosition = Vector2.zero;
-                c.BadgeIcons[i] = iconRect.gameObject.AddComponent<Image>();
-                c.BadgeIcons[i].preserveAspect = true;
-                c.BadgeIcons[i].raycastTarget = false;
-                c.BadgeIcons[i].enabled = false;
+                chip.Icon = iconRect.gameObject.AddComponent<Image>();
+                chip.Icon.preserveAspect = true;
+                chip.Icon.raycastTarget = false;
+                chip.Icon.enabled = false;
 
-                c.BadgeLabels[i] = MakeText(badge, "Label", Vector2.zero, badgeSize, 13,
+                chip.Label = MakeText(chip.Rect, "Label", Vector2.zero, new Vector2(chipW, chipH), 12,
                     OrderPalette.Ink, TextAnchor.MiddleCenter, true);
-                Stretch(c.BadgeLabels[i].rectTransform);
+                Stretch(chip.Label.rectTransform);
+                chip.Label.horizontalOverflow = HorizontalWrapMode.Wrap;
+                chip.Label.verticalOverflow = VerticalWrapMode.Truncate; // best fit needs both bounded
+                chip.Label.resizeTextForBestFit = true;
+                chip.Label.resizeTextMinSize = 8;
+                chip.Label.resizeTextMaxSize = 12;
+
+                c.Chips.Add(chip);
             }
 
-            // From and To, right of the badges
-            float textX = 8f + 2f * badgeSize.x + 6f + 8f;
-            float textW = w - textX - 6f;
-            c.FromText = MakeText(c.Root, "From", new Vector2(textX, -42f), new Vector2(textW, 20f),
-                14, OrderPalette.Ink, TextAnchor.MiddleLeft, false);
-            c.FromText.text = $"From: {Shorten(order.PickupName, 18)}";
-            c.ToText = MakeText(c.Root, "To", new Vector2(textX, -62f), new Vector2(textW, 20f),
-                14, OrderPalette.Ink, TextAnchor.MiddleLeft, false);
-            c.ToText.text = $"To: {Shorten(order.DropOffName, 20)}";
+            // What to do next
+            c.StepText = MakeText(c.Root, "Next step", new Vector2(8f, -76f), new Vector2(w - 16f, 20f),
+                14, OrderPalette.Ink, TextAnchor.MiddleLeft, true);
 
             // What it pays right now
-            c.PayText = MakeText(c.Root, "Pay", new Vector2(8f, -88f), new Vector2(w - 16f, 22f),
-                16, OrderPalette.Ink, TextAnchor.MiddleCenter, true);
+            c.PayText = MakeText(c.Root, "Pay", new Vector2(8f, -98f), new Vector2(w - 16f, 22f),
+                15, OrderPalette.Ink, TextAnchor.MiddleLeft, true);
 
             // Patience bar with early and late marks
             float barH = SkinSprite(s => s.barFill) != null ? 18f : 16f;
@@ -596,19 +772,36 @@ namespace ZoomZoom.Orders.UI
 
         private Sprite SkinSprite(System.Func<HudSkin, Sprite> pick) => skin != null ? pick(skin) : null;
 
-        private static void SetBadgeIcon(Card c, int i, Sprite icon, float alpha)
+        /// <summary>An ingredient chip shows the ingredient's icon if it has one, else its label.</summary>
+        private static void SetChip(Chip chip, string label, Color textColour, float iconAlpha)
         {
-            c.BadgeIcons[i].enabled = true;
-            c.BadgeIcons[i].sprite = icon;
-            c.BadgeIcons[i].color = new Color(1f, 1f, 1f, alpha);
-            c.BadgeLabels[i].text = string.Empty;
+            Sprite icon = chip.Kind == ChipKind.Ingredient && chip.Stop.Ingredient != null ? chip.Stop.Ingredient.icon : null;
+            ApplyChip(chip, icon, label, textColour, iconAlpha);
         }
 
-        private static void SetBadgeText(Card c, int i, string text, Color colour)
+        /// <summary>The DROP chip uses the skin's drop off icon (or done icon) when there is one.</summary>
+        private void SetDropChip(Chip chip, bool done, Color textColour, float iconAlpha)
         {
-            c.BadgeIcons[i].enabled = false;
-            c.BadgeLabels[i].text = text;
-            c.BadgeLabels[i].color = colour;
+            Sprite icon = done ? SkinSprite(s => s.iconDone) : null;
+            if (icon == null) icon = SkinSprite(s => s.iconDropOff);
+            ApplyChip(chip, icon, "DROP", textColour, iconAlpha);
+        }
+
+        private static void ApplyChip(Chip chip, Sprite icon, string label, Color textColour, float iconAlpha)
+        {
+            if (icon != null)
+            {
+                chip.Icon.enabled = true;
+                chip.Icon.sprite = icon;
+                chip.Icon.color = new Color(1f, 1f, 1f, iconAlpha);
+                chip.Label.text = string.Empty;
+            }
+            else
+            {
+                chip.Icon.enabled = false;
+                chip.Label.text = label;
+                chip.Label.color = textColour;
+            }
         }
 
         private static string Shorten(string text, int max)

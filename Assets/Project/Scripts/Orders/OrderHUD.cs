@@ -5,7 +5,7 @@ using UnityEngine.UI;
 namespace ZoomZoom.Orders.UI
 {
     /// <summary>
-    /// The player-facing stats panel, top-right: shift clock, cargo hold, score and level/XP.
+    /// The player-facing stats panel, top-right: shift clock, cargo hold, delivered and late counts, and money.
     /// The list of active orders is not here any more, it moved to OrderTicketStrip, which shows
     /// each order as an Overcooked style ticket, as the project plan's Concept section describes. This panel is deliberately small so the tickets
     /// are what the eye goes to. Real Canvas + UI.Text, builds itself in code.
@@ -19,26 +19,24 @@ namespace ZoomZoom.Orders.UI
         [SerializeField] private ShiftTimer shiftTimer;
         [Tooltip("Optional. When its own toggle is on, the cargo line shows condition.")]
         [SerializeField] private CargoCondition cargoCondition;
-        [Tooltip("Optional. When assigned, a level/XP line and bar are added.")]
+        [Tooltip("Optional. When assigned, the money line shows the balance it holds.")]
         [SerializeField] private PlayerProgression playerProgression;
 
         [Header("Art (optional)")]
-        [Tooltip("Same HudSkin asset as OrderTicketStrip. Uses its stats panel, bar, XP star and " +
+        [Tooltip("Same HudSkin asset as OrderTicketStrip. Uses its stats panel and " +
                  "cargo slot sprites. Leave empty for the flat dark panel.")]
         [SerializeField] private HudSkin skin;
 
         [Header("Layout")]
         [SerializeField] private Vector2 panelPosition = new Vector2(-24f, -24f); // offset from the top-right corner
-        [SerializeField] private Vector2 panelSize = new Vector2(380f, 178f);
+        [SerializeField] private Vector2 panelSize = new Vector2(420f, 150f);
         [SerializeField] private int fontSize = 24;
         [SerializeField] private float urgentShiftSeconds = 30f;
 
         private Text _timerLine;
         private Text _cargoLine;
         private Text _scoreLine;
-        private Text _xpLine;
-        private RectTransform _xpBarFill;
-        private float _xpBarWidth;
+        private Text _moneyLine;
         private readonly List<Image> _cargoSlots = new List<Image>();
         private float _pad = 14f;
 
@@ -93,7 +91,7 @@ namespace ZoomZoom.Orders.UI
             RefreshTimerLine();
             RefreshCargoLine();
             RefreshScoreLine();
-            RefreshXpLine();
+            RefreshMoneyLine();
         }
 
         private void RefreshCargoLine()
@@ -109,10 +107,16 @@ namespace ZoomZoom.Orders.UI
             RefreshCargoSlots();
             bool slotArt = _cargoSlots.Count > 0;
 
+            // Ingredients first, then cooked food. With slot art the food slots are the icons
+            // on the right of this line.
+            int held = cargoSystem.IngredientsHeld;
+            string ingredients = $"Ingredients {held}/{cargoSystem.IngredientCapacity}";
+            bool ingredientsFull = held >= cargoSystem.IngredientCapacity;
+
             if (cargoSystem.SlotsUsed == 0)
             {
-                _cargoLine.text = slotArt ? "Cargo" : $"Cargo: empty (0/{cargoSystem.Capacity})";
-                _cargoLine.color = OrderPalette.Neutral;
+                _cargoLine.text = slotArt ? $"{ingredients}   Food" : $"{ingredients}   Food 0/{cargoSystem.Capacity}";
+                _cargoLine.color = ingredientsFull ? OrderPalette.Warning : OrderPalette.Neutral;
                 return;
             }
 
@@ -126,9 +130,7 @@ namespace ZoomZoom.Orders.UI
                     : $"#{o.Id}");
             }
 
-            _cargoLine.text = slotArt
-                ? $"Cargo  {string.Join(", ", ids)}"
-                : $"Cargo {cargoSystem.SlotsUsed}/{cargoSystem.Capacity}: {string.Join(", ", ids)}";
+            _cargoLine.text = $"{ingredients}   Food {string.Join(", ", ids)}";
 
             if (showCondition)
             {
@@ -161,37 +163,19 @@ namespace ZoomZoom.Orders.UI
         private void RefreshScoreLine()
         {
             if (_scoreLine == null) return;
+            _scoreLine.text = $"Delivered {_deliveredCount}   Failed {_lateCount}";
+        }
+
+        private void RefreshMoneyLine()
+        {
+            if (_moneyLine == null) return;
 
             // Money comes from PlayerProgression (Task 20) when present, since that is the
             // balance the upgrade screen will spend from. Without it, the shift's earned value.
             float money = playerProgression != null ? playerProgression.Money : _totalValueEarned;
-            _scoreLine.text = $"Delivered {_deliveredCount}   Late {_lateCount}   ${money:0}";
-        }
-
-        private void RefreshXpLine()
-        {
-            if (_xpLine == null) return;
-
-            if (playerProgression == null)
-            {
-                _xpLine.text = string.Empty;
-                if (_xpBarFill != null) _xpBarFill.gameObject.SetActive(false);
-                return;
-            }
-
-            _xpLine.text = $"Level {playerProgression.Level}   " +
-                           $"XP {playerProgression.XpIntoLevel:0}/{playerProgression.XpToNextLevel:0}";
-
-            if (_xpBarFill != null)
-            {
-                float barHeight = _xpBarFill.sizeDelta.y;
-                float width = _xpBarWidth * playerProgression.LevelProgress01;
-                bool pill = skin != null && skin.barFill != null;
-
-                // A sliced pill cannot be narrower than its height without its ends overlapping.
-                _xpBarFill.gameObject.SetActive(!pill || width >= barHeight);
-                _xpBarFill.sizeDelta = new Vector2(Mathf.Max(pill ? barHeight : 0f, width), barHeight);
-            }
+            _moneyLine.text = money < 0f
+                ? $"Money  -R{-money:0}"
+                : $"Money  R{money:0}";
         }
 
         private void RefreshTimerLine()
@@ -248,55 +232,10 @@ namespace ZoomZoom.Orders.UI
             _timerLine.fontStyle = FontStyle.Bold;
             _cargoLine = CreateLine(panelRect, "Cargo", ref y, lineHeight, fontSize - 2, OrderPalette.Neutral);
             _scoreLine = CreateLine(panelRect, "Score", ref y, lineHeight, fontSize - 4, OrderPalette.Neutral);
-            _xpLine = CreateLine(panelRect, "XP", ref y, lineHeight, fontSize - 4, OrderPalette.Xp);
+            _moneyLine = CreateLine(panelRect, "Money", ref y, lineHeight, fontSize, OrderPalette.Money);
+            _moneyLine.fontStyle = FontStyle.Bold;
 
             BuildCargoSlots(panelRect, _cargoLine.rectTransform.anchoredPosition.y);
-
-            // XP star sits at the left end of the XP bar, the bar starts after it.
-            float barHeight = skin != null && skin.barFill != null ? 16f : 12f;
-            float barX = _pad;
-            if (skin != null && skin.xpIcon != null)
-            {
-                var starGO = new GameObject("XP star");
-                starGO.transform.SetParent(panelRect, false);
-                Image star = starGO.AddComponent<Image>();
-                star.raycastTarget = false;
-                HudSkin.ApplyIcon(star, skin.xpIcon);
-                RectTransform starRect = star.rectTransform;
-                starRect.anchorMin = starRect.anchorMax = new Vector2(0f, 1f);
-                starRect.pivot = new Vector2(0f, 0.5f);
-                starRect.anchoredPosition = new Vector2(_pad - 2f, y - 2f - barHeight * 0.5f);
-                starRect.sizeDelta = new Vector2(28f, 28f);
-                barX += 30f;
-            }
-
-            _xpBarWidth = size.x - _pad - barX;
-
-            var barBgGO = new GameObject("XP bar background");
-            barBgGO.transform.SetParent(panelRect, false);
-            Image barBg = barBgGO.AddComponent<Image>();
-            barBg.color = new Color(0f, 0f, 0f, 0.6f);
-            barBg.raycastTarget = false;
-            RectTransform barBgRect = barBg.rectTransform;
-            barBgRect.anchorMin = new Vector2(0f, 1f);
-            barBgRect.anchorMax = new Vector2(0f, 1f);
-            barBgRect.pivot = new Vector2(0f, 1f);
-            barBgRect.anchoredPosition = new Vector2(barX, y - 2f);
-            barBgRect.sizeDelta = new Vector2(_xpBarWidth, barHeight);
-            if (skin != null && HudSkin.ApplyPill(barBg, skin.barBackground, barHeight)) barBg.color = Color.white;
-
-            var barFillGO = new GameObject("XP bar fill");
-            barFillGO.transform.SetParent(panelRect, false);
-            Image barFill = barFillGO.AddComponent<Image>();
-            barFill.color = OrderPalette.Xp;
-            barFill.raycastTarget = false;
-            _xpBarFill = barFill.rectTransform;
-            _xpBarFill.anchorMin = new Vector2(0f, 1f);
-            _xpBarFill.anchorMax = new Vector2(0f, 1f);
-            _xpBarFill.pivot = new Vector2(0f, 1f);
-            _xpBarFill.anchoredPosition = new Vector2(barX, y - 2f);
-            _xpBarFill.sizeDelta = new Vector2(0f, barHeight);
-            if (skin != null) HudSkin.ApplyPill(barFill, skin.barFill, barHeight);
         }
 
         /// <summary>Three slot icons right aligned on the cargo line (the most capacity the

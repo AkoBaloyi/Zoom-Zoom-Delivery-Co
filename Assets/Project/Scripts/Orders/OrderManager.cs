@@ -5,13 +5,20 @@ using UnityEngine;
 namespace ZoomZoom.Orders
 {
     /// <summary>
-    /// Owns the live set of orders: spawns new ones up to the active cap, ages every non-terminal
-    /// order's patience bar every frame, and resolves a delivery when zone detection tells it one
-    /// happened. It also works out what each order pays: the food's base pay, an early bonus or
-    /// late deduction from the patience bar, and a fixed penalty when an order is cancelled.
-    /// All of those numbers come from the Order Tuning asset.
-    /// Never touches the cargo slot or decides whether a pickup is allowed, that stays in
-    /// CargoSystem and ZoneDetection so each piece can change independently.
+    /// Owns the live set of orders: spawns new ones up to the active cap, ages every order's
+    /// patience bar every frame, and resolves an order when it is delivered, cancelled or burned.
+    ///
+    /// Each new order picks a food from the menu, then an Ingredient Source in the scene for each
+    /// of that food's ingredients, a Processing Bay to cook in, and a customer drop off. What it
+    /// pays is the food's base pay, an early bonus or late deduction from the patience bar, and a
+    /// fixed penalty when it is cancelled or burned. All of those numbers come from the Order
+    /// Tuning asset and the Food Type assets.
+    ///
+    /// FALLBACKS, so a half built scene still plays
+    ///   An ingredient with no source in the scene is collected from a Pickup Point instead.
+    ///   A food with no ingredients (or no food at all) is one pickup from a Pickup Point.
+    ///   With no Processing Bay in the scene, orders skip cooking and go straight into the car.
+    ///   With no Pickup or Drop Off Points assigned, test points are generated on the floor.
     /// </summary>
     [DisallowMultipleComponent]
     public class OrderManager : MonoBehaviour
@@ -20,17 +27,16 @@ namespace ZoomZoom.Orders
         [SerializeField] private OrderTuning tuning;
 
         [Header("Wiring")]
-        [Tooltip("Real pickup points. Leave empty while the greybox route does not exist yet.")]
-        [SerializeField] private Transform[] pickupPoints;
-
-        [Tooltip("Real drop-off points. Leave empty while the greybox route does not exist yet.")]
+        [Tooltip("Customer houses. The scene object's name is shown on the order card.")]
         [SerializeField] private Transform[] dropOffPoints;
 
-        [Header("Test points (used only if the arrays above are empty)")]
+        [Tooltip("Optional. Only used for ingredients no Ingredient Source supplies, and for " +
+                 "foods with no recipe. Can be left empty once the sources are placed.")]
+        [SerializeField] private Transform[] pickupPoints;
+
+        [Header("Test points (used only for whichever list above is empty)")]
         [Tooltip("Constrain generated test points to this collider's world bounds, e.g. the " +
-                 "Floor's Box Collider. If assigned, this takes priority over the ring below, " +
-                 "since it keeps orders spawning inside the actual level rather than a shape " +
-                 "guessed at before the level existed.")]
+                 "Floor's Box Collider. If assigned, this takes priority over the ring below.")]
         [SerializeField] private Collider floorBounds;
 
         [Tooltip("Keep generated points this far in from the floor's edge, so an order never " +
@@ -47,7 +53,7 @@ namespace ZoomZoom.Orders
         public event Action<Order> OrderSpawned;
 
         /// <summary>Fires when an order ends, with what it paid in Rand. Negative for a
-        /// cancelled order, because of the penalty.</summary>
+        /// cancelled or burned order, because of the penalty.</summary>
         public event Action<Order, float> OrderResolved;
 
         /// <summary>Same moment as OrderResolved, with the full breakdown (base, time bonus,
@@ -62,8 +68,9 @@ namespace ZoomZoom.Orders
         public OrderTuning Tuning => tuning;
 
         private readonly List<Order> _activeOrders = new List<Order>();
-        private Vector3[] _pickupPositions;
-        private Vector3[] _dropOffPositions;
+        private readonly HashSet<IngredientType> _warnedNoSource = new HashSet<IngredientType>();
+        private Vector3[] _pickupPositions = Array.Empty<Vector3>();
+        private Vector3[] _dropOffPositions = Array.Empty<Vector3>();
         private string[] _pickupNames;
         private string[] _dropOffNames;
         private float _timeUntilNextSpawn;
@@ -80,8 +87,17 @@ namespace ZoomZoom.Orders
                 return;
             }
 
-            ResolvePickupAndDropOffPoints();
+            ResolvePoints();
             _timeUntilNextSpawn = 0f;
+        }
+
+        private void Start()
+        {
+            // Start, not Awake: sources and bays register themselves in OnEnable.
+            if (!logActivity) return;
+            Debug.Log($"[OrderManager] {IngredientSource.All.Count} ingredient source(s) and " +
+                      $"{ProcessingBay.All.Count} processing bay(s) in the scene." +
+                      (ProcessingBay.All.Count == 0 ? " With no bay, orders skip cooking." : ""));
         }
 
         private void Update()
@@ -93,122 +109,93 @@ namespace ZoomZoom.Orders
             TrySpawn(dt);
         }
 
-        private void ResolvePickupAndDropOffPoints()
+        // ---- points ---------------------------------------------------------------------------
+
+        private void ResolvePoints()
         {
-            bool haveRealPoints = pickupPoints != null && pickupPoints.Length > 0
-                                  && dropOffPoints != null && dropOffPoints.Length > 0;
+            if (dropOffPoints != null && dropOffPoints.Length > 0)
+                ReadTransforms(dropOffPoints, out _dropOffPositions, out _dropOffNames);
 
-            if (haveRealPoints)
+            if (pickupPoints != null && pickupPoints.Length > 0)
+                ReadTransforms(pickupPoints, out _pickupPositions, out _pickupNames);
+
+            bool needDrops = _dropOffPositions.Length == 0;
+            bool needPickups = _pickupPositions.Length == 0;
+
+            if ((needDrops || needPickups) && (floorBounds != null || generateTestPointsIfEmpty))
             {
-                _pickupPositions = new Vector3[pickupPoints.Length];
-                for (int i = 0; i < pickupPoints.Length; i++)
-                    _pickupPositions[i] = pickupPoints[i].position;
+                if (needDrops) _dropOffPositions = GenerateTestPoints(Mathf.PI);
+                if (needPickups) _pickupPositions = GenerateTestPoints(0f);
 
-                _dropOffPositions = new Vector3[dropOffPoints.Length];
-                for (int i = 0; i < dropOffPoints.Length; i++)
-                    _dropOffPositions[i] = dropOffPoints[i].position;
-
-                // The scene object's name is the place name on the order card, so name the
-                // pickup and drop off objects what the player should read, e.g. "Noodle Bar".
-                _pickupNames = new string[pickupPoints.Length];
-                for (int i = 0; i < pickupPoints.Length; i++) _pickupNames[i] = pickupPoints[i].name;
-
-                _dropOffNames = new string[dropOffPoints.Length];
-                for (int i = 0; i < dropOffPoints.Length; i++) _dropOffNames[i] = dropOffPoints[i].name;
-
-                Debug.Log($"[OrderManager] Using {pickupPoints.Length} real pickup points and " +
-                          $"{dropOffPoints.Length} real drop-off points.");
-                return;
+                Debug.Log($"[OrderManager] Generated test points for: " +
+                          $"{(needDrops ? "drop offs " : "")}{(needPickups ? "pickups" : "")}. " +
+                          "Assign real points in the Inspector when the level has them.");
             }
+
+            if (_dropOffPositions.Length == 0)
+            {
+                Debug.LogError(
+                    "[OrderManager] No drop off points assigned and test point generation is off. " +
+                    "No orders will spawn.", this);
+            }
+        }
+
+        private static void ReadTransforms(Transform[] source, out Vector3[] positions, out string[] names)
+        {
+            var p = new List<Vector3>();
+            var n = new List<string>();
+            foreach (Transform t in source)
+            {
+                if (t == null) continue;
+                p.Add(t.position);
+                // The scene object's name is the place name on the order card, so name the drop
+                // off objects what the player should read, e.g. "Mrs Naidoo's House".
+                n.Add(t.name);
+            }
+            positions = p.ToArray();
+            names = n.ToArray();
+        }
+
+        /// <summary>Points inside floorBounds if it is assigned, otherwise on a ring around the
+        /// origin. angleOffset lets drop offs sit opposite pickups on the ring.</summary>
+        private Vector3[] GenerateTestPoints(float angleOffset)
+        {
+            int count = Mathf.Max(2, testPointCount);
+            var points = new Vector3[count];
 
             if (floorBounds != null)
             {
-                GenerateBoundedTestPoints();
-                return;
-            }
+                Bounds b = floorBounds.bounds;
+                float minX = b.min.x + floorEdgeMargin, maxX = b.max.x - floorEdgeMargin;
+                float minZ = b.min.z + floorEdgeMargin, maxZ = b.max.z - floorEdgeMargin;
 
-            if (!generateTestPointsIfEmpty)
-            {
-                Debug.LogError(
-                    "[OrderManager] No pickup/drop-off points assigned and test point generation " +
-                    "is off. No orders will spawn.", this);
-                _pickupPositions = Array.Empty<Vector3>();
-                _dropOffPositions = Array.Empty<Vector3>();
-                return;
-            }
+                if (minX < maxX && minZ < maxZ)
+                {
+                    float groundY = b.max.y + 0.1f;
+                    for (int i = 0; i < count; i++)
+                        points[i] = new Vector3(UnityEngine.Random.Range(minX, maxX), groundY,
+                            UnityEngine.Random.Range(minZ, maxZ));
+                    return points;
+                }
 
-            int count = Mathf.Max(2, testPointCount);
-            _pickupPositions = new Vector3[count];
-            _dropOffPositions = new Vector3[count];
+                Debug.LogError("[OrderManager] floorBounds is too small for floorEdgeMargin. " +
+                               "Using the ring instead.", this);
+            }
 
             for (int i = 0; i < count; i++)
             {
-                float angle = (i / (float)count) * Mathf.PI * 2f;
-                Vector3 point = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * testPointRadius;
-
-                float dropAngle = angle + Mathf.PI;
-                Vector3 dropPoint = new Vector3(Mathf.Cos(dropAngle), 0f, Mathf.Sin(dropAngle)) * testPointRadius;
-
-                _pickupPositions[i] = point;
-                _dropOffPositions[i] = dropPoint;
+                float angle = (i / (float)count) * Mathf.PI * 2f + angleOffset;
+                points[i] = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * testPointRadius;
             }
-
-            Debug.Log($"[OrderManager] No real points assigned. Generated {count} placeholder " +
-                      $"pickup/drop-off pairs on a {testPointRadius:0} m ring. Replace with real " +
-                      "greybox points once the route exists.");
+            return points;
         }
 
-        /// <summary>
-        /// Scatters test points inside floorBounds instead of the origin-centred ring, so orders
-        /// only ever spawn inside the actual greybox rather than a shape guessed at before it
-        /// existed. Reads the collider's real world bounds, so this stays correct if the floor is
-        /// moved or resized later, nothing here is a hardcoded coordinate.
-        /// </summary>
-        private void GenerateBoundedTestPoints()
-        {
-            Bounds bounds = floorBounds.bounds;
-
-            float minX = bounds.min.x + floorEdgeMargin;
-            float maxX = bounds.max.x - floorEdgeMargin;
-            float minZ = bounds.min.z + floorEdgeMargin;
-            float maxZ = bounds.max.z - floorEdgeMargin;
-
-            if (minX >= maxX || minZ >= maxZ)
-            {
-                Debug.LogError(
-                    "[OrderManager] floorBounds is too small for the current floorEdgeMargin, " +
-                    "there is no room left to place a point inside it. Falling back to the ring.",
-                    this);
-                floorBounds = null;
-                ResolvePickupAndDropOffPoints();
-                return;
-            }
-
-            float groundY = bounds.max.y + 0.1f;
-            int count = Mathf.Max(2, testPointCount);
-
-            _pickupPositions = new Vector3[count];
-            _dropOffPositions = new Vector3[count];
-
-            for (int i = 0; i < count; i++)
-            {
-                _pickupPositions[i] = new Vector3(
-                    UnityEngine.Random.Range(minX, maxX), groundY, UnityEngine.Random.Range(minZ, maxZ));
-
-                _dropOffPositions[i] = new Vector3(
-                    UnityEngine.Random.Range(minX, maxX), groundY, UnityEngine.Random.Range(minZ, maxZ));
-            }
-
-            Debug.Log($"[OrderManager] No real points assigned. Generated {count} pickup and " +
-                      $"{count} drop-off points inside {floorBounds.name}'s bounds " +
-                      $"({floorEdgeMargin:0}m edge margin). Replace with real greybox points once " +
-                      "specific delivery locations exist.");
-        }
+        // ---- spawning -------------------------------------------------------------------------
 
         private void TrySpawn(float dt)
         {
             if (_activeOrders.Count >= tuning.maxActiveOrders) return;
-            if (_pickupPositions == null || _pickupPositions.Length == 0) return;
+            if (_dropOffPositions.Length == 0) return;
 
             _timeUntilNextSpawn -= dt;
             if (_timeUntilNextSpawn > 0f) return;
@@ -219,33 +206,98 @@ namespace ZoomZoom.Orders
 
         private void SpawnOrder()
         {
-            int pickupIndex = PickIndexAvoidingCollisions(_pickupPositions, o => o.PickupPoint);
+            FoodType food = tuning.PickFood();
+            List<IngredientStop> stops = BuildStops(food);
+            if (stops.Count == 0)
+            {
+                Debug.LogWarning("[OrderManager] Could not build an order: no ingredient sources " +
+                                 "and no pickup points. Skipping.", this);
+                return;
+            }
+
             int dropIndex = PickIndexAvoidingCollisions(_dropOffPositions, o => o.DropOffPoint);
+            bool needsCooking = ProcessingBay.All.Count > 0;
 
-            Vector3 pickupPos = _pickupPositions[pickupIndex];
-            Vector3 dropPos = _dropOffPositions[dropIndex];
-
-            Order order = new Order(
+            var order = new Order(
                 id: _nextOrderId++,
-                pickupPoint: pickupPos,
-                dropOffPoint: dropPos,
+                stops: stops,
+                dropOffPoint: _dropOffPositions[dropIndex],
+                dropOffName: NameAt(_dropOffNames, dropIndex, "House"),
                 timeLimit: tuning.orderTimeLimit,
-                food: tuning.PickFood(),
-                pickupName: NameAt(_pickupNames, pickupIndex, "Restaurant"),
-                dropOffName: NameAt(_dropOffNames, dropIndex, "House"));
+                food: food,
+                needsCooking: needsCooking,
+                cookSeconds: tuning.CookSecondsFor(food),
+                burnSeconds: tuning.BurnSecondsFor(food));
+
+            if (needsCooking)
+            {
+                ProcessingBay bay = ProcessingBay.Nearest(stops[stops.Count - 1].Point);
+                if (bay != null) order.SuggestBay(bay.Position, bay.BayName);
+            }
 
             order.Activate();
             _activeOrders.Add(order);
 
             if (logActivity)
             {
-                Debug.Log($"[OrderManager] Order {order.Id} spawned: {order.FoodName} from " +
-                          $"{order.PickupName} to {order.DropOffName}, {tuning.orderTimeLimit:0} s patience, " +
-                          $"base pay R{tuning.BasePayFor(order.Food, order.DesignedDistance):0}. " +
+                var parts = new List<string>();
+                foreach (IngredientStop s in stops) parts.Add($"{s.Name} ({s.PlaceName})");
+                Debug.Log($"[OrderManager] Order {order.Id} spawned: {order.FoodName} needs " +
+                          $"{string.Join(", ", parts)}" +
+                          (needsCooking ? $", cooks {order.CookSeconds:0.#} s" : "") +
+                          $", to {order.DropOffName}. {tuning.orderTimeLimit:0} s patience, base pay " +
+                          $"R{tuning.BasePayFor(order.Food, order.DesignedDistance):0}. " +
                           $"{_activeOrders.Count}/{tuning.maxActiveOrders} active.");
             }
 
             OrderSpawned?.Invoke(order);
+        }
+
+        /// <summary>One stop per ingredient, at a random source that supplies it.</summary>
+        private List<IngredientStop> BuildStops(FoodType food)
+        {
+            var stops = new List<IngredientStop>();
+
+            if (food != null && food.ingredients != null)
+            {
+                foreach (IngredientType ingredient in food.ingredients)
+                {
+                    if (ingredient == null) continue;
+
+                    var sources = new List<IngredientSource>();
+                    foreach (IngredientSource s in IngredientSource.All)
+                        if (s.SuppliesIngredient(ingredient)) sources.Add(s);
+
+                    if (sources.Count > 0)
+                    {
+                        IngredientSource pick = sources[UnityEngine.Random.Range(0, sources.Count)];
+                        stops.Add(new IngredientStop(ingredient, ingredient.displayName, pick.Position, pick.PlaceName));
+                        continue;
+                    }
+
+                    if (_warnedNoSource.Add(ingredient))
+                        Debug.LogWarning($"[OrderManager] No Ingredient Source supplies " +
+                                         $"'{ingredient.displayName}', so it is collected from a " +
+                                         "pickup point instead. Add it to a source's Supplies list.", this);
+
+                    if (_pickupPositions.Length == 0) continue;
+                    int index = UnityEngine.Random.Range(0, _pickupPositions.Length);
+                    stops.Add(new IngredientStop(ingredient, ingredient.displayName,
+                        _pickupPositions[index], NameAt(_pickupNames, index, "Shop")));
+                }
+            }
+
+            // No recipe: a single pickup of the whole food, the original loop.
+            if (stops.Count == 0 && _pickupPositions.Length > 0)
+            {
+                int index = PickIndexAvoidingCollisions(_pickupPositions,
+                    o => o.Stops.Count > 0 ? o.Stops[0].Point : o.DropOffPoint);
+                string name = food != null ? food.displayName : "Food";
+                stops.Add(new IngredientStop(null, name, _pickupPositions[index],
+                    NameAt(_pickupNames, index, "Restaurant")));
+            }
+
+            return stops;
         }
 
         private static string NameAt(string[] names, int index, string fallbackPrefix)
@@ -257,10 +309,8 @@ namespace ZoomZoom.Orders
 
         /// <summary>
         /// Picks a random index into pool, but avoids landing on a point already in use by another
-        /// currently active order's own pickup or drop-off, so two orders can't spawn stacked on
-        /// top of each other. With a small point pool and several orders active at once, a purely
-        /// random pick collides often enough to be a regular occurrence, not a rare edge case, this
-        /// is what actually stops that.
+        /// active order, so two orders can't share a drop off. With a small pool and several
+        /// orders active at once, a purely random pick collides often.
         /// </summary>
         private int PickIndexAvoidingCollisions(Vector3[] pool, Func<Order, Vector3> selector)
         {
@@ -285,15 +335,13 @@ namespace ZoomZoom.Orders
                 if (!collides) return candidate;
             }
 
-            // Every attempt collided. This almost always means there are fewer distinct points
-            // than the number of orders that can be active at once, worth surfacing rather than
-            // silently spawning on top of an existing order.
             Debug.LogWarning(
-                "[OrderManager] Could not find a pickup/drop-off point not already in use by " +
-                "another active order after several attempts. testPointCount (or the number of " +
-                "real points assigned) may be too small relative to maxActiveOrders.", this);
+                "[OrderManager] Every point tried was already in use by another active order. " +
+                "There may be fewer drop off points than Max Active Orders.", this);
             return UnityEngine.Random.Range(0, pool.Length);
         }
+
+        // ---- resolving ------------------------------------------------------------------------
 
         private void TickAllOrders(float dt)
         {
@@ -311,6 +359,20 @@ namespace ZoomZoom.Orders
                 };
                 Resolve(order, payout);
             }
+        }
+
+        /// <summary>Called by a Processing Bay when food was left in it too long.</summary>
+        public void ResolveBurned(Order order)
+        {
+            if (order == null || order.IsTerminal || !_activeOrders.Contains(order)) return;
+
+            order.MarkBurned();
+            var payout = new OrderPayout
+            {
+                Timing = DeliveryTiming.Burned,
+                Penalty = -tuning.burnPenalty
+            };
+            Resolve(order, payout);
         }
 
         /// <summary>Call from zone detection once the vehicle has driven into a Carried order's
@@ -375,14 +437,11 @@ namespace ZoomZoom.Orders
 
         private void OnDrawGizmosSelected()
         {
-            if (_pickupPositions == null) return;
-
             Gizmos.color = new Color(0.2f, 0.85f, 0.35f, 0.9f);
             foreach (Vector3 p in _pickupPositions) Gizmos.DrawWireSphere(p, 1.5f);
 
             Gizmos.color = new Color(0.95f, 0.55f, 0.15f, 0.9f);
-            if (_dropOffPositions != null)
-                foreach (Vector3 p in _dropOffPositions) Gizmos.DrawWireSphere(p, 1.5f);
+            foreach (Vector3 p in _dropOffPositions) Gizmos.DrawWireSphere(p, 1.5f);
         }
     }
 }
