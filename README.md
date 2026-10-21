@@ -36,9 +36,12 @@ source of truth. Both a keyboard and a gamepad drive the same actions.
 
 | Game control | Input binding | Player action |
 | --- | --- | --- |
-| Throttle and reverse | `W` and `S`, or `Up Arrow` and `Down Arrow`, or the right and left gamepad triggers | `Throttle` |
+| Accelerate | `W`, or the right gamepad trigger | `Accelerator` |
+| Select Drive, to go forwards | `F`, or gamepad Y | `GearDrive` |
+| Select Reverse, to go backwards | `R`, or gamepad B | `GearReverse` |
+| Brake. Never reverses | `S` or `Left Ctrl`, or the left gamepad trigger | `Brake` |
 | Steer left and right | `A` and `D`, or `Left Arrow` and `Right Arrow`, or the left stick | `Steer` |
-| Brake without reversing | `Left Ctrl`, or gamepad B | `Brake` |
+| Combined throttle axis, superseded | `Up Arrow` and `Down Arrow` | `Throttle` |
 | Handbrake, cuts rear grip only | `Space`, or gamepad LB | `Handbrake` |
 | Boost | `Left Alt`, or gamepad RB | `Boost` |
 | Jump | `Left Shift`, or gamepad A | `Jump` |
@@ -47,6 +50,21 @@ source of truth. Both a keyboard and a gamepad drive the same actions.
 
 Code spans in the binding column are keyboard keys and the mouse; gamepad buttons are named in
 plain text because a gamepad `A` and a keyboard `A` are not the same input.
+
+**Accelerator and gear, not one throttle axis.** The accelerator only ever pushes; which way the
+car goes is the gear's job. Select Reverse, accelerate, and select Drive again to pull away
+forwards. `S` is now purely a brake, so holding it to a standstill no longer rolls the car
+backwards.
+
+The `Throttle` action is the older scheme, where `W` drove and `S` braked and then reversed on one
+axis. It is still defined and still bound to the arrow keys, because the measurement harness writes
+a signed throttle directly and because an un-migrated copy of the input asset must still drive the
+car rather than producing a silent dead one. Nothing reads it while the gear actions exist.
+
+The gear is a discrete input because Crazy Taxi's techniques are built on flicking between Drive
+and Reverse while the accelerator is held separately, and that intent cannot be expressed on a
+single signed axis. `F` and `R` sit either side of the WASD hand; Y and B are the two face buttons
+a thumb can roll between without leaving the stick.
 
 There is no pick-up or drop-off key. Driving into a pickup ring collects the order and driving
 into its drop-off ring delivers it, provided the cargo slot allows it. `ZoneDetection` handles

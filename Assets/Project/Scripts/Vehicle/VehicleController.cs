@@ -3,13 +3,34 @@ using UnityEngine;
 namespace ZoomZoom.Vehicle
 {
     /// <summary>
+    /// Which way the gearbox is pointing. Deliberately only two values: this is an arcade cab
+    /// lever, not a gearbox, and every Crazy Taxi technique is built on flicking between exactly
+    /// these two positions while the accelerator is managed separately.
+    ///
+    /// Drive is 0 so that `default(DriveInput)` and every existing `new DriveInput { throttle = 1f }`
+    /// in the measurement harness mean the same thing they always did. That is not a convenience,
+    /// it is the reason the 787 recorded measurement rows stay comparable across this change.
+    /// </summary>
+    public enum Gear
+    {
+        Drive = 0,
+        Reverse = 1
+    }
+
+    /// <summary>
     /// What the car is being asked to do this frame. Filled in by VehicleInput when a human is
     /// driving, or by VehicleMeasurement when a test is driving. The car cannot tell the difference,
     /// which is exactly why the measurements are trustworthy.
     /// </summary>
     public struct DriveInput
     {
-        /// <summary>-1 full reverse, 0 coast, +1 full throttle.</summary>
+        /// <summary>
+        /// -1 full reverse, 0 coast, +1 full throttle.
+        ///
+        /// Still signed, and still the only thing the physics reads. The gear lives in the input
+        /// layer and resolves to a sign here, so <see cref="VehicleController.ApplyDriveAndBrake"/>
+        /// did not have to change and neither did the measurement harness.
+        /// </summary>
         public float throttle;
 
         /// <summary>-1 full left, 0 straight, +1 full right.</summary>
@@ -23,6 +44,15 @@ namespace ZoomZoom.Vehicle
 
         /// <summary>Held boost: the second speed stage, above throttle-only top speed.</summary>
         public bool boost;
+
+        /// <summary>
+        /// Which way the lever is pointing. Carried alongside the signed throttle rather than
+        /// instead of it, because the two answer different questions: throttle is "how much push,
+        /// which way", gear is "what did the driver just ask for". A technique layer needs the
+        /// second one — tapping R then D at speed is a drift request, and that intent is invisible
+        /// in a throttle value that merely passed through zero.
+        /// </summary>
+        public Gear gear;
     }
 
     /// <summary>
@@ -245,6 +275,27 @@ namespace ZoomZoom.Vehicle
         /// </summary>
         public bool IsDrifting { get; private set; }
 
+        /// <summary>Which way the lever was pointing on the most recent physics step.</summary>
+        public Gear CurrentGear { get; private set; } = Gear.Drive;
+
+        /// <summary>
+        /// True on the single physics step where the gear changed. Published rather than left for
+        /// each reader to diff, because a technique layer that misses the step misses the input.
+        /// </summary>
+        public bool GearChangedThisStep { get; private set; }
+
+        /// <summary>
+        /// Seconds since the gear last changed, or <see cref="float.PositiveInfinity"/> if it never
+        /// has. This is the measurement a Crazy-Taxi-style technique is recognised from: a dash or
+        /// a drift is not "the gear is in D", it is "the gear reached D within the last fraction of
+        /// a second, having just been in R". Counting in seconds rather than frames keeps that
+        /// window frame-rate independent, which the camera's mouse look already had to be fixed for.
+        ///
+        /// Nothing reads this yet. It exists so the technique layer is a new file rather than a
+        /// second pass over this one.
+        /// </summary>
+        public float TimeSinceGearChange { get; private set; } = float.PositiveInfinity;
+
         /// <summary>How upright the car is. 1 = on its wheels, 0 = on its side, -1 = on its roof.</summary>
         public float Uprightness => Vector3.Dot(transform.up, Vector3.up);
 
@@ -390,6 +441,12 @@ namespace ZoomZoom.Vehicle
             if (tuning == null) return;
 
             float dt = Time.fixedDeltaTime;
+
+            // 0. Gear first, before anything reads it. Nothing in the physics below depends on it
+            // yet - the gear has already been resolved into the sign of Drive.throttle by whoever
+            // filled the struct - but a technique layer reading a one-step flag must not be handed
+            // a value that a later stage in this same step is about to overwrite.
+            TrackGear(dt);
 
             ApplyTuningToBody();
             RebuildWheelPositions();
@@ -743,6 +800,39 @@ namespace ZoomZoom.Vehicle
         // ==================================================================
         // 4/5. DRIVE, REVERSE, BRAKE, COAST
         // ==================================================================
+
+        /// <summary>
+        /// Publishes the gear and how long ago it changed.
+        ///
+        /// Separate from the drive force on purpose. The gear does not act on the car here: it has
+        /// already been folded into the sign of <see cref="DriveInput.throttle"/> by whoever filled
+        /// the struct, which is why <see cref="ApplyDriveAndBrake"/> is untouched by the gear work
+        /// and why the measurement harness still produces comparable numbers. What this method
+        /// publishes is the driver's *intent over time*, which the force alone cannot express.
+        ///
+        /// The measurement harness never sets a gear, so it reports Drive throughout. That is
+        /// correct: it writes a signed throttle directly, and a reverse test is a negative throttle
+        /// rather than a lever movement.
+        /// </summary>
+        private void TrackGear(float dt)
+        {
+            GearChangedThisStep = Drive.gear != CurrentGear;
+
+            if (GearChangedThisStep)
+            {
+                CurrentGear = Drive.gear;
+                TimeSinceGearChange = 0f;
+                return;
+            }
+
+            // Saturate rather than growing without bound. A float counting at 1/120 s would stay
+            // exact for days, but an infinity that only ever appears before the first change is a
+            // cleaner thing for a technique window to compare against than a huge finite number.
+            if (!float.IsPositiveInfinity(TimeSinceGearChange))
+            {
+                TimeSinceGearChange += dt;
+            }
+        }
 
         private void ApplyDriveAndBrake(float dt)
         {

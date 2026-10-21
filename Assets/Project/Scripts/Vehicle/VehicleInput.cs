@@ -17,17 +17,44 @@ namespace ZoomZoom.Vehicle
     ///
     ///   Action        Keyboard              Controller
     ///   ------------  --------------------  ------------------
-    ///   Throttle      W / S                 RT / LT
+    ///   Accelerator   W                     RT
+    ///   Brake         S / Left Ctrl         LT
+    ///   GearDrive     F                     Y (north)
+    ///   GearReverse   R                     B (east)
     ///   Steer         A / D                 Left stick X
-    ///   Brake         Left Ctrl             B (east)
     ///   Handbrake     Space                 LB
     ///   Boost         Left Alt              RB
     ///   Jump          Left Shift            A (south)
     ///
+    /// ACCELERATOR PLUS GEAR, RATHER THAN ONE SIGNED AXIS
+    /// This used to be a single Throttle axis where W drove and S braked-then-reversed. That is a
+    /// perfectly good arcade control and it is still supported (see below), but it cannot express
+    /// the input Crazy Taxi is built on. Every technique in that game - the dash, the drift, the
+    /// stop, the limit cut - is a flick of a discrete Drive/Reverse lever while the accelerator is
+    /// held separately. On one signed axis there is no lever to flick: "reverse" is just the far
+    /// end of the same control, and the moment of asking for it is indistinguishable from easing
+    /// off the throttle.
+    ///
+    /// So the gear is now its own input, and it resolves to the SIGN of DriveInput.throttle before
+    /// the physics sees it. VehicleController.ApplyDriveAndBrake is unchanged, and so is every row
+    /// in VehicleLab_Measurements - the harness writes a signed throttle directly and never touches
+    /// a gear, which is why this change does not invalidate the recorded baseline.
+    ///
+    /// It also fixes something two playtesters reported independently: holding S to stop used to
+    /// roll the car backwards once it passed a standstill, because S was reverse. S is now a brake
+    /// and nothing else.
+    ///
+    /// LEGACY FALLBACK
+    /// If GearDrive and GearReverse cannot be found in the map, this component falls back to
+    /// reading the old signed Throttle axis and reports the gear from its sign. An older copy of
+    /// VehicleControls.inputactions therefore still drives the car normally rather than producing
+    /// a silent dead car, which is the one failure mode worth engineering against here.
+    ///
     /// Three separate ways to slow down, on purpose:
-    ///   S           brakes, then reverses once stopped. The everyday one.
-    ///   Left Ctrl   brakes and never reverses. For stopping ON a drop-off point.
+    ///   S           brake. Never reverses. The everyday one.
+    ///   Left Ctrl   the same brake, kept so existing muscle memory still works.
     ///   Space       handbrake. Locks the REAR only, so the car rotates rather than just slowing.
+    ///   To go backwards you now select reverse (R / B) and use the accelerator.
     ///   Flip          Q                     X (west)
     ///   FlipDirection WASD                  Left stick
     ///   CameraLook    Mouse move            Right stick
@@ -58,6 +85,9 @@ namespace ZoomZoom.Vehicle
         private InputActionMap _map;
         private bool _ownsControlsAsset;
         private InputAction _throttle;
+        private InputAction _accelerator;
+        private InputAction _gearDrive;
+        private InputAction _gearReverse;
         private InputAction _steer;
         private InputAction _brake;
         private InputAction _handbrake;
@@ -86,6 +116,19 @@ namespace ZoomZoom.Vehicle
 
         /// <summary>True when everything is wired up and the actions were found.</summary>
         public bool IsReady => _map != null;
+
+        /// <summary>
+        /// Which way the lever is pointing. Starts in Drive so a player who never presses a gear
+        /// key drives forward, which is what this component did before the gear existed.
+        /// </summary>
+        public Gear SelectedGear { get; private set; } = Gear.Drive;
+
+        /// <summary>
+        /// False when the gear actions were missing from the map and the old signed Throttle axis
+        /// is being read instead. Published so the lab scene and a future controls screen can state
+        /// which scheme is live rather than guessing at it.
+        /// </summary>
+        public bool HasGearInput => _gearDrive != null && _gearReverse != null;
 
         private void Awake()
         {
@@ -153,6 +196,23 @@ namespace ZoomZoom.Vehicle
             }
 
             _throttle = Find("Throttle");
+
+            // Optional, so FindAction directly rather than Find(): Find logs an error for a
+            // missing action, and these three are legitimately absent from an un-migrated asset.
+            // Their absence selects the legacy signed-axis path instead of being a fault.
+            _accelerator = _map.FindAction("Accelerator", throwIfNotFound: false);
+            _gearDrive = _map.FindAction("GearDrive", throwIfNotFound: false);
+            _gearReverse = _map.FindAction("GearReverse", throwIfNotFound: false);
+
+            if (!HasGearInput)
+            {
+                Debug.LogWarning(
+                    "[VehicleInput] No GearDrive/GearReverse actions in the 'Vehicle' map, so the " +
+                    "car is using the legacy signed Throttle axis: W drives and S brakes then " +
+                    "reverses. Crazy-Taxi-style techniques need the gear, so re-import " +
+                    "VehicleControls.inputactions if you expected it.", this);
+            }
+
             _steer = Find("Steer");
             _brake = Find("Brake");
             _handbrake = Find("Handbrake");
@@ -204,7 +264,9 @@ namespace ZoomZoom.Vehicle
 
             InputActionMap map = asset.AddActionMap(MapName);
 
-            // Throttle: forward and reverse on one axis.
+            // Throttle: forward and reverse on one axis. Kept as the legacy scheme. Nothing reads
+            // it while the gear actions below exist, but it stays defined so this fallback asset
+            // matches the shipped one field for field.
             InputAction throttle = map.AddAction("Throttle", InputActionType.Value);
             throttle.AddCompositeBinding("1DAxis")
                 .With("Positive", "<Keyboard>/w")
@@ -212,6 +274,24 @@ namespace ZoomZoom.Vehicle
             throttle.AddCompositeBinding("1DAxis")
                 .With("Positive", "<Gamepad>/rightTrigger")
                 .With("Negative", "<Gamepad>/leftTrigger");
+
+            // Accelerator: one direction only. Which way the push goes is the gear's job.
+            InputAction accelerator = map.AddAction("Accelerator", InputActionType.Value);
+            accelerator.AddBinding("<Keyboard>/w");
+            accelerator.AddBinding("<Gamepad>/rightTrigger");
+
+            // The gear. Two discrete presses, deliberately adjacent on both devices: Crazy Taxi's
+            // techniques are performed by rolling a thumb from one to the other and back, so a
+            // pair that cannot be hit in quick succession would make them unperformable. F and R
+            // sit either side of the WASD hand and were both unbound; Y and B are the two face
+            // buttons a right thumb can roll between without leaving the stick.
+            InputAction gearDrive = map.AddAction("GearDrive", InputActionType.Button);
+            gearDrive.AddBinding("<Keyboard>/f");
+            gearDrive.AddBinding("<Gamepad>/buttonNorth");
+
+            InputAction gearReverse = map.AddAction("GearReverse", InputActionType.Button);
+            gearReverse.AddBinding("<Keyboard>/r");
+            gearReverse.AddBinding("<Gamepad>/buttonEast");
 
             InputAction steer = map.AddAction("Steer", InputActionType.Value);
             steer.AddCompositeBinding("1DAxis")
@@ -223,8 +303,9 @@ namespace ZoomZoom.Vehicle
             // secondary control: stop without ever rolling backwards, which is what you want when
             // pulling up at a drop-off point.
             InputAction brake = map.AddAction("Brake", InputActionType.Value);
+            brake.AddBinding("<Keyboard>/s");
             brake.AddBinding("<Keyboard>/leftCtrl");
-            brake.AddBinding("<Gamepad>/buttonEast");
+            brake.AddBinding("<Gamepad>/leftTrigger");
 
             // Handbrake on Space. It was on Left Ctrl, which is the wrong way round: the handbrake is
             // a thing you stab mid-corner and hold, and Space is the key every driving game puts it
@@ -300,19 +381,28 @@ namespace ZoomZoom.Vehicle
             if (controller != null) controller.Drive = default;
             if (jumpFlip != null) jumpFlip.SetJumpHeld(false);
             CameraLook = Vector2.zero;
+
+            // Back to Drive. This component gets disabled so the measurement harness can take the
+            // car, and the harness writes a signed throttle with no gear. Leaving the lever in
+            // Reverse would mean a player who parked, ran a test and took the car back found it
+            // selected backwards with nothing on screen saying so.
+            SelectedGear = Gear.Drive;
         }
 
         private void Update()
         {
             if (_map == null || controller == null) return;
 
+            UpdateGear();
+
             controller.Drive = new DriveInput
             {
-                throttle = Read(_throttle),
+                throttle = ReadThrottle(),
                 steer = Read(_steer),
                 brake = Read(_brake),
                 handbrake = Read(_handbrake) > 0.5f,
-                boost = Read(_boost) > 0.5f
+                boost = Read(_boost) > 0.5f,
+                gear = SelectedGear
             };
 
             if (jumpFlip != null)
@@ -345,6 +435,56 @@ namespace ZoomZoom.Vehicle
                 InputDevice device = _cameraLook.activeControl?.device;
                 if (device != null) CameraLookIsMouse = device is Mouse;
             }
+        }
+
+        /// <summary>
+        /// Moves the lever when a gear button is pressed.
+        ///
+        /// WasPressedThisFrame, not IsPressed. The gear is a lever position that persists, not a
+        /// held state, so a tap has to latch. Reading IsPressed would snap the car back to Drive
+        /// the instant a thumb left the Reverse button, which would make the whole technique layer
+        /// impossible: tapping R then D is supposed to leave the gear in D, having passed through R.
+        ///
+        /// Both pressed in the same frame resolves to Reverse. That is the input Crazy Taxi's drift
+        /// is described as - rolling a thumb across both buttons at once - so the intermediate
+        /// position has to register rather than being cancelled out by the arrival in Drive.
+        /// </summary>
+        private void UpdateGear()
+        {
+            if (!HasGearInput) return;
+
+            bool wantReverse = _gearReverse.WasPressedThisFrame();
+            bool wantDrive = _gearDrive.WasPressedThisFrame();
+
+            if (wantReverse) SelectedGear = Gear.Reverse;
+            else if (wantDrive) SelectedGear = Gear.Drive;
+        }
+
+        /// <summary>
+        /// Resolves accelerator plus gear into the signed throttle the physics has always read.
+        ///
+        /// This is the whole of the gear change as far as the car is concerned. Doing the sign here
+        /// rather than in VehicleController is what keeps ApplyDriveAndBrake untouched and keeps
+        /// every recorded measurement row comparable, because the harness bypasses this component
+        /// entirely and writes a signed throttle of its own.
+        /// </summary>
+        private float ReadThrottle()
+        {
+            if (!HasGearInput || _accelerator == null)
+            {
+                // Legacy signed axis. Report the gear from its sign so anything reading
+                // SelectedGear still gets a truthful answer under the old scheme.
+                float signed = Read(_throttle);
+                SelectedGear = signed < 0f ? Gear.Reverse : Gear.Drive;
+                return signed;
+            }
+
+            // Clamped to 0..1 rather than passed through. The accelerator is bound to a single
+            // control on each device, but a user rebinding it to an axis could otherwise feed a
+            // negative value in and quietly reintroduce reverse-without-a-gear.
+            float accel = Mathf.Clamp01(Read(_accelerator));
+
+            return SelectedGear == Gear.Reverse ? -accel : accel;
         }
 
         private static float Read(InputAction action)
