@@ -11068,7 +11068,14 @@ MonoBehaviour:
   numberFontSize: 64
   numberCharacterSize: 0.3
   numberHeightAboveBeam: 1.5
+  carriedColour: {r: 0.2, g: 0.85, b: 0.35, a: 1}
+  waitingColour: {r: 0.2, g: 0.6, b: 1, a: 1}
   urgentBelowSeconds: 8
+  distanceFrom: {fileID: 0}
+  nearDistance: 30
+  farDistance: 300
+  nearScale: 1
+  farScale: 3
   pulseSpeed: 3
   pulseScaleAmount: 0.18
 --- !u!4 &186250867
@@ -46273,7 +46280,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.UI.ShiftResults
   shiftTimer: {fileID: 816895046}
   orderManager: {fileID: 816895044}
-  playerProgression: {fileID: 0}
+  playerProgression: {fileID: 816895047}
   mainMenuSceneName: MainMenu
   panelSize: {x: 620, y: 400}
   titleFontSize: 48
@@ -68917,7 +68924,14 @@ MonoBehaviour:
   edgeMargin: 60
   distanceFontSize: 22
   idFontSize: 30
+  carriedColour: {r: 0.2, g: 0.85, b: 0.35, a: 1}
+  waitingColour: {r: 0.2, g: 0.6, b: 1, a: 1}
   urgentBelowSeconds: 8
+  distanceFrom: {fileID: 0}
+  nearDistance: 20
+  farDistance: 250
+  nearScale: 1.4
+  farScale: 0.6
   pulseSpeed: 4
   pulseScaleAmount: 0.12
 --- !u!114 &1027706770
@@ -68972,15 +68986,14 @@ MonoBehaviour:
   orderManager: {fileID: 816895044}
   cargoSystem: {fileID: 935175481}
   cargoCondition: {fileID: 592668317}
-  playerProgression: {fileID: 816895047}
   skin: {fileID: 11400000, guid: 8ce8086168a1fa847a1d4ff5a2a48667, type: 2}
   stripOrigin: {x: 24, y: -24}
-  ticketSize: {x: 210, y: 150}
+  cardSize: {x: 240, y: 156}
   ticketGap: 10
   ticketScale: 1.05
   urgentBelowSeconds: 8
   resolvedLingerSeconds: 1.1
-  bannerSeconds: 2.4
+  popupSeconds: 1.8
 --- !u!1 &1029030780
 GameObject:
   m_ObjectHideFlags: 0

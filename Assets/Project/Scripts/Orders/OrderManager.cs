@@ -6,7 +6,10 @@ namespace ZoomZoom.Orders
 {
     /// <summary>
     /// Owns the live set of orders: spawns new ones up to the active cap, ages every non-terminal
-    /// order every frame, and resolves a delivery when zone detection tells it one happened.
+    /// order's patience bar every frame, and resolves a delivery when zone detection tells it one
+    /// happened. It also works out what each order pays: the food's base pay, an early bonus or
+    /// late deduction from the patience bar, and a fixed penalty when an order is cancelled.
+    /// All of those numbers come from the Order Tuning asset.
     /// Never touches the cargo slot or decides whether a pickup is allowed, that stays in
     /// CargoSystem and ZoneDetection so each piece can change independently.
     /// </summary>
@@ -42,7 +45,14 @@ namespace ZoomZoom.Orders
         [SerializeField] private bool logActivity = true;
 
         public event Action<Order> OrderSpawned;
+
+        /// <summary>Fires when an order ends, with what it paid in Rand. Negative for a
+        /// cancelled order, because of the penalty.</summary>
         public event Action<Order, float> OrderResolved;
+
+        /// <summary>Same moment as OrderResolved, with the full breakdown (base, time bonus,
+        /// damage, penalty) for popups and the end of shift summary.</summary>
+        public event Action<Order, OrderPayout> OrderPaid;
 
         public IReadOnlyList<Order> ActiveOrders => _activeOrders;
         public int TotalResolved { get; private set; }
@@ -54,6 +64,8 @@ namespace ZoomZoom.Orders
         private readonly List<Order> _activeOrders = new List<Order>();
         private Vector3[] _pickupPositions;
         private Vector3[] _dropOffPositions;
+        private string[] _pickupNames;
+        private string[] _dropOffNames;
         private float _timeUntilNextSpawn;
         private int _nextOrderId = 1; // orders read as #1, #2... not #0, #1, matching how a person actually counts
 
@@ -95,6 +107,14 @@ namespace ZoomZoom.Orders
                 _dropOffPositions = new Vector3[dropOffPoints.Length];
                 for (int i = 0; i < dropOffPoints.Length; i++)
                     _dropOffPositions[i] = dropOffPoints[i].position;
+
+                // The scene object's name is the place name on the order card, so name the
+                // pickup and drop off objects what the player should read, e.g. "Noodle Bar".
+                _pickupNames = new string[pickupPoints.Length];
+                for (int i = 0; i < pickupPoints.Length; i++) _pickupNames[i] = pickupPoints[i].name;
+
+                _dropOffNames = new string[dropOffPoints.Length];
+                for (int i = 0; i < dropOffPoints.Length; i++) _dropOffNames[i] = dropOffPoints[i].name;
 
                 Debug.Log($"[OrderManager] Using {pickupPoints.Length} real pickup points and " +
                           $"{dropOffPoints.Length} real drop-off points.");
@@ -209,20 +229,30 @@ namespace ZoomZoom.Orders
                 id: _nextOrderId++,
                 pickupPoint: pickupPos,
                 dropOffPoint: dropPos,
-                timeLimit: tuning.orderTimeLimit);
+                timeLimit: tuning.orderTimeLimit,
+                food: tuning.PickFood(),
+                pickupName: NameAt(_pickupNames, pickupIndex, "Restaurant"),
+                dropOffName: NameAt(_dropOffNames, dropIndex, "House"));
 
             order.Activate();
             _activeOrders.Add(order);
 
             if (logActivity)
             {
-                Debug.Log($"[OrderManager] Order {order.Id} spawned: {order.DesignedDistance:0.0} m, " +
-                          $"{tuning.orderTimeLimit:0} s to deliver, worth " +
-                          $"{tuning.DeliveryValueFor(order.DesignedDistance):0}. " +
+                Debug.Log($"[OrderManager] Order {order.Id} spawned: {order.FoodName} from " +
+                          $"{order.PickupName} to {order.DropOffName}, {tuning.orderTimeLimit:0} s patience, " +
+                          $"base pay R{tuning.BasePayFor(order.Food, order.DesignedDistance):0}. " +
                           $"{_activeOrders.Count}/{tuning.maxActiveOrders} active.");
             }
 
             OrderSpawned?.Invoke(order);
+        }
+
+        private static string NameAt(string[] names, int index, string fallbackPrefix)
+        {
+            if (names != null && index >= 0 && index < names.Length && !string.IsNullOrEmpty(names[index]))
+                return names[index];
+            return $"{fallbackPrefix} {index + 1}";
         }
 
         /// <summary>
@@ -271,17 +301,22 @@ namespace ZoomZoom.Orders
             {
                 Order order = _activeOrders[i];
                 bool wentLate = order.Tick(dt);
-                if (wentLate) Resolve(order, value: 0f, wasLate: true);
+                if (!wentLate) continue;
+
+                // Patience ran out: the order is cancelled and costs a fixed penalty.
+                var payout = new OrderPayout
+                {
+                    Timing = DeliveryTiming.Failed,
+                    Penalty = -tuning.cancelPenalty
+                };
+                Resolve(order, payout);
             }
         }
 
         /// <summary>Call from zone detection once the vehicle has driven into a Carried order's
-        /// drop-off zone. The only entry point that can turn an order into
-        /// Delivered.</summary>
-        /// <param name="order">The order being delivered.</param>
-        /// <param name="conditionMultiplier">0 to 1, scaling the delivery value. Defaults to 1
-        /// (full value) so callers that don't track cargo condition, or have it turned off, need
-        /// no changes. Supplied by CargoSystem when a CargoCondition component is present.</param>
+        /// drop off zone. The only entry point that can turn an order into Delivered.</summary>
+        /// <param name="conditionMultiplier">0 to 1 from CargoCondition when it is switched on,
+        /// otherwise 1 (full pay).</param>
         public void ResolveDelivery(Order order, float conditionMultiplier = 1f)
         {
             if (order == null || order.State != OrderState.Carried)
@@ -292,27 +327,50 @@ namespace ZoomZoom.Orders
                 return;
             }
 
+            float patienceLeft = order.PatienceFraction;
             order.MarkDelivered();
 
-            // Distance based reward (project plan Scope): designed distance, never distance driven.
-            float value = tuning.DeliveryValueFor(order.DesignedDistance) * Mathf.Clamp01(conditionMultiplier);
+            var payout = new OrderPayout { BasePay = tuning.BasePayFor(order.Food, order.DesignedDistance) };
 
-            Resolve(order, value, wasLate: false);
+            // Time bonus from the patience bar: early pays extra, late pays less.
+            if (patienceLeft > tuning.earlyAbovePatienceLeft)
+            {
+                payout.Timing = DeliveryTiming.Early;
+                payout.TimeAdjustment = payout.BasePay * tuning.earlyBonus;
+            }
+            else if (patienceLeft < tuning.lateBelowPatienceLeft)
+            {
+                payout.Timing = DeliveryTiming.Late;
+                payout.TimeAdjustment = -payout.BasePay * tuning.lateDeduction;
+            }
+            else
+            {
+                payout.Timing = DeliveryTiming.OnTime;
+            }
+
+            // Damaged cargo, only when CargoCondition is switched on.
+            float beforeCondition = payout.BasePay + payout.TimeAdjustment;
+            payout.ConditionLoss = -beforeCondition * (1f - Mathf.Clamp01(conditionMultiplier));
+
+            Resolve(order, payout);
         }
 
-        private void Resolve(Order order, float value, bool wasLate)
+        private void Resolve(Order order, OrderPayout payout)
         {
             _activeOrders.Remove(order);
             TotalResolved++;
+            order.SetPayout(payout);
 
             if (logActivity)
             {
-                string outcome = wasLate ? "LATE, no value" : $"DELIVERED, +{value:0} value";
-                Debug.Log($"[OrderManager] Order {order.Id} resolved: {outcome}. " +
-                          $"{_activeOrders.Count}/{tuning.maxActiveOrders} active.");
+                Debug.Log($"[OrderManager] Order {order.Id} ({order.FoodName}) {payout.Timing}: " +
+                          $"base R{payout.BasePay:0}, time {payout.TimeAdjustment:+0;-0;0}, " +
+                          $"damage {payout.ConditionLoss:0}, penalty {payout.Penalty:0}, " +
+                          $"total R{payout.Total:0}. {_activeOrders.Count}/{tuning.maxActiveOrders} active.");
             }
 
-            OrderResolved?.Invoke(order, value);
+            OrderResolved?.Invoke(order, payout.Total);
+            OrderPaid?.Invoke(order, payout);
         }
 
         private void OnDrawGizmosSelected()
