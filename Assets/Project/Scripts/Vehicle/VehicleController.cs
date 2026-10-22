@@ -275,6 +275,22 @@ namespace ZoomZoom.Vehicle
         /// </summary>
         public bool IsDrifting { get; private set; }
 
+        /// <summary>
+        /// Rear cornering grip multiplier owned by the technique layer. 1 leaves the car alone.
+        ///
+        /// Settable from outside, which is unusual for this class and deliberate. The alternative
+        /// was for CrazyTechniques to re-derive the whole per-axle grip split so it could apply its
+        /// own, which would mean two places computing the same thing and drifting apart the first
+        /// time one of them was tuned. A multiplier the owner folds in at the single existing site
+        /// keeps the grip model in one file.
+        ///
+        /// Everything else the technique layer does - the dash push, the limit-cut push, the stop
+        /// deceleration, the drift's rotation - is applied as force or torque from outside, exactly
+        /// as ApplyBoost applies its own, and needs no hook at all. This is the one effect that
+        /// cannot be expressed that way.
+        /// </summary>
+        public float TechniqueRearGripMultiplier { get; set; } = 1f;
+
         /// <summary>Which way the lever was pointing on the most recent physics step.</summary>
         public Gear CurrentGear { get; private set; } = Gear.Drive;
 
@@ -1196,6 +1212,11 @@ namespace ZoomZoom.Vehicle
             // The handbrake works on the rear only. Locking one end is what turns a handbrake pull
             // into a rotation instead of a four wheel slide.
             if (Drive.handbrake) rearGrip *= tuning.handbrakeRearGripMultiplier;
+
+            // A crazy drift loosens the rear the same way the handbrake does, and multiplies with
+            // it rather than replacing it, so flicking the gear mid-handbrake-slide is additive
+            // instead of one input quietly cancelling the other.
+            rearGrip *= Mathf.Clamp(TechniqueRearGripMultiplier, 0.01f, 1f);
 
             // Published for the telemetry overlay. The gap between these two numbers IS the car's
             // balance: front above rear is oversteer and the back steps out, rear above front is

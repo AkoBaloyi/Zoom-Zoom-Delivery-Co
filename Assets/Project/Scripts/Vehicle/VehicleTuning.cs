@@ -425,6 +425,139 @@ namespace ZoomZoom.Vehicle
         // ------------------------------------------------------------------
         // JUMP
         // ------------------------------------------------------------------
+        [Header("Crazy techniques (gear-flick moves)")]
+
+        // WHERE THESE COME FROM, AND WHERE THEY DO NOT
+        //
+        // The four techniques below are Crazy Taxi's, and their INPUTS and BEHAVIOUR are documented
+        // by players and press - see docs/research/CRAZY-TAXI-CONTROLLER-RESEARCH.md for the
+        // sources. Their MAGNITUDES are not. Sega never published the game's constants, so there is
+        // no figure to copy for a dash multiplier or a drift grip value, and anyone quoting one is
+        // guessing.
+        //
+        // So every number here is OURS. The defaults are starting points chosen to sit in sensible
+        // proportion to values this car already has - the dash ceiling sits between topSpeed and
+        // boostTopSpeed, the drift grip sits near the handbrake's - and they are all expected to
+        // move once VehicleMeasurement has driven them. Treat a default as a hypothesis, not a
+        // reference. That is the honest version of "exactly like Crazy Taxi": the same structure,
+        // with our own measured feel.
+
+        [Tooltip("Turn the whole technique layer off. Off = accelerator and gear still work, but no " +
+                 "dash, drift, stop or limit cut. Useful for A/B testing the layer against plain " +
+                 "driving on the same build, which is how Grippy was kept comparable to Balanced.")]
+        public bool techniquesEnabled = true;
+
+        [Tooltip("Seconds after a gear change in which the follow-up accelerator press still counts " +
+                 "as part of a technique.\n\n" +
+                 "Guides describe the steps as happening instantly one after another, so this is " +
+                 "deliberately short. Too long and every ordinary gear change becomes a dash; too " +
+                 "short and the move is unperformable on a keyboard. 0.25 s is the starting guess " +
+                 "and is the single most important number to measure.")]
+        public float techniqueInputWindow = 0.25f;
+
+        [Tooltip("Minimum seconds between two steps of a technique. Crazy Taxi guides are explicit " +
+                 "that mashing the inputs at the same instant FAILS and that a tiny gap is required, " +
+                 "so pressing everything together must not be rewarded. One physics step at 120 Hz " +
+                 "is 0.0083 s, so 0.02 is about two steps.")]
+        public float techniqueMinimumGap = 0.02f;
+
+        [Tooltip("Scale technique effects by the surface under the wheels.\n\n" +
+                 "Crazy Taxi has one surface; we have seven. Leaving this on means a dash on grass " +
+                 "pushes less than a dash on tarmac, which keeps the surface system meaningful " +
+                 "instead of letting the technique layer paper over it. Off reproduces Crazy Taxi " +
+                 "more literally, at the cost of making our own traction model irrelevant.")]
+        public bool techniquesRespectSurface = true;
+
+        [Space(4)]
+        [Tooltip("Crazy Dash: release the accelerator, select Drive, press the accelerator again.")]
+        public bool dashEnabled = true;
+
+        [Tooltip("Speed ceiling while dashing, m/s. Sits ABOVE topSpeed (32) because the dash is " +
+                 "described as going noticeably faster than a normal floored run. Kept below " +
+                 "boostTopSpeed (40) so the earned boost is still the bigger prize and the two " +
+                 "tools stay distinguishable.")]
+        public float dashSpeedCeiling = 36f;
+
+        [Tooltip("Acceleration the dash adds, m/s^2, on top of normal drive. Starting point is " +
+                 "boostAcceleration (16) so a dash reads as a short sharp shove rather than a " +
+                 "second boost.")]
+        public float dashAcceleration = 18f;
+
+        [Tooltip("Seconds a dash pushes for. Short on purpose: the move is meant to be repeated " +
+                 "out of corners, not held. Chaining dashes IS the limit cut.")]
+        public float dashDuration = 0.8f;
+
+        [Tooltip("Seconds before another dash can start. Near zero because Crazy Taxi's advanced " +
+                 "play is built on chaining these; a real cooldown would remove the skill ceiling " +
+                 "this whole layer exists to add.")]
+        public float dashCooldown = 0.05f;
+
+        [Tooltip("Launch traction while dashing from near standstill, 0 to 1. Crazy Taxi's dash " +
+                 "from a stop is described as converting the energy as though the wheels had full " +
+                 "traction instead of spinning up. 1 means ignore the low-speed part of the " +
+                 "acceleration curve entirely for the duration.")]
+        [Range(0f, 1f)]
+        public float dashLaunchTraction = 1f;
+
+        [Tooltip("Below this speed, m/s, a dash counts as a standing start and uses the launch " +
+                 "traction above.")]
+        public float dashLaunchSpeedThreshold = 3f;
+
+        [Space(4)]
+        [Tooltip("Crazy Drift: release the accelerator, tap Reverse then Drive while steering.")]
+        public bool crazyDriftEnabled = true;
+
+        [Tooltip("Rear grip multiplier during a crazy drift, 0 to 1. handbrakeRearGripMultiplier is " +
+                 "0.15, and this is deliberately looser than that is tight: the gear-flick drift " +
+                 "should rotate the car more readily than the handbrake while costing less speed.")]
+        [Range(0.01f, 1f)]
+        public float crazyDriftRearGripMultiplier = 0.2f;
+
+        [Tooltip("Seconds a crazy drift holds its loosened rear. Re-tapping extends it, which is " +
+                 "how a long slide is held through a corner.")]
+        public float crazyDriftDuration = 1.1f;
+
+        [Tooltip("Extra yaw acceleration into the steered direction, rad/s^2, while drifting. This " +
+                 "is what makes the gear flick ROTATE the car rather than merely reduce its grip, " +
+                 "and it is the difference between a Crazy Drift and pulling the handbrake.")]
+        public float crazyDriftYawBoost = 6f;
+
+        [Tooltip("Fraction of the normal drift drag applied during a crazy drift, 0 to 1. Below 1 " +
+                 "because the technique is described as a way THROUGH a corner, not a way to slow " +
+                 "down; a slide that scrubs all the speed off would never be worth performing.")]
+        [Range(0f, 1f)]
+        public float crazyDriftDragFraction = 0.35f;
+
+        [Space(4)]
+        [Tooltip("Crazy Stop: release everything during a drift, brake as well to stop sooner.")]
+        public bool crazyStopEnabled = true;
+
+        [Tooltip("Deceleration of a crazy stop, m/s^2. brakeDeceleration is 22 and brake-plus-coast " +
+                 "measures 27, so this is markedly stronger - the move is described as near " +
+                 "instant. It is only reachable out of a drift, which is what keeps it from " +
+                 "replacing the brake.")]
+        public float crazyStopDeceleration = 45f;
+
+        [Tooltip("Seconds a crazy stop applies for. It ends early once the car is stopped.")]
+        public float crazyStopDuration = 0.6f;
+
+        [Space(4)]
+        [Tooltip("Limit Cut: release both pedals, then Reverse, Drive and accelerator together for " +
+                 "speed past the normal ceiling.")]
+        public bool limitCutEnabled = true;
+
+        [Tooltip("Speed ceiling during a limit cut, m/s. The highest number the car can reach by " +
+                 "any means, because this is the hardest input to perform. Above boostTopSpeed (40) " +
+                 "so mastering the technique genuinely beats spending the earned tank.")]
+        public float limitCutSpeedCeiling = 44f;
+
+        [Tooltip("Acceleration a limit cut adds, m/s^2.")]
+        public float limitCutAcceleration = 22f;
+
+        [Tooltip("Seconds a limit cut pushes for. Shorter than a dash: it is a burst to be chained " +
+                 "at speed, and a long one would simply become a permanent higher top speed.")]
+        public float limitCutDuration = 0.55f;
+
         [Header("Jump (grounded only)")]
         [Tooltip("Instant upward speed added on jump, m/s. Jump height = this^2 / (2 * gravity).")]
         public float jumpSpeed = 6.5f;
