@@ -5,64 +5,79 @@ using UnityEngine;
 namespace ZoomZoom.Orders
 {
     /// <summary>
-    /// The cargo hold: accepts orders up to Capacity, refusing a pickup once full. Internally this
-    /// is a list rather than one nullable order, since Capacity will genuinely change as the group
-    /// reaches Tasks 19 and 25 (two-slot, then three-slot), and a list scales to that without
-    /// needing to be rewritten, unlike a single field would.
+    /// The car's hold. It carries two kinds of thing, each with its own limit:
+    ///   Ingredients, up to Ingredient Capacity, collected from Ingredient Sources and dropped
+    ///   off at a Processing Bay. They belong to the order that needed them.
+    ///   Cooked meals, up to Capacity, taken out of a bay and delivered to the customer.
     ///
-    /// STARTING CAPACITY: 1, matching Task 8 and the pre-alpha milestone. It was briefly set to 3
-    /// directly in the Inspector, skipping past Tasks 19 and 25 (scheduled after Milestone 1 and
-    /// Milestone 2 respectively) and past the XP/money gating Scope describes for those upgrades.
-    /// Reverted at the time, since representing capacity that hasn't been earned through any
-    /// system that exists yet misrepresents where the build actually is, not just the design
-    /// intent. TryUnlockCapacity below is the hook for Task 19 and Task 25: the upgrade screen
-    /// (Task 26) calls it when the player buys the two slot or three slot upgrade, so capacity
-    /// only ever rises through the purchase the plan describes, not by hand.
+    /// Every pickup, bay visit and delivery goes through this class, which checks the limits and
+    /// then tells the Order and the bay what changed. ZoneDetection decides when the car is close
+    /// enough to try.
     /// </summary>
     [DisallowMultipleComponent]
     public class CargoSystem : MonoBehaviour
     {
         [Header("Wiring")]
-        [Tooltip("Found automatically if left empty. Used only to subscribe to OrderResolved so " +
-                 "a Late-while-carried order always frees its slot, without needing any other " +
-                 "script to wire that up.")]
+        [Tooltip("Found automatically if left empty.")]
         [SerializeField] private OrderManager orderManager;
 
-        [Tooltip("Optional. Found automatically if present on this GameObject. When assigned, a " +
-                 "delivery's payout is scaled by the order's condition at the moment it's " +
-                 "delivered instead of always paying full value.")]
+        [Tooltip("Optional. Found automatically if present on this GameObject. When it is " +
+                 "switched on, a delivery's pay is scaled by the cargo's condition.")]
         [SerializeField] private CargoCondition cargoCondition;
 
         [Header("Capacity")]
-        [Tooltip("How many orders can be carried at once. MVP/pre-alpha scope is 1, per Task 8. " +
-                 "Do not raise this until the task it actually belongs to is reached: Task 19 " +
-                 "(two-slot, scheduled after Milestone 1) or Task 25 (three-slot, scheduled after " +
-                 "Milestone 2), since raising it earlier represents progression the player hasn't " +
-                 "earned through any system that exists yet.")]
+        [Tooltip("How many cooked meals the car can carry at once.")]
         [SerializeField] private int capacity = 1;
+
+        [Tooltip("How many ingredients the car can carry at once, across every order. Enough " +
+                 "for one or two recipes is what makes the player choose a route.")]
+        [SerializeField] private int ingredientCapacity = 4;
 
         [Header("Debug")]
         [SerializeField] private bool logActivity = true;
 
         private readonly List<Order> _carriedOrders = new List<Order>();
 
+        /// <summary>Cooked meals in the car.</summary>
         public IReadOnlyList<Order> CarriedOrders => _carriedOrders;
         public bool HasCapacity => _carriedOrders.Count < capacity;
         public int Capacity => capacity;
         public int SlotsUsed => _carriedOrders.Count;
 
-        /// <summary>Fires the moment an order is actually accepted into the cargo slot (after
-        /// TryCollect succeeds). CargoCondition subscribes to this to start tracking that order's
-        /// condition from 100.</summary>
+        public int IngredientCapacity => ingredientCapacity;
+
+        /// <summary>Ingredients in the car right now, across every order.</summary>
+        public int IngredientsHeld
+        {
+            get
+            {
+                if (orderManager == null) return 0;
+                int n = 0;
+                foreach (Order o in orderManager.ActiveOrders) n += o.IngredientsInCar;
+                return n;
+            }
+        }
+
+        public bool HasIngredientRoom => IngredientsHeld < ingredientCapacity;
+
+        /// <summary>Fires when a cooked meal goes into the car. CargoCondition starts tracking
+        /// its condition from 100 here.</summary>
         public event Action<Order> OrderCarried;
 
-        /// <summary>Fires the moment an order leaves the cargo slot for any reason: delivered,
-        /// gone Late while still carried, or otherwise cleared. CargoCondition subscribes to this
-        /// to stop tracking an order that no longer occupies a slot.</summary>
+        /// <summary>Fires when a cooked meal leaves the car for any reason.</summary>
         public event Action<Order> OrderReleased;
 
-        /// <summary>Fires whenever capacity actually changes, so UI (OrderHUD's slot count) can
-        /// react immediately rather than only noticing next time it happens to poll Capacity.</summary>
+        /// <summary>Fires when an ingredient is collected, with the order and the ingredient.</summary>
+        public event Action<Order, IngredientStop> IngredientCollected;
+
+        /// <summary>Fires when an order's ingredients go into a bay.</summary>
+        public event Action<Order, ProcessingBay> IngredientsLoaded;
+
+        /// <summary>Fires when something could not be done, with a short reason for the
+        /// player, for example "Car full". UI should throttle repeats.</summary>
+        public event Action<string> Refused;
+
+        /// <summary>Fires whenever meal capacity changes.</summary>
         public event Action<int> CapacityChanged;
 
         private void Awake()
@@ -73,15 +88,11 @@ namespace ZoomZoom.Orders
             if (orderManager == null)
             {
                 Debug.LogError(
-                    "[CargoSystem] No OrderManager found. A Late order that was still carried " +
-                    "will NOT free its slot, since there is nothing to read the resolution from.",
-                    this);
+                    "[CargoSystem] No OrderManager found. A cancelled order that was still " +
+                    "carried will NOT free its slot.", this);
                 return;
             }
 
-            // This used to be the job of a temporary test harness. Moving it here means the
-            // slot is guaranteed to free correctly regardless of what else exists in the scene,
-            // rather than depending on some other script remembering to wire it up.
             orderManager.OrderResolved += HandleOrderResolved;
         }
 
@@ -95,49 +106,100 @@ namespace ZoomZoom.Orders
             ClearIfResolved(order);
         }
 
-        public bool TryCollect(Order order)
+        // ---- ingredients ----------------------------------------------------------------------
+
+        /// <summary>Collects one ingredient for one order, if the car has room.</summary>
+        public bool TryCollectIngredient(Order order, IngredientStop stop)
         {
-            if (order == null) return false;
+            if (order == null || stop == null || stop.Collected) return false;
+            if (order.State != OrderState.Active) return false;
 
-            if (!HasCapacity)
+            if (!HasIngredientRoom)
             {
-                Refuse($"order {order.Id}: cargo full ({_carriedOrders.Count}/{capacity})");
+                Refuse($"Car full of ingredients ({ingredientCapacity}). Drop some at a bay.", true);
                 return false;
             }
 
-            if (order.State != OrderState.Active)
+            // Without a bay, the last ingredient turns straight into a meal, which needs a slot.
+            bool completesWithoutBay = !order.NeedsCooking && order.IngredientsCollected == order.Stops.Count - 1;
+            if (completesWithoutBay && !HasCapacity)
             {
-                Refuse($"order {order.Id}: not Active (state was {order.State})");
+                Refuse($"No room for order #{order.Id}. Deliver what you are carrying first.", true);
                 return false;
             }
 
-            order.MarkCollected();
-            order.MarkCarried();
-            _carriedOrders.Add(order);
-            OrderCarried?.Invoke(order);
+            if (!order.CollectIngredient(stop)) return false;
 
             if (logActivity)
-                Debug.Log($"[CargoSystem] Order {order.Id} collected and now carried. " +
-                          $"{_carriedOrders.Count}/{capacity} slots used.");
+                Debug.Log($"[CargoSystem] Collected {stop.Name} for order {order.Id} " +
+                          $"({order.IngredientsCollected}/{order.Stops.Count}). " +
+                          $"{IngredientsHeld}/{ingredientCapacity} ingredients in the car.");
 
+            IngredientCollected?.Invoke(order, stop);
+
+            if (completesWithoutBay && order.MarkCarried()) AddMeal(order);
             return true;
         }
 
-        public bool TryDeliver(OrderManager orderManager, Order expectedOrder)
+        // ---- bays -----------------------------------------------------------------------------
+
+        /// <summary>Takes ready food out of the bay into the car, if there is a free meal slot.</summary>
+        public bool TryCollectFromBay(ProcessingBay bay)
         {
-            if (orderManager == null || expectedOrder == null) return false;
+            if (bay == null || !bay.IsReady) return false;
 
-            if (!_carriedOrders.Contains(expectedOrder))
+            if (!HasCapacity)
             {
-                Refuse($"drop-off does not match anything carried (zone wants order {expectedOrder.Id})");
+                Refuse($"{bay.BayName}: no room for the food. Deliver what you are carrying first.", true);
                 return false;
             }
 
-            if (expectedOrder.State != OrderState.Carried)
+            Order order = bay.TakeOut();
+            if (order == null) return false;
+
+            AddMeal(order);
+            return true;
+        }
+
+        /// <summary>Puts the oldest order with every ingredient in the car into an empty bay.</summary>
+        public bool TryLoadBay(ProcessingBay bay)
+        {
+            if (bay == null || orderManager == null) return false;
+
+            Order ready = null;
+            foreach (Order o in orderManager.ActiveOrders)
             {
-                Refuse($"order {expectedOrder.Id}: not Carried (state was {expectedOrder.State})");
+                if (o.State == OrderState.Active && o.NeedsCooking && o.AllIngredientsCollected)
+                {
+                    ready = o;
+                    break; // ActiveOrders is in spawn order, so this is the oldest.
+                }
+            }
+
+            if (ready == null) return false;
+
+            if (!bay.IsEmpty)
+            {
+                Refuse($"{bay.BayName} is busy with order #{bay.Order.Id}.", true);
                 return false;
             }
+
+            if (!bay.TryStartCooking(ready)) return false;
+
+            if (logActivity)
+                Debug.Log($"[CargoSystem] Order {ready.Id} ingredients loaded into {bay.BayName}.");
+
+            IngredientsLoaded?.Invoke(ready, bay);
+            return true;
+        }
+
+        // ---- delivery -------------------------------------------------------------------------
+
+        public bool TryDeliver(OrderManager manager, Order expectedOrder)
+        {
+            if (manager == null || expectedOrder == null) return false;
+            if (!_carriedOrders.Contains(expectedOrder)) return false;
+            if (expectedOrder.State != OrderState.Carried) return false;
 
             float conditionMultiplier = cargoCondition != null
                 ? cargoCondition.GetConditionMultiplier(expectedOrder)
@@ -145,12 +207,11 @@ namespace ZoomZoom.Orders
 
             _carriedOrders.Remove(expectedOrder);
             OrderReleased?.Invoke(expectedOrder);
-            orderManager.ResolveDelivery(expectedOrder, conditionMultiplier);
+            manager.ResolveDelivery(expectedOrder, conditionMultiplier);
 
             if (logActivity)
-                Debug.Log($"[CargoSystem] Order {expectedOrder.Id} delivered at " +
-                          $"{conditionMultiplier * 100f:0}% condition. " +
-                          $"{_carriedOrders.Count}/{capacity} slots used.");
+                Debug.Log($"[CargoSystem] Order {expectedOrder.Id} delivered. " +
+                          $"{_carriedOrders.Count}/{capacity} meal slots used.");
 
             return true;
         }
@@ -160,13 +221,7 @@ namespace ZoomZoom.Orders
             if (_carriedOrders.Remove(order)) OrderReleased?.Invoke(order);
         }
 
-        /// <summary>
-        /// The one legitimate way capacity is ever allowed to rise above what's set in the
-        /// Inspector, called by the upgrade screen (Task 26) when the player buys the Task 19 or
-        /// Task 25 cargo upgrade. Refuses to lower capacity (that would be a downgrade
-        /// bug, not an unlock) and refuses to re-apply the same value, so it's safe to call every
-        /// time a level-up happens without checking "did we already unlock this" elsewhere.
-        /// </summary>
+        /// <summary>Raises meal capacity, for a later upgrade. Never lowers it.</summary>
         public bool TryUnlockCapacity(int newCapacity)
         {
             if (newCapacity <= capacity) return false;
@@ -181,9 +236,27 @@ namespace ZoomZoom.Orders
             return true;
         }
 
-        private void Refuse(string reason)
+        // ---- helpers --------------------------------------------------------------------------
+
+        private void AddMeal(Order order)
         {
-            if (logActivity) Debug.Log($"[CargoSystem] Refused: {reason}.", this);
+            _carriedOrders.Add(order);
+            OrderCarried?.Invoke(order);
+
+            if (logActivity)
+                Debug.Log($"[CargoSystem] Order {order.Id} ({order.FoodName}) in the car. " +
+                          $"{_carriedOrders.Count}/{capacity} meal slots used.");
+        }
+
+        private void Refuse(string reason, bool tellPlayer)
+        {
+            if (tellPlayer) Refused?.Invoke(reason);
+        }
+
+        private void OnValidate()
+        {
+            capacity = Mathf.Max(1, capacity);
+            ingredientCapacity = Mathf.Max(1, ingredientCapacity);
         }
     }
 }

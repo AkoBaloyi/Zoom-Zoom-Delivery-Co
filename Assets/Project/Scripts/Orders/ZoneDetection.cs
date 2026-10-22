@@ -4,10 +4,12 @@ using UnityEngine;
 namespace ZoomZoom.Orders
 {
     /// <summary>
-    /// Task 12, drive through pickup and drop off zone detection. Turns "the vehicle is near an
-    /// order's pickup or drop off" into an actual CargoSystem.TryCollect or TryDeliver call, using
-    /// plain distance checks against each Order's own points, so no trigger colliders are needed
-    /// anywhere in the scene. Attach to the same GameObject as the vehicle controller.
+    /// Turns "the car is near something" into the matching CargoSystem call, using plain distance
+    /// checks, so no trigger colliders are needed anywhere in the scene. Every frame it checks:
+    ///   Ingredient Sources: collects any ingredient an active order still needs.
+    ///   Processing Bays: takes out ready food, then puts in the next order's ingredients.
+    ///   Drop offs: delivers any cooked meal whose customer is here.
+    /// Attach to the same GameObject as the vehicle controller.
     /// </summary>
     [DisallowMultipleComponent]
     public class ZoneDetection : MonoBehaviour
@@ -16,14 +18,18 @@ namespace ZoomZoom.Orders
         [SerializeField] private OrderManager orderManager;
         [SerializeField] private CargoSystem cargoSystem;
 
-        [Header("Zone size")]
-        [Tooltip("Metres. Tune to match whatever visual marker ends up on the ground.")]
+        [Header("Zone size (metres)")]
+        [Tooltip("Ingredient sources and pickup points.")]
         [SerializeField] private float pickupRadius = 6f;
+        [Tooltip("Processing bays.")]
+        [SerializeField] private float bayRadius = 7f;
+        [Tooltip("Customer drop offs.")]
         [SerializeField] private float dropOffRadius = 6f;
 
-        /// <summary>Read by OrderBeacon so its ground disc always matches the actual trigger
-        /// radius exactly, rather than being a second number that can drift out of sync.</summary>
+        /// <summary>Read by the beacons and bays so their ground discs always match the real
+        /// zone sizes, rather than being separate numbers that can drift out of sync.</summary>
         public float PickupRadius => pickupRadius;
+        public float BayRadius => bayRadius;
         public float DropOffRadius => dropOffRadius;
 
         [Tooltip("How often to run the distance checks, in seconds. 0 means every frame, which " +
@@ -31,10 +37,10 @@ namespace ZoomZoom.Orders
         [SerializeField] private float checkInterval = 0f;
 
         [Header("Debug")]
-        [SerializeField] private bool logActivity = true;
         [SerializeField] private bool drawGizmos = true;
 
         private float _timeUntilNextCheck;
+        private readonly List<IngredientSource> _nearbySources = new List<IngredientSource>();
 
         private void Awake()
         {
@@ -56,33 +62,64 @@ namespace ZoomZoom.Orders
             if (_timeUntilNextCheck > 0f) return;
             _timeUntilNextCheck = checkInterval;
 
-            CheckPickups();
+            CheckIngredients();
+            CheckBays();
             CheckDeliveries();
         }
 
-        private void CheckPickups()
+        private bool InRange(Vector3 point, float radius)
         {
-            if (!cargoSystem.HasCapacity) return;
+            Vector3 offset = point - transform.position;
+            offset.y = 0f; // a marker on a kerb or a ramp still counts
+            return offset.sqrMagnitude <= radius * radius;
+        }
 
-            foreach (Order order in orderManager.ActiveOrders)
+        /// <summary>Oldest order first, so when two orders need the same ingredient the one
+        /// closer to running out of patience gets it.</summary>
+        private void CheckIngredients()
+        {
+            _nearbySources.Clear();
+            foreach (IngredientSource source in IngredientSource.All)
+                if (InRange(source.Position, pickupRadius)) _nearbySources.Add(source);
+
+            IReadOnlyList<Order> orders = orderManager.ActiveOrders;
+            for (int i = 0; i < orders.Count; i++)
             {
+                Order order = orders[i];
                 if (order.State != OrderState.Active) continue;
 
-                float distance = Vector3.Distance(transform.position, order.PickupPoint);
-                if (distance > pickupRadius) continue;
+                foreach (IngredientStop stop in order.Stops)
+                {
+                    if (stop.Collected) continue;
+                    if (!InRange(stop.Point, pickupRadius) && !NearbySourceSupplies(stop.Ingredient)) continue;
 
-                bool collected = cargoSystem.TryCollect(order);
-
-                if (collected && logActivity)
-                    Debug.Log($"[ZoneDetection] Drove into pickup zone for order {order.Id}.");
-
-                if (collected) return;
+                    cargoSystem.TryCollectIngredient(order, stop);
+                    if (!cargoSystem.HasIngredientRoom) return;
+                }
             }
         }
 
-        /// <summary>Checks every carried order, not just one, since cargo can hold more than one
-        /// once the Task 19 upgrade is bought. Iterated backwards because TryDeliver removes from
-        /// CarriedOrders, and removing while iterating forwards would skip the next item.</summary>
+        private bool NearbySourceSupplies(IngredientType ingredient)
+        {
+            if (ingredient == null) return false;
+            foreach (IngredientSource source in _nearbySources)
+                if (source.SuppliesIngredient(ingredient)) return true;
+            return false;
+        }
+
+        private void CheckBays()
+        {
+            foreach (ProcessingBay bay in ProcessingBay.All)
+            {
+                if (!InRange(bay.Position, bayRadius)) continue;
+
+                // Take out first, so one stop can collect the burger and put the soup in.
+                cargoSystem.TryCollectFromBay(bay);
+                cargoSystem.TryLoadBay(bay);
+            }
+        }
+
+        /// <summary>Iterated backwards because TryDeliver removes from CarriedOrders.</summary>
         private void CheckDeliveries()
         {
             IReadOnlyList<Order> carried = cargoSystem.CarriedOrders;
@@ -91,34 +128,26 @@ namespace ZoomZoom.Orders
             {
                 Order order = carried[i];
                 if (order.State != OrderState.Carried) continue;
+                if (!InRange(order.DropOffPoint, dropOffRadius)) continue;
 
-                float distance = Vector3.Distance(transform.position, order.DropOffPoint);
-                if (distance > dropOffRadius) continue;
-
-                bool delivered = cargoSystem.TryDeliver(orderManager, order);
-
-                if (delivered && logActivity)
-                    Debug.Log($"[ZoneDetection] Drove into drop off zone for order {order.Id}.");
+                cargoSystem.TryDeliver(orderManager, order);
             }
         }
 
         private void OnDrawGizmosSelected()
         {
-            if (!drawGizmos || orderManager == null) return;
+            if (!drawGizmos) return;
 
+            Gizmos.color = new Color(0.20f, 0.60f, 1.00f, 0.6f);
+            foreach (IngredientSource s in IngredientSource.All) Gizmos.DrawWireSphere(s.Position, pickupRadius);
+
+            Gizmos.color = new Color(0.98f, 0.55f, 0.12f, 0.6f);
+            foreach (ProcessingBay b in ProcessingBay.All) Gizmos.DrawWireSphere(b.Position, bayRadius);
+
+            if (orderManager == null) return;
+            Gizmos.color = new Color(0.20f, 0.85f, 0.35f, 0.6f);
             foreach (Order order in orderManager.ActiveOrders)
-            {
-                if (order.State == OrderState.Active)
-                {
-                    Gizmos.color = new Color(0.2f, 0.85f, 0.35f, 0.6f);
-                    Gizmos.DrawWireSphere(order.PickupPoint, pickupRadius);
-                }
-                else if (order.State == OrderState.Carried)
-                {
-                    Gizmos.color = new Color(0.95f, 0.55f, 0.15f, 0.6f);
-                    Gizmos.DrawWireSphere(order.DropOffPoint, dropOffRadius);
-                }
-            }
+                if (order.State == OrderState.Carried) Gizmos.DrawWireSphere(order.DropOffPoint, dropOffRadius);
         }
     }
 }

@@ -11,7 +11,7 @@ namespace ZoomZoom.Orders.UI
     /// art, or all of it.
     ///
     /// SLICING IS DONE IN CODE
-    /// Pills (timer and XP bars) and frames (stats panel, ticket paper) have to stretch without
+    /// Pills (timer bars) and frames (stats panel, ticket paper) have to stretch without
     /// squashing their rounded ends. Normally that means setting borders by hand in Unity's
     /// Sprite Editor. Instead, ApplyPill and ApplyFrame build a bordered copy of the sprite at
     /// runtime and scale it to the target height, so the PNGs can be dropped in as they are.
@@ -34,14 +34,13 @@ namespace ZoomZoom.Orders.UI
         public Sprite stampDelivered;
         public Sprite stampLate;
 
-        [Header("Bars (ticket timer and XP)")]
+        [Header("Bars (order patience bar)")]
         public Sprite barBackground;
-        [Tooltip("White pill. Tinted green, yellow or red (timer) and purple (XP) in code.")]
+        [Tooltip("White pill. Tinted green, yellow or red in code.")]
         public Sprite barFill;
 
         [Header("Stats panel")]
         public Sprite statsPanel;
-        public Sprite xpIcon;
         public Sprite cargoSlotEmpty;
         public Sprite cargoSlotFilled;
 
@@ -72,7 +71,6 @@ namespace ZoomZoom.Orders.UI
             if (skin.barBackground == null) missing.Add("Bar Background");
             if (skin.barFill == null) missing.Add("Bar Fill");
             if (skin.statsPanel == null) missing.Add("Stats Panel");
-            if (skin.xpIcon == null) missing.Add("Xp Icon");
             if (skin.cargoSlotEmpty == null) missing.Add("Cargo Slot Empty");
             if (skin.cargoSlotFilled == null) missing.Add("Cargo Slot Filled");
 

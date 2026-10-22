@@ -4,24 +4,23 @@ using UnityEngine;
 namespace ZoomZoom.Orders.UI
 {
     /// <summary>
-    /// A bright, in-world beacon at each active order's current target, pickup while Active,
-    /// drop off once Carried. Built to actually stand out from across the map: a saturated,
-    /// pulsing beam, and the order's own number floating above it in large, camera-facing text.
+    /// Bright, in-world beacons at every place an active order needs the car right now:
+    ///   blue at each ingredient source still needed ("#3 MEAT"),
+    ///   orange at the bay once every ingredient is in the car ("#3 COOK"),
+    ///   green at the bay when the food is ready ("#3 READY"), and at the customer once the
+    ///   food is in the car ("#3").
+    /// Nothing is shown while food is cooking, because the bay shows its own countdown.
     ///
-    /// WHY THIS EXISTS ALONGSIDE DestinationMarker
-    /// DestinationMarker is the screen-space arrow, useful for aiming while driving. This is the
-    /// in-world object, useful for spotting a target from a distance before it's even worth
-    /// checking the HUD. They answer different questions, which way to turn versus where exactly
-    /// to stop, so both stay.
+    /// When two orders need the same place (both need the butcher, or both are waiting on the
+    /// bay), they share one beacon with both labels, so the map stays readable.
     ///
     /// SIZE AND COLOUR
     /// Beacons grow the further they are from the car, so a far target is still easy to spot,
     /// and shrink back to normal up close so they do not swamp the road. The ground disc never
-    /// scales, because it shows the real pickup or drop off zone. An order already in the cargo
-    /// hold uses the carried colour and orders still waiting use the waiting colour.
+    /// scales, because it shows the real zone. Each beacon blends toward red as its order runs
+    /// out of patience.
     ///
-    /// This replaced the old development ground rings (OrderMarkers), which were faint, unlabelled
-    /// and could not tell two orders apart. That script has been removed.
+    /// DestinationMarker is the matching screen space arrow, one per order.
     /// </summary>
     [DisallowMultipleComponent]
     public class OrderBeacon : MonoBehaviour
@@ -30,15 +29,15 @@ namespace ZoomZoom.Orders.UI
         [SerializeField] private OrderManager orderManager;
 
         [Tooltip("Found automatically if left empty. The ground disc's radius is read from this " +
-                 "every frame, so the visual footprint always matches the real pickup/drop-off " +
-                 "trigger exactly, no separate number to keep in sync by hand.")]
+                 "every frame, so the visual footprint always matches the real zone exactly.")]
         [SerializeField] private ZoneDetection zoneDetection;
 
         [Tooltip("Used only if no ZoneDetection is found in the scene.")]
         [SerializeField] private float fallbackGroundDiscRadius = 6f;
 
         [Header("Pool")]
-        [SerializeField] private int poolSize = 6;
+        [Tooltip("Beacons made at start. More are made automatically if needed.")]
+        [SerializeField] private int poolSize = 8;
 
         [Header("Beam")]
         [SerializeField] private float beamHeight = 14f;
@@ -54,10 +53,14 @@ namespace ZoomZoom.Orders.UI
         [SerializeField] private float numberHeightAboveBeam = 1.5f;
 
         [Header("Colours")]
-        [Tooltip("Orders already picked up and in the cargo hold, i.e. the job in progress.")]
+        [Tooltip("Cooked food in the car, heading to the customer.")]
         [SerializeField] private Color carriedColour = OrderPalette.Deliver;
-        [Tooltip("Orders still waiting at their pickup.")]
+        [Tooltip("Ingredients still to collect.")]
         [SerializeField] private Color waitingColour = OrderPalette.Pickup;
+        [Tooltip("Every ingredient is in the car: take it to the bay.")]
+        [SerializeField] private Color cookColour = OrderPalette.Cook;
+        [Tooltip("Food ready to collect from the bay.")]
+        [SerializeField] private Color readyColour = OrderPalette.Deliver;
         [Tooltip("Seconds of order time left below which a beacon blends toward red.")]
         [SerializeField] private float urgentBelowSeconds = 8f;
 
@@ -88,8 +91,19 @@ namespace ZoomZoom.Orders.UI
             public TextMesh Number;
         }
 
+        /// <summary>One place to mark this frame, possibly shared by several orders.</summary>
+        private class Target
+        {
+            public Vector3 Position;
+            public string Label;
+            public Color Colour;
+            public float Radius;
+        }
+
         private readonly List<BeaconSlot> _slots = new List<BeaconSlot>();
-        private static Material _beamMaterial;
+        private readonly List<Target> _targets = new List<Target>();
+        private readonly List<Target> _targetPool = new List<Target>();
+        private Transform _poolRoot;
         private Camera _camera;
 
         private void Awake()
@@ -114,57 +128,107 @@ namespace ZoomZoom.Orders.UI
             {
                 Debug.LogWarning(
                     $"[OrderBeacon] No ZoneDetection found, using the fallback radius of " +
-                    $"{fallbackGroundDiscRadius}m. The ground disc may not match the real pickup " +
-                    "zone if one exists somewhere this couldn't find it.", this);
+                    $"{fallbackGroundDiscRadius}m for every ground disc.", this);
             }
 
-            BuildPool();
+            var root = new GameObject("Order Beacons");
+            root.transform.SetParent(transform, false);
+            _poolRoot = root.transform;
+
+            for (int i = 0; i < Mathf.Max(1, poolSize); i++) _slots.Add(BuildSlot(i));
         }
 
         private void Update()
         {
             if (_camera == null) _camera = Camera.main;
 
-            IReadOnlyList<Order> active = orderManager.ActiveOrders;
-            int used = 0;
+            CollectTargets();
 
-            for (int i = 0; i < active.Count && used < _slots.Count; i++)
+            for (int i = 0; i < _targets.Count; i++)
             {
-                Order order = active[i];
-                if (order.IsTerminal) continue;
+                if (i >= _slots.Count) _slots.Add(BuildSlot(i));
 
-                Vector3 target = order.CurrentTarget;
-
-                bool carried = order.CurrentStep != OrderStep.Pickup;
-                Color colour = OrderPalette.WithUrgency(
-                    carried ? carriedColour : waitingColour, order.TimeRemaining, urgentBelowSeconds);
-
+                Target t = _targets[i];
                 float sizeScale = nearScale;
                 if (distanceFrom != null)
                 {
-                    float distance = Vector3.Distance(distanceFrom.position, target);
-                    float t = Mathf.InverseLerp(nearDistance, Mathf.Max(nearDistance + 0.01f, farDistance), distance);
-                    sizeScale = Mathf.Lerp(nearScale, farScale, t);
+                    float distance = Vector3.Distance(distanceFrom.position, t.Position);
+                    float f = Mathf.InverseLerp(nearDistance, Mathf.Max(nearDistance + 0.01f, farDistance), distance);
+                    sizeScale = Mathf.Lerp(nearScale, farScale, f);
                 }
 
-                float discRadius = fallbackGroundDiscRadius;
-                if (zoneDetection != null)
-                {
-                    discRadius = order.CurrentStep == OrderStep.Pickup
-                        ? zoneDetection.PickupRadius
-                        : zoneDetection.DropOffRadius;
-                }
-
-                string label = $"#{order.Id}";
-
-                PlaceBeacon(_slots[used], target, colour, label, discRadius, sizeScale);
-                used++;
+                PlaceBeacon(_slots[i], t.Position, t.Colour, t.Label, t.Radius, sizeScale);
             }
 
-            for (int i = used; i < _slots.Count; i++)
+            for (int i = _targets.Count; i < _slots.Count; i++)
             {
                 if (_slots[i].Root.activeSelf) _slots[i].Root.SetActive(false);
             }
+        }
+
+        private void CollectTargets()
+        {
+            _targets.Clear();
+
+            float pickupR = zoneDetection != null ? zoneDetection.PickupRadius : fallbackGroundDiscRadius;
+            float bayR = zoneDetection != null ? zoneDetection.BayRadius : fallbackGroundDiscRadius;
+            float dropR = zoneDetection != null ? zoneDetection.DropOffRadius : fallbackGroundDiscRadius;
+
+            IReadOnlyList<Order> active = orderManager.ActiveOrders;
+            for (int i = 0; i < active.Count; i++)
+            {
+                Order order = active[i];
+                if (!order.HasWorldTarget) continue;
+
+                switch (order.CurrentStep)
+                {
+                    case OrderStep.Gather:
+                        foreach (IngredientStop stop in order.Stops)
+                        {
+                            if (stop.Collected) continue;
+                            AddTarget(stop.Point, $"#{order.Id} {stop.Name.ToUpper()}",
+                                Urgent(waitingColour, order), pickupR);
+                        }
+                        break;
+
+                    case OrderStep.Cook:
+                        if (!order.HasBay) break;
+                        bool ready = order.State == OrderState.Ready;
+                        AddTarget(order.BayPoint, ready ? $"#{order.Id} READY" : $"#{order.Id} COOK",
+                            Urgent(ready ? readyColour : cookColour, order), bayR);
+                        break;
+
+                    default:
+                        AddTarget(order.DropOffPoint, $"#{order.Id}", Urgent(carriedColour, order), dropR);
+                        break;
+                }
+            }
+        }
+
+        private Color Urgent(Color baseColour, Order order) =>
+            OrderPalette.WithUrgency(baseColour, order.TimeRemaining, urgentBelowSeconds);
+
+        /// <summary>Adds a place to mark, merging with one already at the same spot. The first
+        /// (oldest) order keeps its colour, since it is the most urgent.</summary>
+        private void AddTarget(Vector3 position, string label, Color colour, float radius)
+        {
+            foreach (Target existing in _targets)
+            {
+                if ((existing.Position - position).sqrMagnitude < 1f)
+                {
+                    existing.Label += "\n" + label;
+                    existing.Radius = Mathf.Max(existing.Radius, radius);
+                    return;
+                }
+            }
+
+            if (_targetPool.Count <= _targets.Count) _targetPool.Add(new Target());
+            Target t = _targetPool[_targets.Count];
+            t.Position = position;
+            t.Label = label;
+            t.Colour = colour;
+            t.Radius = radius;
+            _targets.Add(t);
         }
 
         private void PlaceBeacon(BeaconSlot slot, Vector3 groundPosition, Color colour, string label,
@@ -185,15 +249,14 @@ namespace ZoomZoom.Orders.UI
             OrderWorldMaterial.SetColour(slot.Block, colour);
             slot.BeamRenderer.SetPropertyBlock(slot.Block);
 
-            // The disc IS the real pickup/drop-off radius, not a decorative guess, so its size
-            // comes straight from ZoneDetection every frame rather than being tuned separately.
+            // The disc IS the real zone radius, so its size comes straight from ZoneDetection.
             float discPulse = 1f + Mathf.Sin(Time.time * pulseSpeed + 1.5f) * (pulseScaleAmount * 0.5f);
             float discDiameter = discRadius * 2f * discPulse;
             slot.GroundDisc.localPosition = new Vector3(0f, groundDiscYOffset, 0f);
             slot.GroundDisc.localScale = new Vector3(discDiameter, 0.02f, discDiameter);
 
             Color discColour = colour;
-            discColour.a = 0.6f; // was 0.35, too faint to register as the actual interactive boundary
+            discColour.a = 0.6f;
             OrderWorldMaterial.SetColour(slot.DiscBlock, discColour);
             slot.GroundDiscRenderer.SetPropertyBlock(slot.DiscBlock);
 
@@ -212,64 +275,58 @@ namespace ZoomZoom.Orders.UI
             }
         }
 
-        private void BuildPool()
+        private BeaconSlot BuildSlot(int index)
         {
-            if (_beamMaterial == null) _beamMaterial = OrderWorldMaterial.Get();
+            Material material = OrderWorldMaterial.Get();
 
-            var root = new GameObject("Order Beacons");
-            root.transform.SetParent(transform, false);
+            var slotRoot = new GameObject($"Beacon {index}");
+            slotRoot.transform.SetParent(_poolRoot, false);
+            slotRoot.SetActive(false);
 
-            for (int i = 0; i < Mathf.Max(1, poolSize); i++)
+            GameObject beamGO = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            beamGO.name = "Beam";
+            Destroy(beamGO.GetComponent<Collider>());
+            beamGO.transform.SetParent(slotRoot.transform, false);
+
+            MeshRenderer beamRenderer = beamGO.GetComponent<MeshRenderer>();
+            beamRenderer.sharedMaterial = material;
+            beamRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            beamRenderer.receiveShadows = false;
+
+            GameObject discGO = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            discGO.name = "Ground Disc";
+            Destroy(discGO.GetComponent<Collider>());
+            discGO.transform.SetParent(slotRoot.transform, false);
+
+            MeshRenderer discRenderer = discGO.GetComponent<MeshRenderer>();
+            discRenderer.sharedMaterial = material;
+            discRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            discRenderer.receiveShadows = false;
+
+            var numberGO = new GameObject("Number");
+            numberGO.transform.SetParent(slotRoot.transform, false);
+            TextMesh number = numberGO.AddComponent<TextMesh>();
+            number.fontSize = numberFontSize;
+            number.characterSize = numberCharacterSize;
+            number.anchor = TextAnchor.LowerCenter;
+            number.alignment = TextAlignment.Center;
+            number.fontStyle = FontStyle.Bold;
+
+            MeshRenderer numberRenderer = numberGO.GetComponent<MeshRenderer>();
+            numberRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            numberRenderer.receiveShadows = false;
+
+            return new BeaconSlot
             {
-                var slotRoot = new GameObject($"Beacon {i}");
-                slotRoot.transform.SetParent(root.transform, false);
-                slotRoot.SetActive(false);
-
-                GameObject beamGO = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-                beamGO.name = "Beam";
-                Destroy(beamGO.GetComponent<Collider>());
-                beamGO.transform.SetParent(slotRoot.transform, false);
-
-                MeshRenderer beamRenderer = beamGO.GetComponent<MeshRenderer>();
-                beamRenderer.sharedMaterial = _beamMaterial;
-                beamRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                beamRenderer.receiveShadows = false;
-
-                GameObject discGO = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-                discGO.name = "Ground Disc";
-                Destroy(discGO.GetComponent<Collider>());
-                discGO.transform.SetParent(slotRoot.transform, false);
-
-                MeshRenderer discRenderer = discGO.GetComponent<MeshRenderer>();
-                discRenderer.sharedMaterial = _beamMaterial;
-                discRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                discRenderer.receiveShadows = false;
-
-                var numberGO = new GameObject("Number");
-                numberGO.transform.SetParent(slotRoot.transform, false);
-                TextMesh number = numberGO.AddComponent<TextMesh>();
-                number.fontSize = numberFontSize;
-                number.characterSize = numberCharacterSize;
-                number.anchor = TextAnchor.MiddleCenter;
-                number.alignment = TextAlignment.Center;
-                number.fontStyle = FontStyle.Bold;
-
-                MeshRenderer numberRenderer = numberGO.GetComponent<MeshRenderer>();
-                numberRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                numberRenderer.receiveShadows = false;
-
-                _slots.Add(new BeaconSlot
-                {
-                    Root = slotRoot,
-                    Beam = beamGO.transform,
-                    BeamRenderer = beamRenderer,
-                    Block = new MaterialPropertyBlock(),
-                    GroundDisc = discGO.transform,
-                    GroundDiscRenderer = discRenderer,
-                    DiscBlock = new MaterialPropertyBlock(),
-                    Number = number
-                });
-            }
+                Root = slotRoot,
+                Beam = beamGO.transform,
+                BeamRenderer = beamRenderer,
+                Block = new MaterialPropertyBlock(),
+                GroundDisc = discGO.transform,
+                GroundDiscRenderer = discRenderer,
+                DiscBlock = new MaterialPropertyBlock(),
+                Number = number
+            };
         }
     }
 }

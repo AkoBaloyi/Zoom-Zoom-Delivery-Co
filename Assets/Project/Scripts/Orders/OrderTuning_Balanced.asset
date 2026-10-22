@@ -13,28 +13,29 @@ MonoBehaviour:
   m_Name: OrderTuning_Balanced
   m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.OrderTuning
   profileName: Balanced
-whyThisSetup: '50 s, set for the Milestone 1 build on 23 September. The countdown
-    in Order begins at spawn and not at pickup, so the drive to the pickup is inside
-    the same budget and is costed with the job. Across the 36 pairs formed by the
-    twelve hand-placed delivery points, the shortest job is 260 m of grid driving
-    including the approach, the mean is 557 m and the longest is 954 m, from the
-    North East Corner to the South West Yard. Measured top speed is 32 m/s but cannot
-    be held through junctions on the measured sideways grip of 13 m/s2, so jobs are
-    costed at a 20 m/s working average: 13 s for the shortest, 28 s for the mean,
-    48 s for the longest. 50 s clears all 36 pairs at that average, with about 2 s
-    spare on the longest, so a player who drives the worst job cleanly makes it and
-    one who takes a wrong turn on it does not. 45 s, the previous value, left that
-    one pair about 3 s short. The 20 m/s average is an estimate from measured grip
-    rather than a recorded lap; if real laps come in slower, move a drop-off before
-    loosening the limit for every job. Run docs/tooling/scene-tools/order_distances.py
-    50 to re-check after any change to the points or the limit.'
-  spawnInterval: 12
+  menu:
+  - {fileID: 11400000, guid: a9c112fac6f61434891b01aebb2fba23, type: 2}
+  - {fileID: 11400000, guid: 0c32f6adf9aede241a2ae2554363647a, type: 2}
+  - {fileID: 11400000, guid: ef8f108cff0aedf418d83325ba2f7430, type: 2}
+  - {fileID: 11400000, guid: dcf698a158445c3419ad3940ce6c4711, type: 2}
+  - {fileID: 11400000, guid: 46ed309316413fb4cb0326a4d7200b86, type: 2}
+  - {fileID: 11400000, guid: 35d003f8a5d204a46ba92a9cbfdf84ea, type: 2}
+  - {fileID: 11400000, guid: 0ab63be5ad789134ebf3e1b7fe230591, type: 2}
+  - {fileID: 11400000, guid: a649a6070c03ea64cbebd952160d14dd, type: 2}
+  - {fileID: 11400000, guid: 95b5518b819cb68458fa528694fae0eb, type: 2}
+  - {fileID: 11400000, guid: 87cff2cace48cc448ac1ee713ae8fad8, type: 2}
+  - {fileID: 11400000, guid: f435f64fd46314844b471b0a661927c0, type: 2}
+  - {fileID: 11400000, guid: ef33ff8ad08e23f46ae1425c6690c84c, type: 2}
+  spawnInterval: 15
   maxActiveOrders: 3
-  orderTimeLimit: 50
-  baseDeliveryValue: 10
-  latePenaltyPerSecond: 1
-  enableMultiLegOrders: 1
-  multiLegChance: 0.5
-  minTransferLegs: 1
-  maxTransferLegs: 2
-  extraTimePerTransferLeg: 15
+  orderTimeLimit: 45
+  defaultCookSeconds: 8
+  defaultBurnSeconds: 12
+  baseDeliveryValue: 250
+  valuePerMetre: 0
+  earlyAbovePatienceLeft: 0.5
+  earlyBonus: 0.2
+  lateBelowPatienceLeft: 0.2
+  lateDeduction: 0.1
+  cancelPenalty: 50
+  burnPenalty: 50

@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c7b797602c2581c47a8f2581719fd653, type: 3}
+  m_Name: Food_ChickenWings
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.FoodType
+  displayName: Chicken Wings
+  icon: {fileID: 0}
+  cardColour: {r: 0.8, g: 0.35, b: 0.15, a: 1}
+  ingredients:
+  - {fileID: 11400000, guid: dcc631b69cf792c488f12aec5bc8e0a0, type: 2}
+  cookSeconds: 12
+  burnSeconds: 12
+  basePay: 270
+  spawnWeight: 1.1

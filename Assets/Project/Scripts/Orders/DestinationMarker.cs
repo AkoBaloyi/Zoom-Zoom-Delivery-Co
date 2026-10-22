@@ -6,8 +6,8 @@ namespace ZoomZoom.Orders.UI
 {
     /// <summary>
     /// The one piece of Task 11 that didn't exist yet: an on-screen marker telling the player
-    /// where to actually drive. One arrow per active order, pointing at its pickup point while
-    /// Active, switching to its drop off point once Carried. When the target is on screen, the
+    /// where to actually drive. One arrow per active order: at the nearest ingredient it still
+    /// needs, then its bay, then its customer. Hidden while the food cooks. When the target is on screen, the
     /// arrow sits over it with a distance readout. When it isn't, whether behind the camera or
     /// just off to the side, the arrow clamps to the screen edge and rotates to keep pointing the
     /// right way, the same convention as a race game's off-track waypoint arrow.
@@ -37,10 +37,14 @@ namespace ZoomZoom.Orders.UI
         [SerializeField] private int idFontSize = 30;
 
         [Header("Colours")]
-        [Tooltip("Orders already picked up and in the cargo hold, i.e. the job in progress.")]
+        [Tooltip("Cooked food in the car, heading to the customer.")]
         [SerializeField] private Color carriedColour = OrderPalette.Deliver;
-        [Tooltip("Orders still waiting at their pickup.")]
+        [Tooltip("Ingredients still to collect.")]
         [SerializeField] private Color waitingColour = OrderPalette.Pickup;
+        [Tooltip("Every ingredient is in the car: take it to the bay.")]
+        [SerializeField] private Color cookColour = OrderPalette.Cook;
+        [Tooltip("Food ready to collect from the bay.")]
+        [SerializeField] private Color readyColour = OrderPalette.Deliver;
         [Tooltip("Seconds of order time left below which an arrow blends toward red.")]
         [SerializeField] private float urgentBelowSeconds = 8f;
 
@@ -104,18 +108,36 @@ namespace ZoomZoom.Orders.UI
             for (int i = 0; i < active.Count && used < _slots.Count; i++)
             {
                 Order order = active[i];
-                if (order.IsTerminal) continue;
+                if (!order.HasWorldTarget) continue; // cooking: nothing to drive to yet
+                if (order.CurrentStep == OrderStep.Cook && !order.HasBay) continue;
 
-                Vector3 target = order.CurrentTarget;
+                // While gathering, point at the nearest ingredient still needed.
+                Vector3 target = order.TargetFrom(DistanceOrigin);
 
-                bool carried = order.CurrentStep != OrderStep.Pickup;
-                Color colour = OrderPalette.WithUrgency(
-                    carried ? carriedColour : waitingColour, order.TimeRemaining, urgentBelowSeconds);
+                Color baseColour;
+                string label;
+                switch (order.CurrentStep)
+                {
+                    case OrderStep.Gather:
+                        baseColour = waitingColour;
+                        IngredientStop next = NearestStop(order);
+                        label = next != null ? $"#{order.Id} {next.Name}" : $"#{order.Id}";
+                        break;
+                    case OrderStep.Cook:
+                        bool ready = order.State == OrderState.Ready;
+                        baseColour = ready ? readyColour : cookColour;
+                        label = ready ? $"#{order.Id} READY" : $"#{order.Id} COOK";
+                        break;
+                    default:
+                        baseColour = carriedColour;
+                        label = $"#{order.Id}";
+                        break;
+                }
+
+                Color colour = OrderPalette.WithUrgency(baseColour, order.TimeRemaining, urgentBelowSeconds);
 
                 float distance = Vector3.Distance(DistanceOrigin, target);
                 float sizeScale = ScaleForDistance(distance);
-
-                string label = $"#{order.Id}";
 
                 PlaceMarker(_slots[used], target, colour, label, distance, sizeScale);
                 used++;
@@ -127,6 +149,20 @@ namespace ZoomZoom.Orders.UI
 
         private Vector3 DistanceOrigin =>
             distanceFrom != null ? distanceFrom.position : targetCamera.transform.position;
+
+        private IngredientStop NearestStop(Order order)
+        {
+            IngredientStop best = null;
+            float bestDistance = float.MaxValue;
+            Vector3 from = DistanceOrigin;
+            foreach (IngredientStop s in order.Stops)
+            {
+                if (s.Collected) continue;
+                float d = (s.Point - from).sqrMagnitude;
+                if (d < bestDistance) { bestDistance = d; best = s; }
+            }
+            return best;
+        }
 
         /// <summary>Near Scale up close, Far Scale far away, a smooth blend in between.</summary>
         private float ScaleForDistance(float distance)
