@@ -32,9 +32,14 @@ namespace ZoomZoom.Orders
         public int maxActiveOrders = 3;
 
         [Header("Patience")]
-        [Tooltip("Seconds each order waits before it is cancelled. This is the bar on each order " +
-                 "card, separate from the shift clock. It keeps running while the food cooks.")]
-        public float orderTimeLimit = 75f;
+        [Tooltip("Seconds each order has to collect its ingredients and drop them at a bay before " +
+                 "it is cancelled. This is the bar on each order card, separate from the shift clock.")]
+        public float orderTimeLimit = 60f;
+
+        [Tooltip("Seconds the patience bar refills to when the ingredients are dropped at a bay, " +
+                 "for cooking and delivery. It never takes time away: an order with more left " +
+                 "keeps it. 0 turns the refill off.")]
+        public float patienceAfterBay = 30f;
 
         [Header("Cooking (used only for orders with no food set)")]
         [Tooltip("Seconds a plain delivery cooks in a Processing Bay. Foods use their own Cook " +
@@ -117,6 +122,7 @@ namespace ZoomZoom.Orders
             spawnInterval = Mathf.Max(0.5f, spawnInterval);
             maxActiveOrders = Mathf.Max(1, maxActiveOrders);
             orderTimeLimit = Mathf.Max(1f, orderTimeLimit);
+            patienceAfterBay = Mathf.Max(0f, patienceAfterBay);
             defaultCookSeconds = Mathf.Max(0f, defaultCookSeconds);
             defaultBurnSeconds = Mathf.Max(1f, defaultBurnSeconds);
             baseDeliveryValue = Mathf.Max(0f, baseDeliveryValue);

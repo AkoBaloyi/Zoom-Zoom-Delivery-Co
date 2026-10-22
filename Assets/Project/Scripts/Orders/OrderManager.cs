@@ -227,7 +227,8 @@ namespace ZoomZoom.Orders
                 food: food,
                 needsCooking: needsCooking,
                 cookSeconds: tuning.CookSecondsFor(food),
-                burnSeconds: tuning.BurnSecondsFor(food));
+                burnSeconds: tuning.BurnSecondsFor(food),
+                patienceAfterBay: tuning.patienceAfterBay);
 
             if (needsCooking)
             {
@@ -245,7 +246,10 @@ namespace ZoomZoom.Orders
                 Debug.Log($"[OrderManager] Order {order.Id} spawned: {order.FoodName} needs " +
                           $"{string.Join(", ", parts)}" +
                           (needsCooking ? $", cooks {order.CookSeconds:0.#} s" : "") +
-                          $", to {order.DropOffName}. {tuning.orderTimeLimit:0} s patience, base pay " +
+                          $", to {order.DropOffName}. {tuning.orderTimeLimit:0} s patience" +
+                          (needsCooking && tuning.patienceAfterBay > 0f
+                              ? $" (refills to {tuning.patienceAfterBay:0} s at the bay)" : "") +
+                          ", base pay " +
                           $"R{tuning.BasePayFor(order.Food, order.DesignedDistance):0}. " +
                           $"{_activeOrders.Count}/{tuning.maxActiveOrders} active.");
             }
