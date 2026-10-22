@@ -32,7 +32,7 @@ namespace ZoomZoom.Orders
                  "GameObject's name.")]
         [SerializeField] private string bayName = "";
 
-        [Header("Wiring (found automatically if left empty)")]
+        [Header("Wiring")]
         [SerializeField] private OrderManager orderManager;
         [Tooltip("Its Bay Radius sets the size of the ground disc, so the disc matches the real zone.")]
         [SerializeField] private ZoneDetection zoneDetection;
