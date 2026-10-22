@@ -22,7 +22,7 @@ namespace ZoomZoom.Orders.UI
     [DisallowMultipleComponent]
     public class OrderTicketStrip : MonoBehaviour
     {
-        [Header("Wiring (all found automatically if left empty)")]
+        [Header("Wiring")]
         [SerializeField] private OrderManager orderManager;
         [SerializeField] private CargoSystem cargoSystem;
         [SerializeField] private CargoCondition cargoCondition;
