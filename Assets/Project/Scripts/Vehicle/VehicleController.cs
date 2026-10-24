@@ -18,10 +18,10 @@ namespace ZoomZoom.Vehicle
         /// <summary>0 to 1. The real brake, separate from reverse.</summary>
         public float brake;
 
-        /// <summary>Held handbrake: cuts sideways grip on purpose.</summary>
+        /// <summary>Retired input retained for historical harness compatibility. Ignored by the taxi.</summary>
         public bool handbrake;
 
-        /// <summary>Held boost: the second speed stage, above throttle-only top speed.</summary>
+        /// <summary>Retired input retained for historical harness compatibility. Ignored by the taxi.</summary>
         public bool boost;
     }
 
@@ -74,33 +74,13 @@ namespace ZoomZoom.Vehicle
     }
 
     /// <summary>
-    /// Arcade car on a Rigidbody, held up by four raycasts instead of WheelColliders.
-    ///
-    /// WHY RAYCASTS AND NOT WHEELCOLLIDERS
-    /// WheelColliders simulate a real tyre: slip curves, friction circles, load sensitivity.
-    /// That is great if you want a realistic car and terrible if you want a car you can explain.
-    /// With WheelColliders, "why did I lose the back end there" has about six possible answers and
-    /// most of them are invisible to the player. Here there are exactly two things that decide
-    /// whether the car makes a corner:
-    ///
-    ///     1. the turn curvature the steering allows at this speed  (maxCurvatureBySpeed)
-    ///     2. how much sideways acceleration the tyres can produce  (lateralGripAcceleration)
-    ///
-    /// A corner of radius R at speed V needs V*V/R of sideways grip. If the car has it, the car
-    /// makes the corner. If it does not, the car runs wide, and it runs wide by a calculable
-    /// amount. Same speed and same steering always gives the same line. That is the whole design
-    /// target: demanding, but the player can always work out what happened and do better.
-    ///
-    /// THE ORDER OF WORK, every physics step:
-    ///     read the ground -> hold the car up -> gravity -> drive/brake -> steer -> grip -> limits
-    ///
-    /// Everything is applied as forces and torques in ForceMode.Acceleration, never by moving the
-    /// transform. Acceleration mode ignores mass, so changing the mass in the tuning asset does not
-    /// secretly change the handling. Metres per second squared means what it says.
+    /// Crazy Taxi style Rigidbody vehicle with four suspension rays. Ground/suspension/visual
+    /// state lives here; the driving and manoeuvre simulation is in VehicleController.Taxi.cs.
+    /// Drive/Reverse gear gestures are buffered by VehicleInput and consumed once per physics step.
     /// </summary>
     [RequireComponent(typeof(Rigidbody))]
     [DisallowMultipleComponent]
-    public class VehicleController : MonoBehaviour
+    public partial class VehicleController : MonoBehaviour
     {
         [Header("Tuning")]
         [Tooltip("Every number the car uses. Swap this asset to swap the whole feel of the car.")]
@@ -249,7 +229,7 @@ namespace ZoomZoom.Vehicle
         public float Uprightness => Vector3.Dot(transform.up, Vector3.up);
 
         /// <summary>True when the car is the right way up enough to drive.</summary>
-        public bool IsUpright => Uprightness > 0.5f;
+        public bool IsUpright => Uprightness > (tuning != null ? Taxi.drivableUprightness : 0.5f);
 
         /// <summary>Always 4. Named rather than hard coded at every call site.</summary>
         public const int WheelCount = 4;
@@ -285,9 +265,9 @@ namespace ZoomZoom.Vehicle
         // Reused so the raycasts never allocate.
         private readonly RaycastHit[] _hitBuffer = new RaycastHit[8];
 
-        private float _steerVelocity;      // scratch for the steering smoothing
-        private float _boostRechargeCountdown;
-        private VehicleJumpFlip _jumpFlip; // optional, only consulted so a flip cannot earn fuel
+
+
+
 
         private readonly SurfaceProfile[] _wheelSurfaces = new SurfaceProfile[4];
 
@@ -297,14 +277,14 @@ namespace ZoomZoom.Vehicle
         // ever asked about once.
         private readonly System.Collections.Generic.Dictionary<Collider, SurfaceType> _surfaceCache =
             new System.Collections.Generic.Dictionary<Collider, SurfaceType>(64);
-        private float _stuckTimer;
+
         private float _appliedFixedTimestep = -1f;
 
         private void Awake()
         {
             _rb = GetComponent<Rigidbody>();
             _ownColliders = GetComponentsInChildren<Collider>(true);
-            _jumpFlip = GetComponent<VehicleJumpFlip>();
+
 
             if (tuning == null)
             {
@@ -317,12 +297,13 @@ namespace ZoomZoom.Vehicle
             }
 
             tuning.EnsureCurves();
+            InitialiseTaxi();
             ApplyTuningToBody();
             RebuildWheelPositions();
 
             // Start with a full tank so the fast state is reachable from the first second of play,
             // rather than making the player wait to find out what the car can do.
-            BoostRemaining = tuning.boostCapacity;
+            BoostRemaining = 0f;
         }
 
         /// <summary>
@@ -344,9 +325,8 @@ namespace ZoomZoom.Vehicle
 
             // Headroom above whichever ceiling is higher, so the boost is never silently clamped by
             // a limit derived from the throttle-only top speed.
-            float highestIntendedSpeed = tuning.boostEnabled
-                ? Mathf.Max(tuning.topSpeed, tuning.boostTopSpeed)
-                : tuning.topSpeed;
+            float highestIntendedSpeed = Mathf.Max(Mathf.Max(Taxi.cruiseSpeed, Taxi.reverseSpeed),
+                Mathf.Max(Mathf.Max(Taxi.dashSpeed, Taxi.backDashSpeed), Taxi.limiterMaximumSpeed));
             _rb.maxLinearVelocity = highestIntendedSpeed * 2.5f;
 
             // Interpolation matters: physics runs at a fixed rate that is not the frame rate, so
@@ -406,26 +386,9 @@ namespace ZoomZoom.Vehicle
             // 4. Gravity, always, grounded or not.
             _rb.AddForce(Vector3.down * tuning.gravity, ForceMode.Acceleration);
 
-            // 4b. Boost, also grounded or not: a rocket does not need wheels on the floor.
-            ApplyBoost(dt);
+            StepTaxi(dt);
 
-            // 5, 6, 7. Driving only works with wheels on the ground. In the air the car is a
-            // thrown object, which is what makes committing to a jump or a flip feel like a decision.
-            if (IsGrounded)
-            {
-                ApplyDriveAndBrake(dt);
-                ApplySteering(dt);
-                ApplyLateralGrip(dt);
-            }
-            else
-            {
-                // Still smooth the steering input in the air so the wheels are already turned the
-                // right way on landing, instead of snapping a frame later.
-                SmoothSteerInput(dt);
-            }
 
-            // 8. Never let the player be stuck upside down with no way out.
-            ApplyStuckRecovery(dt);
         }
 
         // ==================================================================
@@ -720,450 +683,6 @@ namespace ZoomZoom.Vehicle
         }
 
         // ==================================================================
-        // 4/5. DRIVE, REVERSE, BRAKE, COAST
-        // ==================================================================
-
-        private void ApplyDriveAndBrake(float dt)
-        {
-            float throttle = ApplyDeadzone(Drive.throttle, tuning.inputDeadzone);
-            float brake = Mathf.Clamp01(Drive.brake);
-
-            // How much deceleration we are allowed to apply before we would drag the car backwards.
-            // Braking should stop the car, never reverse it. Without this cap the car twitches
-            // backwards at a standstill, which reads as the physics being unreliable.
-            float maxStoppingAccel = Mathf.Abs(ForwardSpeed) / Mathf.Max(dt, 0.0001f);
-
-            float driveAccel = 0f;      // along GroundForward, signed
-            float stoppingAccel = 0f;   // always opposes ForwardSpeed
-
-            if (throttle > 0f)
-            {
-                if (ForwardSpeed < -0.5f)
-                {
-                    // Rolling backwards, player asks for forwards. That is a brake, not a launch.
-                    stoppingAccel += tuning.brakeDeceleration * throttle;
-                }
-                else
-                {
-                    // Loose ground spins the wheels instead of pushing the car, so the same throttle
-                    // produces less acceleration on dirt than on tarmac.
-                    driveAccel += tuning.AccelerationAt(ForwardSpeed) * throttle * Surface.driveMultiplier;
-                }
-            }
-            else if (throttle < 0f)
-            {
-                if (ForwardSpeed > 0.5f)
-                {
-                    // Rolling forwards, player asks for reverse. Brake first, reverse after,
-                    // which is what everyone expects from arcade controls.
-                    stoppingAccel += tuning.brakeDeceleration * -throttle;
-                }
-                else if (Mathf.Abs(ForwardSpeed) < tuning.reverseTopSpeed)
-                {
-                    driveAccel += tuning.reverseAcceleration * throttle;
-                }
-            }
-            else
-            {
-                // No throttle at all still slows the car down. Lifting off has to be a real
-                // third option next to throttle and brake, otherwise the only way to slow down
-                // is the brake and cornering loses all its texture.
-                stoppingAccel += tuning.coastDeceleration;
-            }
-
-            if (brake > 0f)
-            {
-                stoppingAccel += tuning.brakeDeceleration * brake * Surface.brakeMultiplier;
-            }
-
-            // The handbrake drags as well as letting go sideways. Without this it was purely a grip
-            // switch: the back end went light but the car carried its speed straight on, which reads
-            // as the tyres icing over rather than as wheels locking up.
-            //
-            // It is added to the same stoppingAccel as the footbrake, which means it also lands in
-            // LongitudinalDemand below, and LongitudinalDemand is what the friction circle spends
-            // against the REAR axle. So the drag consumes rear cornering grip on top of the direct
-            // cut, which is exactly the real mechanism: a locked wheel has no grip left for anything
-            // else. Pulling the handbrake mid-corner therefore rotates the car rather than just
-            // slowing it.
-            float handbrakeDrag = Drive.handbrake
-                ? tuning.handbrakeDeceleration * Surface.brakeMultiplier
-                : 0f;
-
-            stoppingAccel += handbrakeDrag;
-
-            // Deep grass and loose dirt drag the car even under power. This is what makes cutting a
-            // corner across the verge a decision with a cost rather than a free shortcut.
-            stoppingAccel += Surface.rollingResistance;
-
-            stoppingAccel = Mathf.Min(stoppingAccel, maxStoppingAccel);
-
-            float totalAccel = driveAccel - Mathf.Sign(ForwardSpeed) * stoppingAccel;
-
-            // Do not let the drive push past top speed. The acceleration curve already fades to
-            // zero at top speed, this is just a backstop for slopes and shoves.
-            if (driveAccel > 0f && ForwardSpeed >= tuning.topSpeed) totalAccel = Mathf.Min(totalAccel, 0f);
-            if (driveAccel < 0f && ForwardSpeed <= -tuning.reverseTopSpeed) totalAccel = Mathf.Max(totalAccel, 0f);
-
-            // Recorded for the friction circle. This is how much work the tyres are doing along the
-            // car, and it is what the lateral grip calculation then has to share a budget with.
-            // Boost is deliberately NOT counted: it is a rocket, not the tyres, so it does not consume
-            // grip. That also makes boost the tool for holding a slide rather than causing one.
-            //
-            // The handbrake drag is floored in separately rather than left to the net figure. totalAccel
-            // is drive MINUS braking, so holding the throttle while pulling the handbrake very nearly
-            // cancels out, and the demand would come out near zero at the exact moment the tyres are
-            // working hardest. That combination is the standard way to start a drift, so reporting it
-            // as no grip used would defeat the point. Taking the larger of the two never lowers the
-            // demand below what it was before, so nothing outside the handbrake case changes.
-            LongitudinalDemand = Mathf.Max(Mathf.Abs(totalAccel), handbrakeDrag);
-
-            if (Mathf.Abs(totalAccel) > 0.0001f)
-            {
-                _rb.AddForce(GroundForward * totalAccel, ForceMode.Acceleration);
-            }
-        }
-
-        // ==================================================================
-        // 4b. BOOST: the second speed stage
-        // ==================================================================
-
-        /// <summary>
-        /// Boost is a separate push with its own, higher ceiling.
-        ///
-        /// It is deliberately NOT just a bigger number on the throttle. Throttle fades out at
-        /// topSpeed and boost carries the car from there up to boostTopSpeed, so there are two
-        /// distinct states and the player can feel the moment they cross between them. A single
-        /// flat top speed has nothing to be compared against, which is exactly why simply raising
-        /// topSpeed makes a car feel no faster than it did before.
-        ///
-        /// Runs whether or not the wheels are on the ground, because a rocket does not care.
-        ///
-        /// WHERE THE FUEL COMES FROM
-        /// Earned, not given. The tank refills from drifting and from air time, read off the same
-        /// IsDrifting and WheelsOnGround the rest of the car already uses, so there is no second
-        /// opinion about what counts as a slide. Free recharge still exists as a tuning number
-        /// (boostRechargeRate) and is 0 on every shipped profile; it is kept so a playtest can
-        /// compare "earned" against "regenerating" by changing one field.
-        ///
-        /// Earning runs while boosting too. A player who slides WHILE boosting is doing the
-        /// hardest thing the car offers and should not be told the two cancel out.
-        ///
-        /// Penalties are deliberately not here. Hard braking and collisions are judged by the
-        /// cargo system, which docks the order's payout; this only ever adds. Two components
-        /// scoring the same crash would be felt as a double charge even if nobody could name it,
-        /// so the split is: the order system takes away, the car gives back, and neither reads
-        /// the other's events.
-        /// </summary>
-        private void ApplyBoost(float dt)
-        {
-            IsBoosting = false;
-            IsEarningBoost = false;
-            BoostEarnedThisStep = 0f;
-
-            if (!tuning.boostEnabled)
-            {
-                IsSupersonic = false;
-                return;
-            }
-
-            bool wants = Drive.boost && BoostRemaining > 0f;
-
-            if (wants)
-            {
-                // Only push while there is headroom left. Without this the boost keeps spending fuel
-                // at the ceiling and the tank drains for nothing the player can see.
-                if (ForwardSpeed < tuning.boostTopSpeed)
-                {
-                    _rb.AddForce(GroundForward * tuning.boostAcceleration, ForceMode.Acceleration);
-                }
-
-                BoostRemaining = Mathf.Max(0f, BoostRemaining - tuning.boostConsumptionRate * dt);
-                _boostRechargeCountdown = tuning.boostRechargeDelay;
-                IsBoosting = true;
-            }
-            else if (tuning.boostRechargeRate > 0f)
-            {
-                // A delay before refilling, so feathering the button is not a free way to sit at top
-                // speed forever. Spending the tank has to be a decision with a cost.
-                _boostRechargeCountdown = Mathf.Max(0f, _boostRechargeCountdown - dt);
-
-                if (_boostRechargeCountdown <= 0f)
-                {
-                    BoostRemaining = Mathf.Min(
-                        tuning.boostCapacity,
-                        BoostRemaining + tuning.boostRechargeRate * dt);
-                }
-            }
-
-            EarnBoost(dt);
-
-            IsSupersonic = Speed >= tuning.supersonicThreshold;
-        }
-
-        /// <summary>
-        /// The reward half of boost. Drifting pays at one rate, air time at another, and a flip in
-        /// progress pays nothing: the flip is a recovery move, and a recovery move that refuels
-        /// the car is a loop, not a recovery.
-        /// </summary>
-        private void EarnBoost(float dt)
-        {
-            float rate = 0f;
-
-            if (IsDrifting)
-            {
-                rate = tuning.boostEarnedFromDrift;
-            }
-            else if (WheelsOnGround == 0)
-            {
-                bool flipping = _jumpFlip != null && _jumpFlip.IsFlipping;
-                if (!flipping) rate = tuning.boostEarnedFromAir;
-            }
-
-            if (rate <= 0f) return;
-
-            float before = BoostRemaining;
-            BoostRemaining = Mathf.Min(tuning.boostCapacity, BoostRemaining + rate * dt);
-
-            // Earning into a full tank still counts as earning for the gauge, so the player sees
-            // that the slide WOULD have paid and learns to spend before the next one. The total
-            // only counts fuel that actually landed, because that is what the measurement is for.
-            IsEarningBoost = true;
-            BoostEarnedThisStep = BoostRemaining - before;
-            TotalBoostEarned += BoostEarnedThisStep;
-        }
-
-        // ==================================================================
-        // 6. STEERING
-        // ==================================================================
-
-        private void SmoothSteerInput(float dt)
-        {
-            float target = ApplyDeadzone(Drive.steer, tuning.inputDeadzone);
-            SteerAmount = tuning.steerInputSmoothTime <= 0.0001f
-                ? target
-                : Mathf.SmoothDamp(SteerAmount, target, ref _steerVelocity,
-                    tuning.steerInputSmoothTime, Mathf.Infinity, dt);
-
-            // Kept up to date even in mid air, where there is no steering torque to apply but the
-            // front wheels should still visibly be turned the way the player is holding them.
-            SteerCurvature = tuning.MaxCurvatureAt(ForwardSpeed) * SteerAmount;
-        }
-
-        /// <summary>
-        /// Steering by CURVATURE, which is 1 / turn radius.
-        ///
-        /// The curve says "at this speed, full lock gives you this much curvature". Turn rate then
-        /// falls out of the maths: turnRate = curvature * speed. Two things come from this for free:
-        ///
-        ///   - The faster you go, the wider the tightest possible corner gets. That is what stops
-        ///     the car spinning out at speed, and it is a rule the player can feel and predict
-        ///     rather than a hidden stability assist quietly saving them.
-        ///   - Half stick is half the curvature at any speed. Steering input means the same thing
-        ///     at 5 m/s and at 25 m/s.
-        ///
-        /// Reversing works automatically: speed goes negative, so the turn direction flips, the way
-        /// a real car does when you back it up.
-        /// </summary>
-        private void ApplySteering(float dt)
-        {
-            SmoothSteerInput(dt);
-
-            float curvature = SteerCurvature;
-            float targetYawRate = curvature * ForwardSpeed;
-
-            float yawError = targetYawRate - YawRate;
-
-            // maxYawAcceleration limits how quickly the car takes up the new turn rate. It changes
-            // how eager the car feels, not where the car ends up.
-            float yawAuthority = tuning.maxYawAcceleration;
-
-            // While drifting, hand most of the rotation over to the tyres.
-            //
-            // Steering here COMMANDS a turn rate. At full authority that command wins instantly, so
-            // the moment the rear steps out the steering hauls the car straight back to the turn rate
-            // it asked for and the slide dies before the player can hold it. Backing the authority off
-            // during a drift is what lets the axle forces decide the rotation, which in turn is what
-            // makes counter-steering actually catch the car instead of just requesting a new turn rate.
-            //
-            // Only applies when perAxleGrip is on. Without axle forces there is nothing else producing
-            // yaw, so reducing this on the original model would just make the car unresponsive.
-            if (tuning.perAxleGrip && IsDrifting)
-            {
-                yawAuthority *= tuning.driftYawAuthority;
-            }
-
-            float yawAccel = Mathf.Clamp(
-                yawError / Mathf.Max(dt, 0.0001f),
-                -yawAuthority,
-                yawAuthority);
-
-            _rb.AddTorque(GroundNormal * yawAccel, ForceMode.Acceleration);
-        }
-
-        // ==================================================================
-        // 7. SIDEWAYS GRIP: slide or bite
-        // ==================================================================
-
-        /// <summary>
-        /// Grip as a budget, in m/s^2.
-        ///
-        /// Every step we work out how much sideways acceleration it would take to cancel the slide
-        /// completely, then spend up to lateralGripAcceleration of it. If the budget covers it, the
-        /// car tracks exactly where it is pointed. If the corner asks for more than the budget, the
-        /// car runs wide by the difference.
-        ///
-        /// This is the "slides or bites" dial, and it is honest about it: there is no random chance
-        /// of losing grip, no sudden snap. Ask for more than the car has and it understeers, every
-        /// single time, by the same amount.
-        /// </summary>
-        private void ApplyLateralGrip(float dt)
-        {
-            // The handbrake forces the two-force model even when per-axle grip is switched off.
-            //
-            // A rear-only handbrake cannot be expressed as one force at the centre of mass. One force
-            // there can only ever push the whole car sideways, so the best the single-force model can
-            // do is cut grip at all four corners, and that is a four wheel skid: the car slides
-            // without rotating, and the handbrake becomes an ice button. Rotation needs two forces at
-            // two positions, so pulling the handbrake switches to that model for the step.
-            //
-            // At gripBalance 0.5 the two models produce identical total force, so the switch is
-            // seamless. Away from 0.5 there is a small step at the moment of the pull, which is a
-            // moment the player is already expecting the car to change behaviour.
-            if (tuning.perAxleGrip || Drive.handbrake)
-            {
-                ApplyLateralGripPerAxle(dt);
-                return;
-            }
-
-            float grip = tuning.lateralGripAcceleration * Surface.gripMultiplier;
-
-            // The friction circle. Accelerating hard leaves less grip for cornering, which is what
-            // makes the throttle a handling input rather than just a speed input.
-            grip = tuning.LateralGripAfterLongitudinal(grip, LongitudinalDemand);
-
-            AvailableLateralGrip = grip;
-            if (grip <= 0f) return;
-
-            float accelNeededToStopSliding = Mathf.Abs(LateralSpeed) / Mathf.Max(dt, 0.0001f);
-            float accelToApply = Mathf.Min(accelNeededToStopSliding, grip);
-            if (accelToApply <= 0.0001f) return;
-
-            _rb.AddForce(GroundRight * (-Mathf.Sign(LateralSpeed) * accelToApply),
-                ForceMode.Acceleration);
-        }
-
-        /// <summary>
-        /// The same grip budget, split front/rear and applied AT THE AXLES.
-        ///
-        /// This is the whole difference between a skid and a drift. One force at the centre of mass
-        /// can only ever slide the car sideways. Two forces at two positions also produce a yaw
-        /// moment, so when the rear axle runs out of grip before the front, the back end swings and
-        /// the car rotates because it is sliding. That is oversteer, and oversteer is what a drift is.
-        ///
-        /// The bookkeeping is deliberately arranged so that at gripBalance 0.5 the total sideways
-        /// force is exactly what the single-force version produced. Each axle gets a budget of
-        /// (total * share * 2) and contributes half of what it spends, so the two halves add back up
-        /// to the original number. That means switching this on does not silently move the turning
-        /// circle, and the readings from F2 still mean what they meant.
-        /// </summary>
-        private void ApplyLateralGripPerAxle(float dt)
-        {
-            float total = tuning.lateralGripAcceleration * Surface.gripMultiplier;
-            if (total <= 0f) return;
-
-            float frontGrip = total * tuning.gripBalance * 2f;
-            float rearGrip = total * (1f - tuning.gripBalance) * 2f;
-
-            // The friction circle applies to the DRIVEN axle only, which is the rear. That asymmetry is
-            // the whole reason power oversteer exists: the rear tyres are being asked to put the power
-            // down AND hold the corner, the fronts only have to steer. Applying it to both axles would
-            // just make the car understeer under power instead of stepping out.
-            rearGrip = tuning.LateralGripAfterLongitudinal(rearGrip, LongitudinalDemand);
-            AvailableLateralGrip = (frontGrip + rearGrip) * 0.5f;
-
-            // The handbrake works on the rear only. Locking one end is what turns a handbrake pull
-            // into a rotation instead of a four wheel slide.
-            if (Drive.handbrake) rearGrip *= tuning.handbrakeRearGripMultiplier;
-
-            // Published for the telemetry overlay. The gap between these two numbers IS the car's
-            // balance: front above rear is oversteer and the back steps out, rear above front is
-            // understeer and the nose pushes wide. Tuning a drift by feel alone means guessing which
-            // of the two is happening, and they are easy to confuse from the driving seat.
-            FrontAxleGrip = frontGrip;
-            RearAxleGrip = rearGrip;
-
-            ApplyAxleGrip(tuning.wheelForwardOffset, frontGrip, dt);
-            ApplyAxleGrip(-tuning.wheelForwardOffset, rearGrip, dt);
-        }
-
-        /// <summary>
-        /// Spends one axle's grip budget against the sideways motion measured AT THAT AXLE.
-        ///
-        /// GetPointVelocity is the important part: a rotating car has different velocity at the nose
-        /// and at the tail, and that difference is exactly the information a single centre-of-mass
-        /// reading throws away.
-        /// </summary>
-        private void ApplyAxleGrip(float localForwardOffset, float grip, float dt)
-        {
-            if (grip <= 0f) return;
-
-            Vector3 axlePosition = transform.TransformPoint(
-                new Vector3(0f, tuning.wheelHeightOffset, localForwardOffset));
-
-            float lateralAtAxle = Vector3.Dot(_rb.GetPointVelocity(axlePosition), GroundRight);
-
-            float accelNeeded = Mathf.Abs(lateralAtAxle) / Mathf.Max(dt, 0.0001f);
-            float accelToApply = Mathf.Min(accelNeeded, grip);
-            if (accelToApply <= 0.0001f) return;
-
-            // Half each, so front + rear equals the original single force at neutral balance.
-            _rb.AddForceAtPosition(
-                GroundRight * (-Mathf.Sign(lateralAtAxle) * accelToApply * 0.5f),
-                axlePosition,
-                ForceMode.Acceleration);
-        }
-
-        // ==================================================================
-        // 8. ANTI-SOFTLOCK
-        // ==================================================================
-
-        /// <summary>
-        /// The flip is the player's recovery move, and the flip needs wheels on the ground. So a car
-        /// resting on its roof has no way out. Sitting there unable to play is not difficulty, it is
-        /// a dead end, so after a short delay we roll the car back over.
-        /// </summary>
-        private void ApplyStuckRecovery(float dt)
-        {
-            if (!tuning.autoRightWhenStuck)
-            {
-                _stuckTimer = 0f;
-                return;
-            }
-
-            bool notUpright = Uprightness < tuning.stuckUprightThreshold;
-            bool notMoving = Speed < tuning.stuckSpeedThreshold;
-
-            if (!notUpright || !notMoving)
-            {
-                _stuckTimer = 0f;
-                return;
-            }
-
-            _stuckTimer += dt;
-            if (_stuckTimer < tuning.stuckTimeBeforeRighting) return;
-
-            Vector3 axis = Vector3.Cross(transform.up, Vector3.up);
-            if (axis.sqrMagnitude < 0.0001f)
-            {
-                // Exactly upside down, so there is no single obvious way to roll. Nudge it.
-                axis = transform.forward;
-            }
-
-            _rb.AddTorque(axis.normalized * tuning.rightingTorque, ForceMode.Acceleration);
-        }
-
-        // ==================================================================
         // HELPERS
         // ==================================================================
 
@@ -1204,14 +723,15 @@ namespace ZoomZoom.Vehicle
             _rb.interpolation = previous;
 
             Drive = default;
+            ResetTaxi();
             SteerAmount = 0f;
-            _steerVelocity = 0f;
-            _stuckTimer = 0f;
+
+
 
             // A measured run has to start from a known boost state, or one reading gets a full tank
             // and the next gets whatever was left over.
-            if (tuning != null) BoostRemaining = tuning.boostCapacity;
-            _boostRechargeCountdown = 0f;
+            BoostRemaining = 0f;
+
             IsBoosting = false;
             IsSupersonic = false;
             IsEarningBoost = false;
@@ -1227,8 +747,7 @@ namespace ZoomZoom.Vehicle
         /// </summary>
         public void SetBoostRemaining(float amount)
         {
-            float capacity = tuning != null ? tuning.boostCapacity : 0f;
-            BoostRemaining = Mathf.Clamp(amount, 0f, capacity);
+            BoostRemaining = 0f; // Retired boost API retained for historical log/harness compatibility.
         }
 
         private void OnDrawGizmos()

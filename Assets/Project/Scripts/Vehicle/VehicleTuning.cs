@@ -22,6 +22,9 @@ namespace ZoomZoom.Vehicle
         order = 0)]
     public class VehicleTuning : ScriptableObject
     {
+        [Header("Crazy Taxi controller and camera")]
+        public CrazyTaxiSettings taxi = new CrazyTaxiSettings();
+
         // ------------------------------------------------------------------
         // WHICH SETUP IS THIS, AND WHY
         // Filled in by hand. This is the paper trail for the design decision.
@@ -689,18 +692,12 @@ namespace ZoomZoom.Vehicle
         /// </summary>
         public float AccelerationAt(float forwardSpeed)
         {
-            float v = Mathf.Abs(forwardSpeed);
-
-            if (!accelerationFromFormula)
-            {
-                EnsureCurves();
-                return Mathf.Max(0f, accelerationBySpeed.Evaluate(v));
-            }
-
-            float speed01 = Mathf.Clamp01(v / Mathf.Max(0.1f, topSpeed));
-            float remaining = 1f - Mathf.Pow(speed01, accelerationFalloffPower);
-
-            return Mathf.Max(0f, launchAcceleration * remaining);
+            float v = Mathf.Max(0f, forwardSpeed);
+            float limit = Mathf.Max(0.1f, taxi.cruiseSpeed);
+            float multiplier = taxi.useCustomAccelerationCurve
+                ? Mathf.Max(0f, taxi.accelerationMultiplierBySpeed.Evaluate(v / limit))
+                : Mathf.Clamp01((limit - v) / Mathf.Max(0.01f, taxi.normalAccelerationTaper));
+            return taxi.acceleration * multiplier;
         }
 
         /// <summary>
@@ -719,30 +716,20 @@ namespace ZoomZoom.Vehicle
         public float MaxCurvatureAt(float speed)
         {
             float v = Mathf.Abs(speed);
-
-            if (!steerFromGripBudget)
-            {
-                EnsureCurves();
-                return Mathf.Max(0f, maxCurvatureBySpeed.Evaluate(v));
-            }
-
-            // Near standstill the formula divides by almost zero, so the cap takes over.
-            if (v < 0.5f) return maximumCurvature;
-
-            float reference = Mathf.Max(1f, BoostOrTopSpeed());
-            float speed01 = Mathf.Clamp01(v / reference);
-
-            float overdrive = Mathf.Lerp(steerOverdriveAtLowSpeed, steerOverdriveAtTopSpeed, speed01);
-            float curvature = (lateralGripAcceleration * overdrive) / (v * v);
-
-            return Mathf.Min(curvature, maximumCurvature);
+            if (v < 0.0001f) return 0f;
+            float fraction = v / Mathf.Max(0.1f, taxi.cruiseSpeed);
+            float degrees = taxi.useCustomSteeringCurve
+                ? Mathf.Max(0f, taxi.steeringDegreesBySpeed.Evaluate(fraction))
+                : Mathf.Lerp(taxi.lowSpeedTurnDegrees, taxi.highSpeedTurnDegrees, Mathf.Clamp01(fraction));
+            float yaw = degrees * Mathf.Deg2Rad * Mathf.Clamp01(v / Mathf.Max(0.1f, taxi.steeringSpeedForFullAuthority));
+            return yaw / v;
         }
 
         /// <summary>The speed the handling curves are scaled against: the boosted ceiling when boost
         /// is enabled, otherwise the throttle-only top speed.</summary>
         public float BoostOrTopSpeed()
         {
-            return boostEnabled ? Mathf.Max(topSpeed, boostTopSpeed) : topSpeed;
+            return Mathf.Max(taxi.cruiseSpeed, taxi.limiterMaximumSpeed);
         }
 
         /// <summary>
@@ -778,8 +765,9 @@ namespace ZoomZoom.Vehicle
         /// </summary>
         public float GripLimitedRadiusAt(float speed)
         {
-            if (lateralGripAcceleration <= 0.0001f) return float.PositiveInfinity;
-            return (speed * speed) / lateralGripAcceleration;
+            float fraction = Mathf.Abs(speed) / Mathf.Max(0.1f, taxi.cruiseSpeed);
+            float grip = taxi.cornerGrip * Mathf.Max(0f, taxi.gripMultiplierBySpeed.Evaluate(fraction));
+            return grip <= 0.0001f ? float.PositiveInfinity : speed * speed / grip;
         }
 
         /// <summary>
@@ -794,8 +782,8 @@ namespace ZoomZoom.Vehicle
         /// <summary>Textbook stopping distance from throttle-only top speed, metres: v^2 / (2a).</summary>
         public float PredictedStoppingDistanceFromTopSpeed()
         {
-            if (brakeDeceleration <= 0.0001f) return float.PositiveInfinity;
-            return (topSpeed * topSpeed) / (2f * brakeDeceleration);
+            float deceleration = taxi.braking + taxi.coasting;
+            return deceleration <= 0.0001f ? float.PositiveInfinity : taxi.cruiseSpeed * taxi.cruiseSpeed / (2f * deceleration);
         }
 
         /// <summary>
@@ -807,9 +795,12 @@ namespace ZoomZoom.Vehicle
         /// </summary>
         public float PredictedStoppingDistanceFromHighestSpeed()
         {
-            if (brakeDeceleration <= 0.0001f) return float.PositiveInfinity;
-            float v = BoostOrTopSpeed();
-            return (v * v) / (2f * brakeDeceleration);
+            float deceleration = taxi.braking + taxi.coasting;
+            if (deceleration <= 0.0001f) return float.PositiveInfinity;
+            float peak = Mathf.Max(taxi.cruiseSpeed, taxi.limiterMaximumSpeed);
+            float overspeedDistance = (peak * peak - taxi.cruiseSpeed * taxi.cruiseSpeed)
+                / (2f * Mathf.Max(0.0001f, deceleration + taxi.overspeedDeceleration));
+            return overspeedDistance + PredictedStoppingDistanceFromTopSpeed();
         }
 
         /// <summary>Jump height from the jump impulse alone (ignoring the hold bonus), metres.</summary>
@@ -872,6 +863,8 @@ namespace ZoomZoom.Vehicle
 
         private void OnValidate()
         {
+            if (taxi == null) taxi = new CrazyTaxiSettings();
+            taxi.Sanitize();
             EnsureCurves();
 
             // Keep the numbers physically sensible so a typo cannot produce nonsense.

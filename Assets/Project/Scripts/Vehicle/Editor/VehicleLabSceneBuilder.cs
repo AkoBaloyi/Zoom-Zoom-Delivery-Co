@@ -233,7 +233,6 @@ namespace ZoomZoom.Vehicle.EditorTools
                 : new Vector3(0f, -0.35f, 0f);
 
             VehicleController controller = go.AddComponent<VehicleController>();
-            VehicleJumpFlip jumpFlip = go.AddComponent<VehicleJumpFlip>();
             VehicleInput input = go.AddComponent<VehicleInput>();
             VehicleVisuals visuals = go.AddComponent<VehicleVisuals>();
             go.AddComponent<CarVisualBuilder>();
@@ -253,7 +252,6 @@ namespace ZoomZoom.Vehicle.EditorTools
             var inputSo = new SerializedObject(input);
             inputSo.FindProperty("controlsAsset").objectReferenceValue = controls;
             inputSo.FindProperty("controller").objectReferenceValue = controller;
-            inputSo.FindProperty("jumpFlip").objectReferenceValue = jumpFlip;
             inputSo.ApplyModifiedPropertiesWithoutUndo();
 
             if (controls == null)

@@ -79,7 +79,7 @@ namespace ZoomZoom.Orders
         // reference equality is exactly what is wanted).
         private readonly Dictionary<Order, float> _condition = new Dictionary<Order, float>();
 
-        private float _previousForwardSpeed;
+        private float _previousTravelSpeed;
         private float _hardBrakeCooldownRemaining;
 
         /// <summary>The deceleration, in m/s², above which a speed drop counts as a hard brake.
@@ -89,7 +89,7 @@ namespace ZoomZoom.Orders
             get
             {
                 if (vehicle != null && vehicle.Tuning != null)
-                    return vehicle.Tuning.brakeDeceleration * Mathf.Max(1.01f, hardBrakeMultiplier);
+                    return vehicle.Taxi.braking * Mathf.Max(1.01f, hardBrakeMultiplier);
 
                 return fallbackHardBrakeDecelThreshold;
             }
@@ -146,22 +146,24 @@ namespace ZoomZoom.Orders
         {
             if (vehicleBody == null) return;
 
-            float currentForwardSpeed = ForwardSpeed();
+            float currentTravelSpeed = TravelSpeed();
 
             if (!enableCondition || _condition.Count == 0)
             {
-                _previousForwardSpeed = currentForwardSpeed;
+                _previousTravelSpeed = currentTravelSpeed;
                 return;
             }
 
             if (_hardBrakeCooldownRemaining > 0f) _hardBrakeCooldownRemaining -= Time.fixedDeltaTime;
 
-            float decel = (_previousForwardSpeed - currentForwardSpeed) / Mathf.Max(Time.fixedDeltaTime, 0.0001f);
-            _previousForwardSpeed = currentForwardSpeed;
+            float decel = (_previousTravelSpeed - currentTravelSpeed) / Mathf.Max(Time.fixedDeltaTime, 0.0001f);
+            _previousTravelSpeed = currentTravelSpeed;
 
             float threshold = HardBrakeDecelThreshold;
 
-            if (decel > threshold && _hardBrakeCooldownRemaining <= 0f)
+            bool techniqueProtected = vehicle != null && vehicle.IsTechniqueCargoProtected &&
+                !vehicle.Taxi.techniquesCauseHardBrakeDamage;
+            if (!techniqueProtected && decel > threshold && _hardBrakeCooldownRemaining <= 0f)
             {
                 _hardBrakeCooldownRemaining = hardBrakeCooldown;
                 ApplyDamage(hardBrakeDamage,
@@ -169,12 +171,14 @@ namespace ZoomZoom.Orders
             }
         }
 
-        private float ForwardSpeed()
+        private float TravelSpeed()
         {
             // linearVelocity, not the deprecated velocity property, matches the Rigidbody API in
             // the Unity 6 line this project targets.
             Vector3 velocity = vehicleBody.linearVelocity;
-            return Vector3.Dot(velocity, transform.forward);
+            // Rotation alone must not masquerade as braking during a drift or a quick turn.
+            Vector3 normal = vehicle != null ? vehicle.GroundNormal : Vector3.up;
+            return Vector3.ProjectOnPlane(velocity, normal).magnitude;
         }
 
         private void OnCollisionEnter(Collision collision)
