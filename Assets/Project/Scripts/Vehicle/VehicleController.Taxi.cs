@@ -23,6 +23,7 @@ namespace ZoomZoom.Vehicle
         public TaxiTrick ActiveTrick { get; private set; }
         public TaxiGear SelectedGear { get; private set; }
         public int TrickCount { get; private set; }
+        public int SelfRightCount { get; private set; }
         public bool IsTaxiDrifting => ActiveTrick == TaxiTrick.Drift || ActiveTrick == TaxiTrick.BackDrift;
         public float TrickRemaining => _trickRemaining;
         public float QuickSpinCooldownRemaining => _spinCooldownRemaining;
@@ -247,6 +248,7 @@ namespace ZoomZoom.Vehicle
             foreach (Collider obstacle in Physics.OverlapBox(position, half,
                 Quaternion.LookRotation(heading), tuning.groundMask, QueryTriggerInteraction.Ignore))
                 if (!IsOwnCollider(obstacle)) return;
+            SelfRightCount++;
             Teleport(position, Quaternion.LookRotation(heading, Vector3.up));
         }
 

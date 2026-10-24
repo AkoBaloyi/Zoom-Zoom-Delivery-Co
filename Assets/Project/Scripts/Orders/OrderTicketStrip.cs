@@ -5,18 +5,16 @@ using UnityEngine.UI;
 namespace ZoomZoom.Orders.UI
 {
     /// <summary>
-    /// The order ticket strip. The project plan's Concept section says orders appear on screen
-    /// "with a countdown attached exactly like an Overcooked ticket", and this is that: one paper
-    /// ticket per active order along the top left of the screen, oldest on the left. Each ticket
-    /// shows a coloured header with the order number and time left, PICK and DROP badges that
-    /// tick off as the order progresses, one line of plain status text, the order's value, and a
-    /// timer bar that drains from green to red and shakes when the order is nearly out of time.
-    /// A DELIVERED or LATE stamp lands when it resolves, then the ticket slides away, and new
-    /// tickets drop in from above. A banner announces deliveries, late orders and level ups.
+    /// Overcooked style order cards along the top left of the screen, oldest on the left.
     ///
-    /// Everything is built in code from Image and Text, so there is no prefab to wire up. Add this
-    /// component to any scene object and press Play. Art is optional: assign a HudSkin asset and
-    /// any sprite it holds replaces the matching flat colour; anything it leaves empty stays flat.
+    /// Each card shows the order number, the food and the seconds left, PICK and DROP step
+    /// badges, where to pick up and where to deliver, what the order pays right now (early, on
+    /// time or late), and its own patience bar, separate from the shift clock, with marks where
+    /// early ends and late begins. The card shakes when the bar is nearly empty. When an order
+    /// ends, a stamp lands on its card (EARLY, ON TIME, LATE or CANCELLED), a short message says
+    /// what it paid or cost, and the card slides away.
+    ///
+    /// Built in code, nothing to wire. All pay numbers come from the Order Tuning asset.
     /// </summary>
     [DisallowMultipleComponent]
     public class OrderTicketStrip : MonoBehaviour
@@ -25,40 +23,46 @@ namespace ZoomZoom.Orders.UI
         [SerializeField] private OrderManager orderManager;
         [SerializeField] private CargoSystem cargoSystem;
         [SerializeField] private CargoCondition cargoCondition;
-        [SerializeField] private PlayerProgression playerProgression;
 
         [Header("Art (optional)")]
-        [Tooltip("Sprites for tickets, badges, stamps and bars. Leave empty for flat colours.")]
+        [Tooltip("Sprites for cards, badges, stamps and bars. Leave empty for flat colours.")]
         [SerializeField] private HudSkin skin;
 
         [Header("Layout")]
-        [Tooltip("Offset from the screen's top-left corner, in reference pixels (1920x1080).")]
+        [Tooltip("Offset from the screen's top left corner, in reference pixels (1920x1080).")]
         [SerializeField] private Vector2 stripOrigin = new Vector2(24f, -24f);
-        [SerializeField] private Vector2 ticketSize = new Vector2(210f, 150f);
+        [Tooltip("Size of one order card before Ticket Scale.")]
+        [SerializeField] private Vector2 cardSize = new Vector2(240f, 156f);
         [SerializeField] private float ticketGap = 10f;
+        [Tooltip("Scales every card, its text and the gaps. 1 is the original size.")]
+        [SerializeField] private float ticketScale = 1.05f;
 
         [Header("Behaviour")]
+        [Tooltip("Seconds left below which a card's bar shakes.")]
         [SerializeField] private float urgentBelowSeconds = 8f;
-        [Tooltip("Seconds a DELIVERED / LATE stamp stays on a ticket before it slides away.")]
+        [Tooltip("Seconds a stamp stays on a card before it slides away.")]
         [SerializeField] private float resolvedLingerSeconds = 1.1f;
-        [SerializeField] private float bannerSeconds = 2.4f;
+        [Tooltip("Seconds each message stays on screen.")]
+        [SerializeField] private float popupSeconds = 1.8f;
 
         private static readonly string[] StepLabels = { "PICK", "DROP" };
         private static readonly OrderStep[] Steps = { OrderStep.Pickup, OrderStep.Deliver };
 
-        private class Ticket
+        private class Card
         {
             public Order Order;
             public RectTransform Root;
             public Image Paper;
-            public Image Header;
             public Text Title;
             public Text TimeText;
+            public Image FoodIcon;
             public RectTransform[] BadgeRects;
             public Image[] Badges;
             public Image[] BadgeIcons;
             public Text[] BadgeLabels;
-            public Text Status;
+            public Text FromText;
+            public Text ToText;
+            public Text PayText;
             public RectTransform BarFill;
             public Image BarFillImage;
             public Text Stamp;
@@ -72,24 +76,24 @@ namespace ZoomZoom.Orders.UI
             public float StampDuration;
         }
 
-        private readonly List<Ticket> _tickets = new List<Ticket>();
-        private readonly Dictionary<Order, Ticket> _byOrder = new Dictionary<Order, Ticket>();
-        private readonly Queue<KeyValuePair<string, Color>> _bannerQueue = new Queue<KeyValuePair<string, Color>>();
+        private readonly List<Card> _cards = new List<Card>();
+        private readonly Dictionary<Order, Card> _byOrder = new Dictionary<Order, Card>();
+        private readonly Queue<KeyValuePair<string, Color>> _popupQueue = new Queue<KeyValuePair<string, Color>>();
 
         private RectTransform _stripRoot;
-        private Canvas _canvas;
-        private Text _banner;
-        private float _bannerTimer;
+        private Text _popup;
+        private float _popupTimer;
         private Font _font;
 
-        // --------------------------------------------------------------------------------------
+        private float BarWidth => cardSize.x - 20f;
+
+        // ---- setup ----------------------------------------------------------------------------
 
         private void Awake()
         {
             if (orderManager == null) orderManager = FindAnyObjectByType<OrderManager>();
             if (cargoSystem == null) cargoSystem = FindAnyObjectByType<CargoSystem>();
             if (cargoCondition == null) cargoCondition = FindAnyObjectByType<CargoCondition>();
-            if (playerProgression == null) playerProgression = FindAnyObjectByType<PlayerProgression>();
 
             if (orderManager == null)
             {
@@ -99,498 +103,518 @@ namespace ZoomZoom.Orders.UI
             }
 
             _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            HudSkin.LogStatus(skin, "OrderTicketStrip", this);
             BuildCanvas();
 
-            orderManager.OrderResolved += HandleOrderResolved;
-
-            if (playerProgression != null) playerProgression.LevelUp += HandleLevelUp;
+            orderManager.OrderPaid += HandleOrderPaid;
             if (cargoSystem != null) cargoSystem.CapacityChanged += HandleCapacityChanged;
         }
 
         private void OnDestroy()
         {
-            if (orderManager != null) orderManager.OrderResolved -= HandleOrderResolved;
-
-            if (playerProgression != null) playerProgression.LevelUp -= HandleLevelUp;
+            if (orderManager != null) orderManager.OrderPaid -= HandleOrderPaid;
             if (cargoSystem != null) cargoSystem.CapacityChanged -= HandleCapacityChanged;
         }
 
         // ---- events ---------------------------------------------------------------------------
 
-        private void HandleOrderResolved(Order order, float value)
+        private void HandleOrderPaid(Order order, OrderPayout payout)
         {
-            if (!_byOrder.TryGetValue(order, out Ticket ticket)) return;
+            if (_byOrder.TryGetValue(order, out Card card))
+            {
+                card.Resolving = true;
+                card.ResolveTimer = resolvedLingerSeconds;
 
-            bool delivered = order.State == OrderState.Delivered;
-            ticket.Resolving = true;
-            ticket.ResolveTimer = resolvedLingerSeconds;
+                switch (payout.Timing)
+                {
+                    case DeliveryTiming.Early:
+                        ShowStamp(card, "EARLY!", OrderPalette.Deliver, SkinSprite(s => s.stampDelivered));
+                        break;
+                    case DeliveryTiming.OnTime:
+                        ShowStamp(card, "ON TIME", OrderPalette.Deliver, SkinSprite(s => s.stampDelivered));
+                        break;
+                    case DeliveryTiming.Late:
+                        ShowStamp(card, "LATE", new Color(1f, 0.55f, 0.1f, 1f), SkinSprite(s => s.stampLate));
+                        break;
+                    default:
+                        ShowStamp(card, "CANCELLED", OrderPalette.Urgent, null);
+                        break;
+                }
+            }
 
-            Sprite stampSprite = skin == null ? null : (delivered ? skin.stampDelivered : skin.stampLate);
-            ShowStamp(ticket, delivered ? "DELIVERED!" : "LATE!",
-                delivered ? OrderPalette.Deliver : OrderPalette.Urgent, resolvedLingerSeconds + 0.6f,
-                stampSprite);
-
-            if (delivered)
-                PushBanner($"Order #{order.Id} delivered!  +${value:0}", OrderPalette.Deliver);
-            else
-                PushBanner($"Order #{order.Id} ran out of time!", OrderPalette.Urgent);
-        }
-
-        private void HandleLevelUp(int level)
-        {
-            PushBanner($"LEVEL UP!  Level {level}", OrderPalette.Xp);
+            switch (payout.Timing)
+            {
+                case DeliveryTiming.Early:
+                    PushPopup($"Order #{order.Id} early, +R{payout.Total:0}", OrderPalette.Deliver);
+                    break;
+                case DeliveryTiming.OnTime:
+                    PushPopup($"Order #{order.Id} on time, +R{payout.Total:0}", OrderPalette.Paper);
+                    break;
+                case DeliveryTiming.Late:
+                    PushPopup($"Order #{order.Id} late, +R{payout.Total:0}", new Color(1f, 0.6f, 0.15f, 1f));
+                    break;
+                default:
+                    PushPopup($"Order #{order.Id} cancelled, minus R{-payout.Penalty:0}", OrderPalette.Urgent);
+                    break;
+            }
         }
 
         private void HandleCapacityChanged(int capacity)
         {
-            PushBanner($"Cargo upgraded:  {capacity} slots", OrderPalette.Money);
+            PushPopup($"Cargo upgraded: {capacity} slots", OrderPalette.Money);
         }
 
         // ---- per frame ------------------------------------------------------------------------
 
         private void Update()
         {
-            SyncTickets();
-            UpdateTickets(Time.unscaledDeltaTime);
-            UpdateBanner(Time.unscaledDeltaTime);
+            SyncCards();
+            UpdateCards(Time.unscaledDeltaTime);
+            UpdatePopup(Time.unscaledDeltaTime);
         }
 
-        private void SyncTickets()
+        private void SyncCards()
         {
             IReadOnlyList<Order> active = orderManager.ActiveOrders;
             for (int i = 0; i < active.Count; i++)
             {
-                if (_byOrder.ContainsKey(active[i])) continue;
-                BuildTicket(active[i]);
+                if (!_byOrder.ContainsKey(active[i])) BuildCard(active[i]);
             }
         }
 
-        private void UpdateTickets(float dt)
+        private void UpdateCards(float dt)
         {
             float follow = 1f - Mathf.Exp(-12f * dt);
 
-            for (int i = _tickets.Count - 1; i >= 0; i--)
+            for (int i = _cards.Count - 1; i >= 0; i--)
             {
-                Ticket t = _tickets[i];
+                Card c = _cards[i];
 
-                if (t.Resolving)
+                if (c.Resolving)
                 {
-                    t.ResolveTimer -= dt;
-                    if (t.ResolveTimer <= -0.5f)
+                    c.ResolveTimer -= dt;
+                    if (c.ResolveTimer <= -0.5f)
                     {
-                        _byOrder.Remove(t.Order);
-                        _tickets.RemoveAt(i);
-                        Destroy(t.Root.gameObject);
+                        _byOrder.Remove(c.Order);
+                        _cards.RemoveAt(i);
+                        Destroy(c.Root.gameObject);
                         continue;
                     }
                 }
 
-                RefreshTicket(t);
+                RefreshCard(c);
             }
 
-            // Positions are assigned after removals so the survivors close the gap smoothly.
-            for (int i = 0; i < _tickets.Count; i++)
+            for (int i = 0; i < _cards.Count; i++)
             {
-                Ticket t = _tickets[i];
-                var target = new Vector2(i * (ticketSize.x + ticketGap), 0f);
+                Card c = _cards[i];
+                var target = new Vector2(i * (cardSize.x + ticketGap), 0f);
+                if (c.Resolving && c.ResolveTimer <= 0f) target.y = 240f; // slide up and away
 
-                if (t.Resolving && t.ResolveTimer <= 0f)
-                    target.y = 220f; // slide up and off the top of the screen
-
-                t.Position = Vector2.Lerp(t.Position, target, follow);
+                c.Position = Vector2.Lerp(c.Position, target, follow);
 
                 Vector2 shake = Vector2.zero;
-                if (!t.Resolving && t.Order.TimeRemaining < urgentBelowSeconds && !t.Order.IsTerminal)
+                if (!c.Resolving && !c.Order.IsTerminal && c.Order.TimeRemaining < urgentBelowSeconds)
                 {
-                    float strength = 1f - Mathf.Clamp01(t.Order.TimeRemaining / urgentBelowSeconds);
+                    float strength = 1f - Mathf.Clamp01(c.Order.TimeRemaining / urgentBelowSeconds);
                     shake.x = Mathf.Sin(Time.unscaledTime * 45f) * 2.5f * strength;
                 }
 
-                t.Root.anchoredPosition = t.Position + shake;
+                c.Root.anchoredPosition = c.Position + shake;
 
-                if (t.StampTimer > 0f)
+                if (c.StampTimer > 0f)
                 {
-                    t.StampTimer -= dt;
-                    float age = t.StampDuration - t.StampTimer;
-                    float pop = Mathf.Lerp(1.7f, 1f, Mathf.Clamp01(age / 0.15f));
-                    t.StampRect.localScale = Vector3.one * pop;
+                    c.StampTimer -= dt;
+                    float age = c.StampDuration - c.StampTimer;
+                    c.StampRect.localScale = Vector3.one * Mathf.Lerp(1.7f, 1f, Mathf.Clamp01(age / 0.15f));
 
-                    float fade = Mathf.Clamp01(t.StampTimer / 0.4f);
-
-                    Color c = t.Stamp.color;
-                    c.a = fade;
-                    t.Stamp.color = c;
-                    t.StampImage.color = new Color(1f, 1f, 1f, fade);
-
-                    if (t.StampTimer <= 0f)
-                    {
-                        t.Stamp.text = string.Empty;
-                        t.StampImage.enabled = false;
-                    }
+                    float fade = Mathf.Clamp01(c.StampTimer / 0.4f);
+                    Color sc = c.Stamp.color;
+                    sc.a = fade;
+                    c.Stamp.color = sc;
+                    c.StampImage.color = new Color(1f, 1f, 1f, fade);
                 }
             }
         }
 
-        private void RefreshTicket(Ticket t)
+        private void RefreshCard(Card c)
         {
-            Order order = t.Order;
+            Order order = c.Order;
+            OrderTuning tuning = orderManager.Tuning;
             float pulse = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 6f);
 
-            // Header
-            t.Title.text = $"ORDER #{order.Id}";
-            t.TimeText.text = $"{Mathf.CeilToInt(order.TimeRemaining)}s";
+            c.TimeText.text = order.IsTerminal ? "" : $"{Mathf.CeilToInt(order.TimeRemaining)}s";
 
-            // Paper tints toward pink as the clock runs out.
             float urgency = order.IsTerminal
                 ? 0f
                 : 1f - Mathf.Clamp01(order.TimeRemaining / Mathf.Max(0.01f, urgentBelowSeconds));
-            Color paperBase = HasArt(s => s.ticketPaper) ? Color.white : OrderPalette.Paper;
-            t.Paper.color = Color.Lerp(paperBase, new Color(1f, 0.78f, 0.72f, 1f), urgency * pulse);
+            Color paperBase = SkinSprite(s => s.ticketPaper) != null ? Color.white : OrderPalette.Paper;
+            c.Paper.color = Color.Lerp(paperBase, new Color(1f, 0.78f, 0.72f, 1f), urgency * pulse);
 
-            // Badges
+            // Step badges
             int current = order.CurrentStep == OrderStep.Pickup ? 0 : 1;
             bool finished = order.State == OrderState.Delivered;
-            int total = Steps.Length;
+            bool icons = SkinSprite(s => s.iconPickup) != null && SkinSprite(s => s.iconDropOff) != null;
 
-            Vector2 badgeSize = BadgeSize;
-            const float badgeGap = 8f;
-            float rowWidth = total * badgeSize.x + (total - 1) * badgeGap;
-            float startX = (ticketSize.x - rowWidth) * 0.5f;
-            bool icons = HasArt(s => s.iconPickup) && HasArt(s => s.iconDropOff);
-
-            for (int i = 0; i < t.Badges.Length; i++)
+            for (int i = 0; i < Steps.Length; i++)
             {
-                t.BadgeRects[i].anchoredPosition =
-                    new Vector2(startX + i * (badgeSize.x + badgeGap) + badgeSize.x * 0.5f, -64f);
-
                 bool done = finished || i < current;
                 bool isCurrent = !finished && i == current && !order.IsTerminal;
-
                 Color stepColour = OrderPalette.ForStep(Steps[i]);
                 Sprite stepIcon = icons ? (Steps[i] == OrderStep.Pickup ? skin.iconPickup : skin.iconDropOff) : null;
 
                 if (done)
                 {
-                    t.Badges[i].color = Color.Lerp(stepColour, OrderPalette.Ink, 0.25f);
-                    t.BadgeRects[i].localScale = Vector3.one;
-
-                    if (HasArt(s => s.iconDone)) SetBadgeIcon(t, i, skin.iconDone, 1f);
-                    else if (icons) SetBadgeIcon(t, i, stepIcon, 1f);
-                    else SetBadgeText(t, i, "OK", Color.white);
+                    c.Badges[i].color = Color.Lerp(stepColour, OrderPalette.Ink, 0.25f);
+                    c.BadgeRects[i].localScale = Vector3.one;
+                    Sprite doneIcon = SkinSprite(s => s.iconDone);
+                    if (doneIcon != null) SetBadgeIcon(c, i, doneIcon, 1f);
+                    else if (icons) SetBadgeIcon(c, i, stepIcon, 1f);
+                    else SetBadgeText(c, i, "OK", Color.white);
                 }
                 else if (isCurrent)
                 {
-                    t.Badges[i].color = stepColour;
-                    t.BadgeRects[i].localScale = Vector3.one * (1f + 0.08f * pulse);
-
-                    if (icons) SetBadgeIcon(t, i, stepIcon, 1f);
-                    else SetBadgeText(t, i, StepLabels[i], OrderPalette.Ink);
+                    c.Badges[i].color = stepColour;
+                    c.BadgeRects[i].localScale = Vector3.one * (1f + 0.08f * pulse);
+                    if (icons) SetBadgeIcon(c, i, stepIcon, 1f);
+                    else SetBadgeText(c, i, StepLabels[i], OrderPalette.Ink);
                 }
                 else
                 {
-                    t.Badges[i].color = OrderPalette.BadgeOff;
-                    t.BadgeRects[i].localScale = Vector3.one;
-
-                    if (icons) SetBadgeIcon(t, i, stepIcon, 0.45f);
-                    else SetBadgeText(t, i, StepLabels[i],
-                        new Color(OrderPalette.Ink.r, OrderPalette.Ink.g, OrderPalette.Ink.b, 0.55f));
+                    c.Badges[i].color = OrderPalette.BadgeOff;
+                    c.BadgeRects[i].localScale = Vector3.one;
+                    if (icons) SetBadgeIcon(c, i, stepIcon, 0.45f);
+                    else SetBadgeText(c, i, StepLabels[i], new Color(OrderPalette.Ink.r, OrderPalette.Ink.g, OrderPalette.Ink.b, 0.55f));
                 }
             }
 
-            // Status line
-            t.Status.text = StatusFor(order, out Color statusColour);
-            t.Status.color = statusColour;
+            // Where to go: the line for the current step is bold.
+            c.FromText.fontStyle = current == 0 && !order.IsTerminal ? FontStyle.Bold : FontStyle.Normal;
+            c.ToText.fontStyle = current == 1 && !order.IsTerminal ? FontStyle.Bold : FontStyle.Normal;
 
-            // Timer bar
-            float fraction = order.TimeLimit > 0.01f ? Mathf.Clamp01(order.TimeRemaining / order.TimeLimit) : 0f;
-            float barHeight = t.BarFill.sizeDelta.y;
-            float barWidth = (ticketSize.x - 20f) * fraction;
-            // A sliced pill cannot get narrower than its own height without its round ends
-            // overlapping, so below that it just disappears.
-            bool pill = HasArt(s => s.barFill);
-            t.BarFillImage.enabled = !pill || barWidth >= barHeight;
-            t.BarFill.sizeDelta = new Vector2(Mathf.Max(pill ? barHeight : 0f, barWidth), barHeight);
-            t.BarFillImage.color = OrderPalette.TimerBar(fraction);
-        }
-
-        private string StatusFor(Order order, out Color colour)
-        {
-            colour = OrderPalette.Ink;
-
-            switch (order.State)
+            // What it pays right now
+            if (order.IsTerminal && order.Payout != null)
             {
-                case OrderState.Delivered:
-                    colour = new Color(0.1f, 0.5f, 0.2f, 1f);
-                    return "Delivered!";
-
-                case OrderState.Late:
-                    colour = OrderPalette.Urgent;
-                    return "Too late!";
-
-                case OrderState.Collected:
-                case OrderState.Carried:
-                    if (cargoCondition != null && cargoCondition.ConditionEnabled)
-                        return $"Deliver it!  ({cargoCondition.GetConditionPercent(order):0}% fresh)";
-                    return "Deliver it!";
-
-                default:
-                    if (cargoSystem != null && !cargoSystem.HasCapacity)
-                    {
-                        colour = new Color(0.7f, 0.45f, 0f, 1f);
-                        return "Cargo full: drop one off";
-                    }
-                    return $"Pick up  (${ValueOf(order):0})";
+                float total = order.Payout.Total;
+                c.PayText.text = total >= 0f ? $"Paid R{total:0}" : $"Lost R{-total:0}";
+                c.PayText.color = total >= 0f ? new Color(0.1f, 0.5f, 0.2f, 1f) : OrderPalette.Urgent;
             }
-        }
-
-        private float ValueOf(Order order)
-        {
-            OrderTuning tuning = orderManager.Tuning;
-            return tuning != null ? tuning.DeliveryValueFor(order.DesignedDistance) : 0f;
-        }
-
-        // ---- art helpers ----------------------------------------------------------------------
-
-        private bool HasArt(System.Func<HudSkin, Sprite> pick) => skin != null && pick(skin) != null;
-
-        /// <summary>Square badges when badge art is assigned (the art is square), the original
-        /// wide flat badges otherwise.</summary>
-        private Vector2 BadgeSize => HasArt(s => s.badgeBackground) ? new Vector2(46f, 46f) : new Vector2(58f, 40f);
-
-        private static void SetBadgeIcon(Ticket t, int i, Sprite icon, float alpha)
-        {
-            t.BadgeIcons[i].enabled = true;
-            t.BadgeIcons[i].sprite = icon;
-            t.BadgeIcons[i].color = new Color(1f, 1f, 1f, alpha);
-            t.BadgeLabels[i].text = string.Empty;
-        }
-
-        private static void SetBadgeText(Ticket t, int i, string text, Color colour)
-        {
-            t.BadgeIcons[i].enabled = false;
-            t.BadgeLabels[i].text = text;
-            t.BadgeLabels[i].color = colour;
-        }
-
-        // ---- banner ---------------------------------------------------------------------------
-
-        private void PushBanner(string text, Color colour)
-        {
-            _bannerQueue.Enqueue(new KeyValuePair<string, Color>(text, colour));
-        }
-
-        private void UpdateBanner(float dt)
-        {
-            if (_bannerTimer > 0f)
+            else if (tuning != null)
             {
-                _bannerTimer -= dt;
-                float fadeIn = Mathf.Clamp01((bannerSeconds - _bannerTimer) / 0.12f);
-                float fadeOut = Mathf.Clamp01(_bannerTimer / 0.5f);
+                PreviewPay(order, tuning, out string label, out float pay, out Color colour);
+                c.PayText.text = $"{label}: R{pay:0}";
+                c.PayText.color = colour;
+            }
 
-                Color c = _banner.color;
+            // Patience bar, coloured by the pay bracket it is currently in.
+            float fraction = order.PatienceFraction;
+            float barHeight = c.BarFill.sizeDelta.y;
+            float width = BarWidth * fraction;
+            bool pill = SkinSprite(s => s.barFill) != null;
+            c.BarFillImage.enabled = !order.IsTerminal && (!pill || width >= barHeight);
+            c.BarFill.sizeDelta = new Vector2(Mathf.Max(pill ? barHeight : 0f, width), barHeight);
+            c.BarFillImage.color = tuning == null ? OrderPalette.TimerBar(fraction)
+                : fraction > tuning.earlyAbovePatienceLeft ? OrderPalette.Deliver
+                : fraction < tuning.lateBelowPatienceLeft ? OrderPalette.Urgent
+                : OrderPalette.Warning;
+        }
+
+        /// <summary>What delivering this order right now would pay, and which bracket it is in.</summary>
+        private void PreviewPay(Order order, OrderTuning tuning, out string label, out float pay, out Color colour)
+        {
+            float basePay = tuning.BasePayFor(order.Food, order.DesignedDistance);
+            float fraction = order.PatienceFraction;
+
+            if (fraction > tuning.earlyAbovePatienceLeft)
+            {
+                label = "Early";
+                pay = basePay * (1f + tuning.earlyBonus);
+                colour = new Color(0.1f, 0.5f, 0.2f, 1f);
+            }
+            else if (fraction < tuning.lateBelowPatienceLeft)
+            {
+                label = "Late";
+                pay = basePay * (1f - tuning.lateDeduction);
+                colour = OrderPalette.Urgent;
+            }
+            else
+            {
+                label = "On time";
+                pay = basePay;
+                colour = OrderPalette.Ink;
+            }
+
+            if (cargoCondition != null) pay *= cargoCondition.GetConditionMultiplier(order);
+        }
+
+        // ---- popups ---------------------------------------------------------------------------
+
+        private void PushPopup(string text, Color colour)
+        {
+            _popupQueue.Enqueue(new KeyValuePair<string, Color>(text, colour));
+        }
+
+        private void UpdatePopup(float dt)
+        {
+            if (_popupTimer > 0f)
+            {
+                _popupTimer -= dt;
+                float fadeIn = Mathf.Clamp01((popupSeconds - _popupTimer) / 0.12f);
+                float fadeOut = Mathf.Clamp01(_popupTimer / 0.4f);
+
+                Color c = _popup.color;
                 c.a = Mathf.Min(fadeIn, fadeOut);
-                _banner.color = c;
-                _banner.rectTransform.localScale = Vector3.one * Mathf.Lerp(1.25f, 1f, fadeIn);
+                _popup.color = c;
+                _popup.rectTransform.localScale = Vector3.one * Mathf.Lerp(1.25f, 1f, fadeIn);
 
-                if (_bannerTimer <= 0f) _banner.text = string.Empty;
+                // Shorten the wait when more popups are queued, so a burst never falls far behind.
+                if (_popupQueue.Count > 1 && _popupTimer > 0.8f) _popupTimer = 0.8f;
+
+                if (_popupTimer <= 0f) _popup.text = string.Empty;
                 return;
             }
 
-            if (_bannerQueue.Count == 0) return;
+            if (_popupQueue.Count == 0) return;
 
-            KeyValuePair<string, Color> next = _bannerQueue.Dequeue();
-            _banner.text = next.Key;
-            _banner.color = new Color(next.Value.r, next.Value.g, next.Value.b, 0f);
-            _bannerTimer = bannerSeconds;
+            KeyValuePair<string, Color> next = _popupQueue.Dequeue();
+            _popup.text = next.Key;
+            _popup.color = new Color(next.Value.r, next.Value.g, next.Value.b, 0f);
+            _popupTimer = popupSeconds;
         }
 
         // ---- building -------------------------------------------------------------------------
 
         private void BuildCanvas()
         {
-            var canvasGO = new GameObject("OrderTicketStrip Canvas");
+            var canvasGO = new GameObject("OrderCards Canvas");
             canvasGO.transform.SetParent(transform, false);
 
-            _canvas = canvasGO.AddComponent<Canvas>();
-            _canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            _canvas.sortingOrder = 10;
+            Canvas canvas = canvasGO.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 10;
 
             CanvasScaler scaler = canvasGO.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1920f, 1080f);
             scaler.matchWidthOrHeight = 0.5f;
 
-            var stripGO = new GameObject("Strip");
+            var stripGO = new GameObject("Cards");
             stripGO.transform.SetParent(canvasGO.transform, false);
             _stripRoot = stripGO.AddComponent<RectTransform>();
-            _stripRoot.anchorMin = new Vector2(0f, 1f);
-            _stripRoot.anchorMax = new Vector2(0f, 1f);
-            _stripRoot.pivot = new Vector2(0f, 1f);
+            _stripRoot.anchorMin = _stripRoot.anchorMax = _stripRoot.pivot = new Vector2(0f, 1f);
             _stripRoot.anchoredPosition = stripOrigin;
-            _stripRoot.sizeDelta = new Vector2(100f, ticketSize.y);
+            _stripRoot.sizeDelta = new Vector2(100f, cardSize.y);
+            _stripRoot.localScale = Vector3.one * Mathf.Max(0.1f, ticketScale);
 
-            // Banner sits centred near the top, clear of both the strip and the right-hand HUD.
-            var bannerGO = new GameObject("Banner");
-            bannerGO.transform.SetParent(canvasGO.transform, false);
-            _banner = bannerGO.AddComponent<Text>();
-            _banner.font = _font;
-            _banner.fontSize = 44;
-            _banner.fontStyle = FontStyle.Bold;
-            _banner.alignment = TextAnchor.MiddleCenter;
-            _banner.horizontalOverflow = HorizontalWrapMode.Overflow;
-            _banner.verticalOverflow = VerticalWrapMode.Overflow;
-            _banner.raycastTarget = false;
+            var popupGO = new GameObject("Popup");
+            popupGO.transform.SetParent(canvasGO.transform, false);
+            _popup = popupGO.AddComponent<Text>();
+            _popup.font = _font;
+            _popup.fontSize = 42;
+            _popup.fontStyle = FontStyle.Bold;
+            _popup.alignment = TextAnchor.MiddleCenter;
+            _popup.horizontalOverflow = HorizontalWrapMode.Overflow;
+            _popup.verticalOverflow = VerticalWrapMode.Overflow;
+            _popup.raycastTarget = false;
 
-            RectTransform bannerRect = _banner.rectTransform;
-            bannerRect.anchorMin = new Vector2(0.5f, 1f);
-            bannerRect.anchorMax = new Vector2(0.5f, 1f);
-            bannerRect.pivot = new Vector2(0.5f, 1f);
-            bannerRect.anchoredPosition = new Vector2(0f, -200f);
-            bannerRect.sizeDelta = new Vector2(1200f, 70f);
-
-            var outline = bannerGO.AddComponent<Outline>();
-            outline.effectColor = new Color(0f, 0f, 0f, 0.9f);
-            outline.effectDistance = new Vector2(3f, -3f);
+            RectTransform popupRect = _popup.rectTransform;
+            popupRect.anchorMin = popupRect.anchorMax = new Vector2(0.5f, 1f);
+            popupRect.pivot = new Vector2(0.5f, 1f);
+            popupRect.anchoredPosition = new Vector2(0f, -240f);
+            popupRect.sizeDelta = new Vector2(1200f, 70f);
+            AddOutline(popupGO, 3f);
         }
 
-        private void BuildTicket(Order order)
+        private void BuildCard(Order order)
         {
-            var t = new Ticket { Order = order };
+            var c = new Card { Order = order };
+            float w = cardSize.x, h = cardSize.y;
 
-            float w = ticketSize.x, h = ticketSize.y;
-            int index = _tickets.Count;
-
-            var rootGO = new GameObject($"Ticket {order.Id}");
+            var rootGO = new GameObject($"Order card {order.Id}");
             rootGO.transform.SetParent(_stripRoot, false);
-            t.Root = rootGO.AddComponent<RectTransform>();
-            t.Root.anchorMin = new Vector2(0f, 1f);
-            t.Root.anchorMax = new Vector2(0f, 1f);
-            t.Root.pivot = new Vector2(0f, 1f);
-            t.Root.sizeDelta = new Vector2(w, h);
+            c.Root = rootGO.AddComponent<RectTransform>();
+            c.Root.anchorMin = c.Root.anchorMax = c.Root.pivot = new Vector2(0f, 1f);
+            c.Root.sizeDelta = new Vector2(w, h);
 
-            t.Paper = rootGO.AddComponent<Image>();
-            t.Paper.color = OrderPalette.Paper;
-            t.Paper.raycastTarget = false;
-            if (skin != null) skin.ApplyFrame(t.Paper, skin.ticketPaper, h);
+            c.Paper = rootGO.AddComponent<Image>();
+            c.Paper.color = OrderPalette.Paper;
+            c.Paper.raycastTarget = false;
+            if (skin != null) skin.ApplyFrame(c.Paper, skin.ticketPaper, h);
             var shadow = rootGO.AddComponent<Shadow>();
             shadow.effectColor = new Color(0f, 0f, 0f, 0.45f);
             shadow.effectDistance = new Vector2(4f, -4f);
 
-            // Header
-            RectTransform headerRect = MakeRect(t.Root, "Header", new Vector2(0f, 0f), new Vector2(w, 34f));
-            t.Header = headerRect.gameObject.AddComponent<Image>();
-            t.Header.color = OrderPalette.TicketHeader(order.Id);
-            t.Header.raycastTarget = false;
+            // Header: food colour, icon, "#1 FRIED RICE", seconds left
+            RectTransform header = MakeRect(c.Root, "Header", Vector2.zero, new Vector2(w, 34f));
+            Image headerImage = header.gameObject.AddComponent<Image>();
+            headerImage.color = order.Food != null ? order.Food.cardColour : OrderPalette.TicketHeader(order.Id);
+            headerImage.raycastTarget = false;
 
-            t.Title = MakeText(headerRect, "Title", new Vector2(10f, -2f), new Vector2(w - 70f, 30f),
-                22, Color.white, TextAnchor.MiddleLeft, true);
-            AddOutline(t.Title.gameObject, 2f);
-
-            t.TimeText = MakeText(headerRect, "Time", new Vector2(w - 70f, -2f), new Vector2(60f, 30f),
-                22, Color.white, TextAnchor.MiddleRight, true);
-            AddOutline(t.TimeText.gameObject, 2f);
-
-            // Badges
-            t.BadgeRects = new RectTransform[Steps.Length];
-            t.Badges = new Image[Steps.Length];
-            t.BadgeIcons = new Image[Steps.Length];
-            t.BadgeLabels = new Text[Steps.Length];
-            Vector2 badgeSize = BadgeSize;
-            for (int i = 0; i < Steps.Length; i++)
+            float titleX = 8f;
+            if (order.Food != null && order.Food.icon != null)
             {
-                RectTransform badgeRect = MakeRect(t.Root, $"Badge {i}", new Vector2(0f, -44f), badgeSize);
-                badgeRect.pivot = new Vector2(0.5f, 0.5f);
-                t.BadgeRects[i] = badgeRect;
-
-                t.Badges[i] = badgeRect.gameObject.AddComponent<Image>();
-                t.Badges[i].raycastTarget = false;
-                if (skin != null) HudSkin.ApplyIcon(t.Badges[i], skin.badgeBackground);
-
-                RectTransform iconRect = MakeRect(badgeRect, "Icon", Vector2.zero, badgeSize * 0.68f);
-                iconRect.anchorMin = iconRect.anchorMax = iconRect.pivot = new Vector2(0.5f, 0.5f);
-                iconRect.anchoredPosition = Vector2.zero;
-                t.BadgeIcons[i] = iconRect.gameObject.AddComponent<Image>();
-                t.BadgeIcons[i].raycastTarget = false;
-                t.BadgeIcons[i].preserveAspect = true;
-                t.BadgeIcons[i].enabled = false;
-
-                t.BadgeLabels[i] = MakeText(badgeRect, "Label", Vector2.zero, badgeSize,
-                    16, OrderPalette.Ink, TextAnchor.MiddleCenter, true);
-                // MakeText anchors top-left; this one fills its badge, so stretch it.
-                RectTransform labelRect = t.BadgeLabels[i].rectTransform;
-                labelRect.anchorMin = Vector2.zero;
-                labelRect.anchorMax = Vector2.one;
-                labelRect.offsetMin = Vector2.zero;
-                labelRect.offsetMax = Vector2.zero;
+                RectTransform iconRect = MakeRect(header, "Food icon", new Vector2(6f, -3f), new Vector2(28f, 28f));
+                c.FoodIcon = iconRect.gameObject.AddComponent<Image>();
+                c.FoodIcon.sprite = order.Food.icon;
+                c.FoodIcon.preserveAspect = true;
+                c.FoodIcon.raycastTarget = false;
+                titleX = 38f;
             }
 
-            // Status line
-            t.Status = MakeText(t.Root, "Status", new Vector2(8f, -90f), new Vector2(w - 16f, 30f),
+            c.Title = MakeText(header, "Title", new Vector2(titleX, -2f), new Vector2(w - titleX - 52f, 30f),
+                17, Color.white, TextAnchor.MiddleLeft, true);
+            c.Title.text = $"#{order.Id} {order.FoodName.ToUpper()}";
+            AddOutline(c.Title.gameObject, 2f);
+
+            c.TimeText = MakeText(header, "Time", new Vector2(w - 52f, -2f), new Vector2(44f, 30f),
+                18, Color.white, TextAnchor.MiddleRight, true);
+            AddOutline(c.TimeText.gameObject, 2f);
+
+            // Step badges on the left
+            bool badgeArt = SkinSprite(s => s.badgeBackground) != null;
+            Vector2 badgeSize = new Vector2(40f, 40f);
+            c.BadgeRects = new RectTransform[Steps.Length];
+            c.Badges = new Image[Steps.Length];
+            c.BadgeIcons = new Image[Steps.Length];
+            c.BadgeLabels = new Text[Steps.Length];
+            for (int i = 0; i < Steps.Length; i++)
+            {
+                RectTransform badge = MakeRect(c.Root, $"Badge {i}", Vector2.zero, badgeSize);
+                badge.pivot = new Vector2(0.5f, 0.5f);
+                badge.anchoredPosition = new Vector2(8f + badgeSize.x * 0.5f + i * (badgeSize.x + 6f), -42f - badgeSize.y * 0.5f);
+                c.BadgeRects[i] = badge;
+
+                c.Badges[i] = badge.gameObject.AddComponent<Image>();
+                c.Badges[i].raycastTarget = false;
+                if (badgeArt) HudSkin.ApplyIcon(c.Badges[i], skin.badgeBackground);
+
+                RectTransform iconRect = MakeRect(badge, "Icon", Vector2.zero, badgeSize * 0.7f);
+                iconRect.anchorMin = iconRect.anchorMax = iconRect.pivot = new Vector2(0.5f, 0.5f);
+                iconRect.anchoredPosition = Vector2.zero;
+                c.BadgeIcons[i] = iconRect.gameObject.AddComponent<Image>();
+                c.BadgeIcons[i].preserveAspect = true;
+                c.BadgeIcons[i].raycastTarget = false;
+                c.BadgeIcons[i].enabled = false;
+
+                c.BadgeLabels[i] = MakeText(badge, "Label", Vector2.zero, badgeSize, 13,
+                    OrderPalette.Ink, TextAnchor.MiddleCenter, true);
+                Stretch(c.BadgeLabels[i].rectTransform);
+            }
+
+            // From and To, right of the badges
+            float textX = 8f + 2f * badgeSize.x + 6f + 8f;
+            float textW = w - textX - 6f;
+            c.FromText = MakeText(c.Root, "From", new Vector2(textX, -42f), new Vector2(textW, 20f),
+                14, OrderPalette.Ink, TextAnchor.MiddleLeft, false);
+            c.FromText.text = $"From: {Shorten(order.PickupName, 18)}";
+            c.ToText = MakeText(c.Root, "To", new Vector2(textX, -62f), new Vector2(textW, 20f),
+                14, OrderPalette.Ink, TextAnchor.MiddleLeft, false);
+            c.ToText.text = $"To: {Shorten(order.DropOffName, 20)}";
+
+            // What it pays right now
+            c.PayText = MakeText(c.Root, "Pay", new Vector2(8f, -88f), new Vector2(w - 16f, 22f),
                 16, OrderPalette.Ink, TextAnchor.MiddleCenter, true);
 
-            // Timer bar
-            float barH = HasArt(s => s.barFill) ? 18f : 14f;
-            RectTransform barBg = MakeRect(t.Root, "Bar background", new Vector2(10f, -124f), new Vector2(w - 20f, barH));
+            // Patience bar with early and late marks
+            float barH = SkinSprite(s => s.barFill) != null ? 18f : 16f;
+            float barY = -(h - barH - 12f);
+            RectTransform barBg = MakeRect(c.Root, "Patience background", new Vector2(10f, barY), new Vector2(BarWidth, barH));
             Image barBgImage = barBg.gameObject.AddComponent<Image>();
             barBgImage.color = new Color(0.2f, 0.12f, 0.08f, 0.85f);
             barBgImage.raycastTarget = false;
             if (skin != null && HudSkin.ApplyPill(barBgImage, skin.barBackground, barH)) barBgImage.color = Color.white;
 
-            t.BarFill = MakeRect(t.Root, "Bar fill", new Vector2(10f, -124f), new Vector2(w - 20f, barH));
-            t.BarFillImage = t.BarFill.gameObject.AddComponent<Image>();
-            t.BarFillImage.raycastTarget = false;
-            if (skin != null) HudSkin.ApplyPill(t.BarFillImage, skin.barFill, barH);
+            c.BarFill = MakeRect(c.Root, "Patience fill", new Vector2(10f, barY), new Vector2(BarWidth, barH));
+            c.BarFillImage = c.BarFill.gameObject.AddComponent<Image>();
+            c.BarFillImage.raycastTarget = false;
+            if (skin != null) HudSkin.ApplyPill(c.BarFillImage, skin.barFill, barH);
 
-            // Stamp, last so it draws on top of everything else
-            t.StampRect = MakeRect(t.Root, "Stamp", new Vector2(0f, -52f), new Vector2(w, 60f));
-            t.StampRect.pivot = new Vector2(0.5f, 0.5f);
-            t.StampRect.anchoredPosition = new Vector2(w * 0.5f, -h * 0.5f);
-            t.StampRect.localRotation = Quaternion.Euler(0f, 0f, 12f);
-            t.Stamp = t.StampRect.gameObject.AddComponent<Text>();
-            t.Stamp.font = _font;
-            t.Stamp.fontSize = 40;
-            t.Stamp.fontStyle = FontStyle.Bold;
-            t.Stamp.alignment = TextAnchor.MiddleCenter;
-            t.Stamp.horizontalOverflow = HorizontalWrapMode.Overflow;
-            t.Stamp.verticalOverflow = VerticalWrapMode.Overflow;
-            t.Stamp.raycastTarget = false;
-            AddOutline(t.Stamp.gameObject, 3f);
+            OrderTuning tuning = orderManager.Tuning;
+            if (tuning != null)
+            {
+                AddBarMark(c.Root, "Early mark", 10f + BarWidth * tuning.earlyAbovePatienceLeft, barY, barH);
+                AddBarMark(c.Root, "Late mark", 10f + BarWidth * tuning.lateBelowPatienceLeft, barY, barH);
+            }
 
-            // Sprite stamp, used instead of the text one when the skin has stamp art. The art is
-            // already tilted, so it is not rotated again.
-            RectTransform stampImageRect = MakeRect(t.Root, "Stamp image", Vector2.zero, new Vector2(w - 8f, h * 0.62f));
+            // Stamps, last so they draw on top
+            c.StampRect = MakeRect(c.Root, "Stamp", Vector2.zero, new Vector2(w, 60f));
+            c.StampRect.pivot = new Vector2(0.5f, 0.5f);
+            c.StampRect.anchoredPosition = new Vector2(w * 0.5f, -h * 0.5f);
+            c.StampRect.localRotation = Quaternion.Euler(0f, 0f, 12f);
+            c.Stamp = c.StampRect.gameObject.AddComponent<Text>();
+            c.Stamp.font = _font;
+            c.Stamp.fontSize = 36;
+            c.Stamp.fontStyle = FontStyle.Bold;
+            c.Stamp.alignment = TextAnchor.MiddleCenter;
+            c.Stamp.horizontalOverflow = HorizontalWrapMode.Overflow;
+            c.Stamp.verticalOverflow = VerticalWrapMode.Overflow;
+            c.Stamp.raycastTarget = false;
+            AddOutline(c.Stamp.gameObject, 3f);
+
+            RectTransform stampImageRect = MakeRect(c.Root, "Stamp image", Vector2.zero, new Vector2(w - 8f, h * 0.6f));
             stampImageRect.pivot = new Vector2(0.5f, 0.5f);
             stampImageRect.anchoredPosition = new Vector2(w * 0.5f, -h * 0.5f);
-            t.StampImage = stampImageRect.gameObject.AddComponent<Image>();
-            t.StampImage.preserveAspect = true;
-            t.StampImage.raycastTarget = false;
-            t.StampImage.enabled = false;
+            c.StampImage = stampImageRect.gameObject.AddComponent<Image>();
+            c.StampImage.preserveAspect = true;
+            c.StampImage.raycastTarget = false;
+            c.StampImage.enabled = false;
 
-            // Starts above its slot and drops in.
-            t.Position = new Vector2(index * (w + ticketGap), 220f);
-            t.Root.anchoredPosition = t.Position;
+            // Drops in from above its slot
+            c.Position = new Vector2(_cards.Count * (w + ticketGap), 240f);
+            c.Root.anchoredPosition = c.Position;
 
-            _tickets.Add(t);
-            _byOrder[order] = t;
-
-            RefreshTicket(t);
+            _cards.Add(c);
+            _byOrder[order] = c;
+            RefreshCard(c);
         }
 
-        private void ShowStamp(Ticket t, string text, Color colour, float seconds, Sprite sprite)
+        private void AddBarMark(RectTransform parent, string name, float x, float barY, float barH)
+        {
+            RectTransform mark = MakeRect(parent, name, new Vector2(x - 1f, barY + 3f), new Vector2(2f, barH + 6f));
+            Image image = mark.gameObject.AddComponent<Image>();
+            image.color = OrderPalette.Ink;
+            image.raycastTarget = false;
+        }
+
+        private void ShowStamp(Card c, string text, Color colour, Sprite sprite)
         {
             bool useSprite = sprite != null;
 
-            t.StampImage.enabled = useSprite;
-            t.StampImage.sprite = sprite;
-            t.StampImage.color = Color.white;
-            t.Stamp.text = useSprite ? string.Empty : text;
-            t.Stamp.color = colour;
+            c.StampImage.enabled = useSprite;
+            c.StampImage.sprite = sprite;
+            c.StampImage.color = Color.white;
+            c.Stamp.text = useSprite ? string.Empty : text;
+            c.Stamp.color = colour;
 
-            // The update loop pops and fades whatever StampRect points at, so point it at the
-            // stamp that is actually showing.
-            t.StampRect = useSprite ? t.StampImage.rectTransform : t.Stamp.rectTransform;
-            t.StampDuration = seconds;
-            t.StampTimer = seconds;
+            // The update loop pops and fades whatever StampRect points at.
+            c.StampRect = useSprite ? c.StampImage.rectTransform : c.Stamp.rectTransform;
+            c.StampDuration = resolvedLingerSeconds + 0.6f;
+            c.StampTimer = c.StampDuration;
+        }
+
+        // ---- helpers --------------------------------------------------------------------------
+
+        private Sprite SkinSprite(System.Func<HudSkin, Sprite> pick) => skin != null ? pick(skin) : null;
+
+        private static void SetBadgeIcon(Card c, int i, Sprite icon, float alpha)
+        {
+            c.BadgeIcons[i].enabled = true;
+            c.BadgeIcons[i].sprite = icon;
+            c.BadgeIcons[i].color = new Color(1f, 1f, 1f, alpha);
+            c.BadgeLabels[i].text = string.Empty;
+        }
+
+        private static void SetBadgeText(Card c, int i, string text, Color colour)
+        {
+            c.BadgeIcons[i].enabled = false;
+            c.BadgeLabels[i].text = text;
+            c.BadgeLabels[i].color = colour;
+        }
+
+        private static string Shorten(string text, int max)
+        {
+            if (string.IsNullOrEmpty(text) || text.Length <= max) return text;
+            return text.Substring(0, max - 1) + ".";
         }
 
         private RectTransform MakeRect(Transform parent, string name, Vector2 position, Vector2 size)
@@ -598,9 +622,7 @@ namespace ZoomZoom.Orders.UI
             var go = new GameObject(name);
             go.transform.SetParent(parent, false);
             RectTransform rect = go.AddComponent<RectTransform>();
-            rect.anchorMin = new Vector2(0f, 1f);
-            rect.anchorMax = new Vector2(0f, 1f);
-            rect.pivot = new Vector2(0f, 1f);
+            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0f, 1f);
             rect.anchoredPosition = position;
             rect.sizeDelta = size;
             return rect;
@@ -620,6 +642,14 @@ namespace ZoomZoom.Orders.UI
             text.verticalOverflow = VerticalWrapMode.Overflow;
             text.raycastTarget = false;
             return text;
+        }
+
+        private static void Stretch(RectTransform rect)
+        {
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
         }
 
         private static void AddOutline(GameObject go, float distance)

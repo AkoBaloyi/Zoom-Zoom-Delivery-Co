@@ -209,3 +209,33 @@ Assets/_Project.meta
 # routes through merge=union so two people capturing at once do not conflict. Files suffixed
 # _local are one person's unmerged working capture, not group data.
 VehicleLab_Measurements/*_local.csv
+
+# Local addition: player builds. The upstream template covers /Build/ and /Builds/, but the
+# Windows standalone here was written to "Game Build/", which those patterns do not match.
+#
+# It is 486 MB across 197 files and includes UnityPlayer.dll and the whole _Data folder. Left
+# untracked it is the Assets/_Project hazard again: the editor polls `git status`, pipes what it
+# finds through `git hash-object` with the LFS filters live, and fills .git/lfs/tmp.
+#
+# Builds are release artefacts, not source. The record of a build belongs in docs/BUILD-LOG.md
+# with its commit SHA, and the binary belongs wherever the group distributes it.
+Game Build/
+/[Gg]ame [Bb]uild/
+
+# Local addition: shift logs written next to a player build, same reasoning as /PlaytestLogs/.
+**/PlaytestLogs/
+
+# Local addition: generated handouts. docs/handouts/ holds .docx and .pdf built from the Markdown
+# in docs/ by docs/tooling/md_to_docx.py. They rebuild in one command, so tracking them would mean
+# a binary diff every time a source document is edited. The Markdown is the record.
+docs/handouts/
+
+# Local addition: scratch scene copies under the agent task folders.
+#
+# The investigation reports in .agents/tasks/ are kept, because the milestone documents cite them
+# as evidence and a dangling citation is worse than no citation. The ref/ subfolders are not: they
+# are read-only extractions of scenes that already live in Assets/, pulled out of git so a scene on
+# another branch could be measured without checking it out. Hard.unity and Medium.unity alone are
+# 11.8 MB of exact duplicate, and .gitattributes does not route .unity through LFS.
+.agents/tasks/**/ref/
+.agents/tasks/**/tools/

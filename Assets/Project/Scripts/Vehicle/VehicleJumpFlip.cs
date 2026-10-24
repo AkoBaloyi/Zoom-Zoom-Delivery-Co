@@ -18,6 +18,7 @@ namespace ZoomZoom.Vehicle
         public float JumpCooldownRemaining => 0f;
         public FlipReport LastFlip => default;
         public int FlipCount => 0;
+        public int SelfRightCount => GetComponent<VehicleController>()?.SelfRightCount ?? 0;
         public bool CanJumpNow => false;
         public bool CanFlipNow => false;
         public void RequestJump() { }

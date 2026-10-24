@@ -1,0 +1,69 @@
+{
+  "verdict": "APPROVED",
+  "findings": [
+    {
+      "id": 1,
+      "blocking": false,
+      "confidence": "confirmed",
+      "label": "e9ce21c figures need --no-renames",
+      "locations": ["docs/M2-INDIVIDUAL-AKO.md:573"],
+      "issue": "§4.1 states that e9ce21c \"adds those files as pure insertions with zero deletions - 321 lines for ChaseCamera.cs, 296 for SurfaceType.cs (MEASURED, git show --numstat e9ce21c)\". Run exactly as cited, git's default rename detection reports `0  0  Assets/{_Project => Project}/Scripts/Vehicle/ChaseCamera.cs`. The 321 and 296 figures appear only under `git show --numstat --no-renames e9ce21c`, which also shows matching deletions of 321 and 296 at the old Assets/_Project/ paths. The figures are right and the paragraph's conclusion (the orders branch gained the vehicle files, no vehicle code was written there) is right; the cited command as written does not reproduce them.",
+      "action": "Name the --no-renames flag in the citation, or describe the commit as the Assets/_Project -> Assets/Project folder rename it is, which supports the conclusion more directly than the insertion reading."
+    },
+    {
+      "id": 2,
+      "blocking": false,
+      "confidence": "confirmed",
+      "label": "Live cadence sourced to a stranded YAML key",
+      "locations": ["docs/M2-INDIVIDUAL-AKO.md:73", "docs/M2-INDIVIDUAL-AKO.md:721"],
+      "issue": "§1.1 and the §5.2 claim index cite OrderTuning_Balanced.asset:31-32 as READ for the live 12 s spawn interval and 3 active orders, one sentence before the same paragraph explains that the whyThisSetup block at column 1 (asset line 16) closes the YAML mapping and strands every key below it. Lines 31-32 are below the break, so those values never reach the runtime. The figures are nonetheless correct because the C# defaults match: spawnInterval = 12f at OrderTuning.cs:24 and maxActiveOrders = 3 at :27. Verified by checking every post-break key against its C# default (spawnInterval 12/12, maxActiveOrders 3/3, baseDeliveryValue 10/10, latePenaltyPerSecond 1/1, valuePerMetre absent from the asset); orderTimeLimit 45f vs 50 is the only difference.",
+      "action": "Cite OrderTuning.cs:24,27 for the live cadence and keep the asset citation for what the asset says, the same way §1.1 already handles the 45 s limit."
+    },
+    {
+      "id": 3,
+      "blocking": false,
+      "confidence": "confirmed",
+      "label": "Rubric map implies File B is author-written",
+      "locations": ["docs/M2-INDIVIDUAL-AKO.md:45"],
+      "issue": "The §0.1 rubric map, criterion 3 row, reads \"docs/M2-REFLECTION-SCAFFOLD.md, written by the author. §3 here is a pointer only\". The scaffold is generated working material, not the author's own writing; File B's own opening sentence says it is working material and not text to submit. §3 of File A states the correct position (\"The reflection is the assessed personal voice and is written by the author, not generated. Its working material ... is in docs/M2-REFLECTION-SCAFFOLD.md\"), so the rubric-map cell is the only place that could be misread on authorship.",
+      "action": "Reword the cell so \"written by the author\" attaches to the reflection rather than to the scaffold file, matching §3."
+    },
+    {
+      "id": 4,
+      "blocking": false,
+      "confidence": "confirmed",
+      "label": "play_seconds described as a sheet column",
+      "locations": ["docs/M2-INDIVIDUAL-AKO.md:36", "docs/M2-INDIVIDUAL-AKO.md:429"],
+      "issue": "§0 defect (c) and §2.6 say the two S01 rows \"carry play_seconds 0.0\" against shift_seconds of 11 and 185. docs/playtesting/playtest_sessions.csv has 33 columns and none of them is play_seconds or shift_seconds; both are PlaytestLogs/shift_log.csv fields, present in the sheet only as text inside observer_notes (\"Logged play_seconds=0.0; shift_seconds=11\"). The figures are traceable and correct, but the phrasing points a reader at columns that do not exist in the named file.",
+      "action": "Say the figures come from the shift log and are quoted in the sheet's observer_notes, rather than implying sheet columns."
+    },
+    {
+      "id": 5,
+      "blocking": false,
+      "confidence": "confirmed",
+      "label": "Scene citations under-marked for tree",
+      "locations": ["docs/M2-INDIVIDUAL-AKO.md:69", "docs/M2-INDIVIDUAL-AKO.md:719"],
+      "issue": "§1.1 and the claim index cite shiftDurationSeconds as \"Hard:2301, Medium:54336, Easy:5568, origin/main Possible game scene:1713\", marking only the fourth as origin/main. All four line numbers resolve in the origin/main blobs under .agents/tasks/design-overview-2026-10-14/ref/ and all four were verified there; Hard.unity, Medium.unity and Easy.unity do not exist on the described tree (feature/vehicle-camera @ 618f2be), where the scene is Assets/Project/Scenes/Kyuri's Scene.unity. The document's own front matter promises that origin/main is named wherever it differs.",
+      "action": "Mark Hard, Medium and Easy as origin/main reads too, or state once that all Easy/Medium/Hard scene reads come from origin/main."
+    },
+    {
+      "id": 6,
+      "blocking": false,
+      "confidence": "confirmed",
+      "label": "Prose length past the authoring plan's range",
+      "locations": ["docs/M2-INDIVIDUAL-AKO.md"],
+      "issue": "Plan §2 sets a target of 2,800-4,000 words of prose excluding tables and fenced blocks, with §0 at 150-250 words and §0.2 under 120. Counting lines that are not headings, table rows, blockquotes or inside fenced blocks, the file measures roughly 5,830 words of prose, §0 roughly 252 and §0.2 exactly 120. The excess is dense evidenced prose rather than filler, so this is plan conformance rather than a truth or register problem.",
+      "action": "Either trim toward the range or record the deviation as a decision, since the plan is the stated contract for this document."
+    },
+    {
+      "id": 7,
+      "blocking": false,
+      "confidence": "confirmed",
+      "label": "Pasted git status in 5.3 has gone stale",
+      "locations": ["docs/M2-INDIVIDUAL-AKO.md:756-779"],
+      "issue": "The verbatim `git status --porcelain` block in §5.3 lists ` M ProjectSettings/ProjectSettings.asset` and explains it as a pre-existing change from the author's open editor session rather than from this work. That matched a fresh run at the start of this review; by the end of it the editor session had reverted the file, so `git status --porcelain -- Assets ProjectSettings Packages` now returns nothing and the full porcelain listing is the pasted block minus that one line. The document's substantive claim that no game content moved is unaffected and is now more strongly true; only the verbatim paste is behind.",
+      "action": "Re-run the three commands in §5.3 at finalize time and re-paste their output, as plan items 7 and 9 require, rather than leaving the stale ProjectSettings line."
+    }
+  ],
+  "reviewDoc": "c:/Users/akoba/DIGI2001/Project/GameDesign/Zoom Zoom Delivery Co/.agents/tasks/m2-review.md"
+}
