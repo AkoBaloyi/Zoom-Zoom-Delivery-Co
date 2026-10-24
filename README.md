@@ -22,9 +22,9 @@ A marker should open the `main` branch.
 4. In the Project window, open `Assets/Project/Scenes/Possible game scene.unity`.
 5. Enter Play mode.
 
-This is also the first scene in Build Settings, so a built player opens it directly.
+The build starts at the main menu; Play loads this game scene.
 
-`VehicleLab`, the second scene in Build Settings, is kept deliberately. It is the instrumented
+`VehicleLab`, retained as a disabled scene in Build Settings, is kept deliberately. It is the instrumented
 test track used to measure the handling, not the game. Open it from the same Scenes folder if you
 want to re-run the measurement tests, which are editor-only and described under Display Toggles
 below.
@@ -32,53 +32,57 @@ below.
 ## Controls
 
 The `Vehicle` action map in `Assets/Project/Scripts/Vehicle/VehicleControls.inputactions` is the
-source of truth. Both a keyboard and a gamepad drive the same actions.
+source of truth. Driving now follows the original Crazy Taxi control structure: independent gas,
+brake, and Drive/Reverse gears.
 
 | Game control | Input binding | Player action |
 | --- | --- | --- |
-| Throttle and reverse | `W` and `S`, or `Up Arrow` and `Down Arrow`, or the right and left gamepad triggers | `Throttle` |
-| Steer left and right | `A` and `D`, or `Left Arrow` and `Right Arrow`, or the left stick | `Steer` |
-| Brake without reversing | `Left Ctrl`, or gamepad B | `Brake` |
-| Handbrake, cuts rear grip only | `Space`, or gamepad LB | `Handbrake` |
-| Boost | `Left Alt`, or gamepad RB | `Boost` |
-| Jump | `Left Shift`, or gamepad A | `Jump` |
-| Flip, directional | `Q` held with `W` `A` `S` `D` or the arrow keys, or gamepad X with the left stick | `Flip` and `FlipDirection` |
-| Look around | `Mouse` movement, or the right stick | `CameraLook` |
+| Accelerate in selected gear | `W` or `Up Arrow`, or gamepad RT | `Accelerator` |
+| Brake without reversing | `S`, `Down Arrow` or `Left Ctrl`, or gamepad LT | `Brake` |
+| Steer | `A` and `D`, or `Left Arrow` and `Right Arrow`, or gamepad left stick | `Steer` |
+| Select Drive | `F`, or gamepad B | `GearDrive` |
+| Select Reverse | `R`, or gamepad A | `GearReverse` |
+| Quick 180-degree turnaround | `Space`, or gamepad LB | `QuickSpin` |
+| Hold to look behind | `C`, or gamepad right-stick click | `LookBehind` |
+| Right an overturned stationary car | `Backspace`, or gamepad View/Select | `Recover` |
 
-Code spans in the binding column are keyboard keys and the mouse; gamepad buttons are named in
-plain text because a gamepad `A` and a keyboard `A` are not the same input.
+The main turnaround is a quick 180-degree spin on Space / LB. Reverse remains available for precise recovery.
+The car starts in Drive. Gear selections persist after releasing the button. Holding the brake
+stops the car and keeps it stopped; select Reverse and press gas to back up.
 
-There is no pick-up or drop-off key. Driving into a pickup ring collects the order and driving
-into its drop-off ring delivers it, provided the cargo slot allows it. `ZoneDetection` handles
-this automatically, so arriving *is* the action.
+**Driving techniques:** release both pedals, tap Drive, then press gas for Crazy Dash. While moving
+forward, tap Reverse then Drive while steering for Crazy Drift. Dash during a drift to launch out
+of the turn. Reverse followed by brake performs Crazy Stop. While a dash is still fast, release
+gas, tap Reverse then Drive and press gas again for Limiter Cut. Reverse immediately after a dash
+with gas held performs Back Dash; Drive then Reverse while turning performs Back Drift.
 
-Boost is earned, not given. The tank starts full and does not refill on its own: a handbrake
-slide pays into it at 20 a second and air time at 10, and the gauge in the bottom-left corner
-lights blue while it is paying. A full tank is three seconds of boost and takes the car from
-32 m/s to 40.
+Gamepad trigger travel is proportional: partial RT gives partial acceleration and partial LT gives
+partial braking. Deadzones, travel curves, response times and the separate trick-recognition threshold
+are editable in the tuning asset.
+
+The gear/speed readout and named move confirmation are visible at the bottom left. There is no
+boost tank, jump, handbrake button, directional flip or aerial steering. Space / LB now performs a
+quick turnaround rather than the retired handbrake behaviour. The camera follows
+automatically. Looking behind is optional; reversing alone keeps the normal forward view.
+
+There is no pickup/drop-off key. Driving into the appropriate zone collects or delivers the order
+when a cargo slot allows it, following the existing delivery rules.
 
 ## Display Toggles
 
-There are none. Nothing needs switching on to play, and no function key does anything in the game
-scene. This section exists because the code contains four overlays that look like they should be
-reachable, and they are not.
+Driving feedback and delivery guidance appear automatically. F10 is the existing editor-only
+vehicle telemetry overlay. The VehicleLab measurement tools remain editor-only: F1 stopping,
+F2 turning, F3 wall recovery, F5 camera, F6 the remaining measurement set, F7 profile, F8 reset,
+and F9 the lab overlay. Historical flip and boost measurements are retired.
 
-Orders are shown by `OrderBeacon`, `OrderHUD` and `DestinationMarker`: a beam and a numbered ground
-disc at each pickup and drop-off, a list of live orders, and an on-screen arrow. None of them has a
-toggle, because none of them is optional.
+Run `Tools > Zoom Zoom > Validate Crazy Taxi Controller` for the automated technique, physics and
+camera checks. Results go to `VehicleLab_Measurements/crazy_taxi_validation.txt`. Run it in an isolated validation
+project when other scenes are being actively edited.
 
-`OrderMarkers` and `OrderCompass` are earlier fallbacks for the same job, on `F11` and `F12`. Each
-one inspects the scene at startup and declines to attach when the component that replaced it is
-present, so that two systems never draw the same thing twice. Both decline in the game scene, which
-is why their keys are dead there. Delete `OrderBeacon`, `OrderHUD` or `DestinationMarker` and the
-matching fallback returns on its own, with its key.
-
-`VehicleTelemetry` on `F10` and the `VehicleMeasurement` harness on `F1` to `F9` are lab
-instruments. They are editor-only and off by default, and in a build those keys do nothing. A
-measurement routine repositions the car, holds the throttle and drives it into a wall, which belongs
-in `VehicleLab` and not in something a marker is playing. Open `VehicleLab` in the editor to run
-them; `F6` runs the whole set and writes
-`VehicleLab_Measurements/vehicle_measurements.csv`.
+The research, adaptations and tuning values are recorded in
+[Crazy Taxi implementation](docs/research/CRAZY-TAXI-IMPLEMENTATION-2026-10-24.md).
+The [GDD section](docs/CRAZY-TAXI-CONTROLLER-GDD.md) explains the design; the
+[tuning guide](docs/CRAZY-TAXI-TUNING-GUIDE.md) explains the exposed values and curves.
 
 ## Ownership
 

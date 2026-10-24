@@ -1,0 +1,40 @@
+Drive re-selection from idle recognises dash
+Held gas cannot repeat a dash
+Limiter cut chains a live dash
+Simultaneous gear and gas do not dash
+Expired gear input does not dash
+Gear with gas already held cannot dash
+Ordered reverse-drive with steering recognises drift
+Drive-reverse with steering recognises back drift
+Reverse plus brake recognises stop
+Reverse after dash recognises back dash
+Airborne input cannot create a dash
+Held brake prevents dash
+Steering immediately after the gear flick can start a drift
+Modern quick spin deliberately selects Drive
+Normal acceleration reaches cruise speed without overshoot
+Held brake stops without reversing
+Reverse pedal uses reverse speed ceiling
+Crazy Dash accelerates beyond cruise speed
+Limiter cut adds speed above dash ceiling
+Drift rotates the chassis while retaining travel momentum
+Dash cancels drift into an exit launch
+Crazy Stop arrests forward travel quickly
+Back Dash creates a hasty retreat rather than merely braking forward motion
+Back Drift rotates while leaving Reverse selected
+Quick spin turns approximately 180 degrees and leaves forward driving selected
+Quick spin cooldown prevents repeated instant turnarounds
+Airborne car is ballistic: no rocket thrust or air steering
+Default camera faces the road ahead
+Reversing keeps stable forward-facing framing
+Camera pulls in before an obstructing wall
+Camera follow agrees at 30 and 144 frames per second
+Teleport snaps the camera instead of dragging it across the map
+Input asset has eight taxi actions and no Rocket League actions
+Fallback input layout has the same binding count as the asset
+Assets/Project/Scenes/Possible game scene.unity retains its vehicle controller reference
+Assets/Project/Scenes/VehicleLab.unity retains its vehicle controller reference
+Trigger deadzone prevents unrequested creep
+Quarter, half and full trigger travel produce distinct proportional outputs
+Authored pedal curve changes partial trigger response independently of full travel
+Custom brake curve retains full braking at full trigger travel
