@@ -244,15 +244,15 @@ MonoBehaviour:
     - 0.88
     - 1.12
     forwardGearThrust:
-    - 0.58
-    - 0.4
-    - 0.36
-    - 0.32
-    - 0.3
+    - 0.78
+    - 0.68
+    - 0.60
+    - 0.54
+    - 0.50
     downshiftHysteresis: 0.22
-    gearShiftTime: 0.22
-    shiftThrustRetention: 0.12
-    gearMinimumHoldTime: 0.65
+    gearShiftTime: 0.16
+    shiftThrustRetention: 0.38
+    gearMinimumHoldTime: 0.7
     shiftUnloadFraction: 0.35
     progressiveShift: 1
     shiftFeedbackVolume: 0.18
@@ -296,16 +296,16 @@ MonoBehaviour:
     reverseAcceleration: 14
     braking: 28
     coasting: 2.5
-    cornerGrip: 38
-    steeringResponse: 14
-    yawAcceleration: 12
+    cornerGrip: 65
+    steeringResponse: 18
+    yawAcceleration: 20
     steeringSpeedForFullAuthority: 3
     chassisStability: 18
     normalAccelerationTaper: 6
     useCustomAccelerationCurve: 0
     useCustomSteeringCurve: 0
-    lowSpeedTurnDegrees: 125
-    highSpeedTurnDegrees: 58
+    lowSpeedTurnDegrees: 160
+    highSpeedTurnDegrees: 105
     inputWindow: 0.3
     minimumGap: 0.008
     pedalFloor: 0.9
@@ -462,18 +462,18 @@ MonoBehaviour:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 125
-        inSlope: -67
-        outSlope: -67
+        value: 160
+        inSlope: -55
+        outSlope: -55
         tangentMode: 0
         weightedMode: 0
         inWeight: 0.33333334
         outWeight: 0.33333334
       - serializedVersion: 3
         time: 1
-        value: 58
-        inSlope: -67
-        outSlope: -67
+        value: 105
+        inSlope: -55
+        outSlope: -55
         tangentMode: 0
         weightedMode: 0
         inWeight: 0.33333334

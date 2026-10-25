@@ -16,6 +16,10 @@ This project is university coursework. Ako, Kyuri, and Zubuhle reserve all right
 
 A marker should open the `main` branch.
 
+For the sharper steering and stronger acceleration team test, use
+`codex/crazy-taxi-handling-playtest` and follow the
+[25 October playtest guide](docs/playtesting/CRAZY-TAXI-HANDLING-2026-10-25.md).
+
 1. Add this project folder in Unity Hub.
 2. Select Unity Editor `6000.5.4f1` for the project.
 3. Open the project and allow Unity to finish importing it.

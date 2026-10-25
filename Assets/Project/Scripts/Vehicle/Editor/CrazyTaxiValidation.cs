@@ -69,6 +69,7 @@ namespace ZoomZoom.Vehicle.Editor
                 Call(_car, "Awake");
                 Check(_car.GetComponent<VehicleLabInputMeter>() != null, "VehicleLab automatically exposes the controller meter");
                 TestPhysics();
+                TestSharperHandling();
                 RecordFeelComparison();
                 TestCamera();
                 TestInputAsset();
@@ -170,7 +171,7 @@ namespace ZoomZoom.Vehicle.Editor
             Check(box.Rpm < beforeShift - 1200f && box.ThrustEnvelope(settings) > settings.shiftThrustRetention,
                 "Upshift produces a clear RPM fall while torque progressively re-engages");
             float engaged = box.Step(settings, 8f, 1f, false, true, 0.1f);
-            Check(engaged > unloaded * 3f && box.Gear == 2,
+            Check(engaged > unloaded * 2f && box.Gear == 2,
                 "Engagement restores real thrust while retaining the selected ratio");
             box.Step(settings, 27f, 1f, false, true, 0.4f);
             Check(box.Gear == 2, "Loaded gear hold starts after clutch engagement, not at shift initiation");
@@ -392,6 +393,63 @@ namespace ZoomZoom.Vehicle.Editor
             ResetCar();
         }
 
+        private static void TestSharperHandling()
+        {
+            CrazyTaxiSettings original = _car.Tuning.taxi;
+            var rows = new List<string> { "configuration,speed_mps,heading_degrees,travel_radius_m,exit_speed_mps" };
+            try
+            {
+                foreach (float speed in new[] { 12f, 20f, 28f })
+                {
+                    float previousRadius = 0f;
+                    foreach (bool before in new[] { true, false })
+                    {
+                        var settings = new CrazyTaxiSettings();
+                        if (before)
+                        {
+                            settings.cornerGrip = 38f;
+                            settings.steeringResponse = 14f;
+                            settings.yawAcceleration = 12f;
+                            settings.lowSpeedTurnDegrees = 125f;
+                            settings.highSpeedTurnDegrees = 58f;
+                        }
+                        _car.Tuning.taxi = settings;
+                        ResetCar();
+                        Vector3 start = _car.transform.position;
+                        _car.Body.linearVelocity = Vector3.forward * speed;
+                        _car.Drive = new DriveInput { steer = 1f };
+                        Tick(0.8f);
+                        float heading = Vector3.Angle(Vector3.forward, _car.transform.forward);
+                        Vector3 travel = Vector3.ProjectOnPlane(_car.transform.position - start, Vector3.up);
+                        // A circle through the start (forward tangent) and end measures the travel path,
+                        // so rotating the chassis without redirecting momentum cannot pass this check.
+                        float radius = travel.sqrMagnitude / Mathf.Max(0.01f, 2f * Mathf.Abs(travel.x));
+                        rows.Add(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                            "{0},{1:F1},{2:F2},{3:F2},{4:F2}", before ? "previous" : "sharp_turns",
+                            speed, heading, radius, _car.Speed));
+                        if (before) previousRadius = radius;
+                        else
+                        {
+                            Check(radius < previousRadius * 0.85f, $"Travel radius at {speed} m/s is at least 15% tighter ({radius:0.00} m vs {previousRadius:0.00} m)");
+                            Check(_car.Speed > speed * 0.70f && _car.IsUpright,
+                                $"Sharper corner at {speed} m/s retains momentum and stays upright");
+                        }
+                    }
+                }
+                foreach (string profile in new[] { "Balanced", "Grippy", "Loose" })
+                {
+                    var asset = AssetDatabase.LoadAssetAtPath<VehicleTuning>($"Assets/Project/Scripts/Vehicle/Tuning/Tuning_{profile}.asset");
+                    Check(asset != null && asset.taxi.highSpeedTurnDegrees == original.highSpeedTurnDegrees &&
+                        asset.taxi.cornerGrip == original.cornerGrip && asset.taxi.forwardGearThrust[0] == original.forwardGearThrust[0],
+                        $"{profile} serialized profile uses the new steering, grip and launch settings");
+                }
+                string directory = Path.GetFullPath(Path.Combine(Application.dataPath, "../VehicleLab_Measurements"));
+                Directory.CreateDirectory(directory);
+                File.WriteAllLines(Path.Combine(directory, "crazy_taxi_handling_comparison.csv"), rows);
+            }
+            finally { _car.Tuning.taxi = original; ResetCar(); }
+        }
+
         private static void RecordFeelComparison()
         {
             CrazyTaxiSettings original = _car.Tuning.taxi;
@@ -403,11 +461,9 @@ namespace ZoomZoom.Vehicle.Editor
                     var s = new CrazyTaxiSettings();
                     if (before)
                     {
-                        s.forwardGearSpeedFractions = new[] { 0.42f, 0.70f, 0.96f, 1.12f };
-                        s.forwardGearThrust = new[] { 1.15f, 1.05f, 1f, 0.95f };
-                        s.gearShiftTime = 0.09f; s.shiftThrustRetention = 0.55f;
-                        // Previous hold included shift time; the new authoring means loaded pull after it.
-                        s.gearMinimumHoldTime = 0.36f; s.progressiveShift = false;
+                        s.forwardGearThrust = new[] { 0.58f, 0.40f, 0.36f, 0.32f, 0.30f };
+                        s.gearShiftTime = 0.22f; s.shiftThrustRetention = 0.12f;
+                        s.gearMinimumHoldTime = 0.65f;
                     }
                     _car.Tuning.taxi = s;
                     ResetCar();
@@ -431,7 +487,7 @@ namespace ZoomZoom.Vehicle.Editor
                         (before ? "Before" : "After") + " controlled run reaches 100 km/h without raising the cruise cap");
                     rows.Add(string.Format(System.Globalization.CultureInfo.InvariantCulture,
                         "{0},{1:F2},{2:F3},{3:F3},{4:F3},{5:F3},{6:F3},{7:F3},{8:F3},{9:F3},{10:F3}",
-                        before ? "recorded_four_speed" : "five_speed", s.cruiseSpeed * 3.6f,
+                        before ? "previous_five_speed" : "stronger_five_speed", s.cruiseSpeed * 3.6f,
                         reached[0], reached[1], reached[2], reached[3], shifts[0], shifts[1], shifts[2], shifts[3], maximum));
                     if (!before)
                     {

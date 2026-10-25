@@ -32,30 +32,30 @@ namespace ZoomZoom.Vehicle
         [Min(1f)] public float braking = 28f;
         [Min(0f)] public float coasting = 2.5f;
         [Min(0f)] public float overspeedDeceleration = 8f;
-        [Min(1f)] public float cornerGrip = 38f;
-        [Min(0.1f)] public float steeringResponse = 14f;
-        [Min(1f)] public float yawAcceleration = 12f;
+        [Min(1f)] public float cornerGrip = 65f;
+        [Min(0.1f)] public float steeringResponse = 18f;
+        [Min(1f)] public float yawAcceleration = 20f;
         [Min(0.1f)] public float steeringSpeedForFullAuthority = 3f;
         [Min(0f)] public float chassisStability = 18f;
         [Min(0.1f)] public float normalAccelerationTaper = 6f;
         public bool useCustomAccelerationCurve = false;
         public AnimationCurve accelerationMultiplierBySpeed = AnimationCurve.Linear(0f, 1f, 1f, 0f);
         public bool useCustomSteeringCurve = false;
-        public AnimationCurve steeringDegreesBySpeed = AnimationCurve.Linear(0f, 125f, 1f, 58f);
+        public AnimationCurve steeringDegreesBySpeed = AnimationCurve.Linear(0f, 160f, 1f, 105f);
         public AnimationCurve gripMultiplierBySpeed = AnimationCurve.Linear(0f, 1f, 2f, 1f);
-        [Min(1f)] public float lowSpeedTurnDegrees = 125f;
-        [Min(1f)] public float highSpeedTurnDegrees = 58f;
+        [Min(1f)] public float lowSpeedTurnDegrees = 160f;
+        [Min(1f)] public float highSpeedTurnDegrees = 105f;
         [Header("Modern automatic forward gears (D/R still selects direction)")]
         public bool automaticGears = true;
         [Tooltip("Upshift speeds as fractions of cruise speed. Last entry sets top-gear RPM range.")]
         public float[] forwardGearSpeedFractions = { 0.28f, 0.49f, 0.70f, 0.88f, 1.12f };
         [Tooltip("Actual drive acceleration multiplier per forward gear. Missing entries use 1.")]
-        public float[] forwardGearThrust = { 0.58f, 0.40f, 0.36f, 0.32f, 0.30f };
+        public float[] forwardGearThrust = { 0.78f, 0.68f, 0.60f, 0.54f, 0.50f };
         [Range(0.05f, 0.8f)] public float downshiftHysteresis = 0.22f;
-        [Min(0f)] public float gearShiftTime = 0.22f;
-        [Range(0f, 1f)] public float shiftThrustRetention = 0.12f;
+        [Min(0f)] public float gearShiftTime = 0.16f;
+        [Range(0f, 1f)] public float shiftThrustRetention = 0.38f;
         [Tooltip("Minimum loaded pull AFTER the shift has completed, not including shift time.")]
-        [Min(0f)] public float gearMinimumHoldTime = 0.65f;
+        [Min(0f)] public float gearMinimumHoldTime = 0.70f;
         [Range(0.05f, 0.9f)] public float shiftUnloadFraction = 0.35f;
         public bool progressiveShift = true;
         [Min(0f)] public float shiftFeedbackVolume = 0.18f;
@@ -182,7 +182,7 @@ namespace ZoomZoom.Vehicle
             if (brakeTravel == null || brakeTravel.length == 0) brakeTravel = AnimationCurve.Linear(0, 0, 1, 1);
             if (steeringTravel == null || steeringTravel.length == 0) steeringTravel = AnimationCurve.Linear(0, 0, 1, 1);
             if (accelerationMultiplierBySpeed == null || accelerationMultiplierBySpeed.length == 0) accelerationMultiplierBySpeed = AnimationCurve.Linear(0, 1, 1, 0);
-            if (steeringDegreesBySpeed == null || steeringDegreesBySpeed.length == 0) steeringDegreesBySpeed = AnimationCurve.Linear(0, 125, 1, 58);
+            if (steeringDegreesBySpeed == null || steeringDegreesBySpeed.length == 0) steeringDegreesBySpeed = AnimationCurve.Linear(0, 160, 1, 105);
             if (gripMultiplierBySpeed == null || gripMultiplierBySpeed.length == 0) gripMultiplierBySpeed = AnimationCurve.Linear(0, 1, 2, 1);
             if (cameraFovBySpeed == null || cameraFovBySpeed.length == 0) cameraFovBySpeed = AnimationCurve.Linear(0, 65, 2, 70);
         }

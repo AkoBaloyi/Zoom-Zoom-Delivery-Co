@@ -1,5 +1,9 @@
 # Customising the controller and camera
 
+The 25 October team-test branch uses tighter normal steering, higher corner grip and stronger
+five-speed acceleration. See the [current values and measured comparison](playtesting/CRAZY-TAXI-HANDLING-2026-10-25.md).
+Earlier dated comparisons below describe their recorded builds.
+
 Open the car's `VehicleTuning` asset and expand **Taxi**. All active driving and camera settings
 are grouped there; chassis, suspension and visual settings follow below. The existing Balanced,
 Grippy and Loose assets retain their identities for scene compatibility, but all now start with
