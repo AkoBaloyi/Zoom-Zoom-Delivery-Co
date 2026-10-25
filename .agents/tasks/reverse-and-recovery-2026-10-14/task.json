@@ -1,0 +1,7 @@
+{
+  "task_id": "reverse-and-recovery-2026-10-14",
+  "task_description": "Four fixes in the Unity vehicle/camera code on branch fix/reverse-and-recovery, in the worktree at c:\\Users\\akoba\\DIGI2001\\Project\\GameDesign\\Zoom Zoom Delivery Co\\.worktrees\\reverse-recovery. (1) Give ChaseCamera a reverse case: when ForwardSpeed drops below a reverse threshold, swing the view round so the look-at target sits behind the car instead of 28 m in front of it, with a dead zone and an eased transition, and guard ComputeHeading's Vector3.Slerp against antiparallel nose/velocity. (2) Make mouse look frame-rate independent (mouse delta must not be multiplied by Time.deltaTime) and expose the sensitivity. (3) Give an overturned car a route back: a sustained-overturned detector plus a self-right on the existing Flip input, with a cooldown, that cannot fire airborne or drifting. (4) Append reverse_seconds, reverse_distance_m, seconds_below_2mps, brake_seconds and self_right_count to PlaytestLogger's header, and fix the shift_seconds=0 and play_seconds=0.0 data-integrity defects so both duration fields are right on every exit path. Baseline handling is frozen: no tuning asset value, no scene, no Orders/UI file, no SurfaceKind change.",
+  "status": "completed",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003"],
+  "blocked_reason": null
+}

@@ -1,0 +1,351 @@
+{
+    "acceleratorDeadzone": 0.03999999910593033,
+    "brakeDeadzone": 0.03999999910593033,
+    "steeringDeadzone": 0.11999999731779099,
+    "acceleratorTravel": {
+        "serializedVersion": "2",
+        "m_Curve": [
+            {
+                "serializedVersion": "3",
+                "time": 0.0,
+                "value": 0.0,
+                "inSlope": 1.0,
+                "outSlope": 1.0,
+                "tangentMode": 0,
+                "weightedMode": 0,
+                "inWeight": 0.3333333432674408,
+                "outWeight": 0.3333333432674408
+            },
+            {
+                "serializedVersion": "3",
+                "time": 1.0,
+                "value": 1.0,
+                "inSlope": 1.0,
+                "outSlope": 1.0,
+                "tangentMode": 0,
+                "weightedMode": 0,
+                "inWeight": 0.3333333432674408,
+                "outWeight": 0.3333333432674408
+            }
+        ],
+        "m_PreInfinity": 2,
+        "m_PostInfinity": 2,
+        "m_RotationOrder": 4
+    },
+    "brakeTravel": {
+        "serializedVersion": "2",
+        "m_Curve": [
+            {
+                "serializedVersion": "3",
+                "time": 0.0,
+                "value": 0.0,
+                "inSlope": 1.0,
+                "outSlope": 1.0,
+                "tangentMode": 0,
+                "weightedMode": 0,
+                "inWeight": 0.3333333432674408,
+                "outWeight": 0.3333333432674408
+            },
+            {
+                "serializedVersion": "3",
+                "time": 1.0,
+                "value": 1.0,
+                "inSlope": 1.0,
+                "outSlope": 1.0,
+                "tangentMode": 0,
+                "weightedMode": 0,
+                "inWeight": 0.3333333432674408,
+                "outWeight": 0.3333333432674408
+            }
+        ],
+        "m_PreInfinity": 2,
+        "m_PostInfinity": 2,
+        "m_RotationOrder": 4
+    },
+    "steeringTravel": {
+        "serializedVersion": "2",
+        "m_Curve": [
+            {
+                "serializedVersion": "3",
+                "time": 0.0,
+                "value": 0.0,
+                "inSlope": 1.0,
+                "outSlope": 1.0,
+                "tangentMode": 0,
+                "weightedMode": 0,
+                "inWeight": 0.3333333432674408,
+                "outWeight": 0.3333333432674408
+            },
+            {
+                "serializedVersion": "3",
+                "time": 1.0,
+                "value": 1.0,
+                "inSlope": 1.0,
+                "outSlope": 1.0,
+                "tangentMode": 0,
+                "weightedMode": 0,
+                "inWeight": 0.3333333432674408,
+                "outWeight": 0.3333333432674408
+            }
+        ],
+        "m_PreInfinity": 2,
+        "m_PostInfinity": 2,
+        "m_RotationOrder": 4
+    },
+    "acceleratorRiseTime": 0.03999999910593033,
+    "acceleratorReleaseTime": 0.019999999552965165,
+    "brakeResponseTime": 0.019999999552965165,
+    "pedalFloorHysteresis": 0.10000000149011612,
+    "brakeTrickThreshold": 0.07999999821186066,
+    "brakeToReverse": true,
+    "reverseEngageSpeed": 0.3499999940395355,
+    "reverseEngageDelay": 0.18000000715255738,
+    "directionPedalThreshold": 0.03999999910593033,
+    "cruiseSpeed": 28.0,
+    "reverseSpeed": 12.0,
+    "acceleration": 24.0,
+    "reverseAcceleration": 14.0,
+    "braking": 28.0,
+    "coasting": 2.5,
+    "overspeedDeceleration": 8.0,
+    "cornerGrip": 38.0,
+    "steeringResponse": 14.0,
+    "yawAcceleration": 12.0,
+    "steeringSpeedForFullAuthority": 3.0,
+    "chassisStability": 18.0,
+    "normalAccelerationTaper": 6.0,
+    "useCustomAccelerationCurve": false,
+    "accelerationMultiplierBySpeed": {
+        "serializedVersion": "2",
+        "m_Curve": [
+            {
+                "serializedVersion": "3",
+                "time": 0.0,
+                "value": 1.0,
+                "inSlope": -1.0,
+                "outSlope": -1.0,
+                "tangentMode": 0,
+                "weightedMode": 0,
+                "inWeight": 0.3333333432674408,
+                "outWeight": 0.3333333432674408
+            },
+            {
+                "serializedVersion": "3",
+                "time": 1.0,
+                "value": 0.0,
+                "inSlope": -1.0,
+                "outSlope": -1.0,
+                "tangentMode": 0,
+                "weightedMode": 0,
+                "inWeight": 0.3333333432674408,
+                "outWeight": 0.3333333432674408
+            }
+        ],
+        "m_PreInfinity": 2,
+        "m_PostInfinity": 2,
+        "m_RotationOrder": 4
+    },
+    "useCustomSteeringCurve": false,
+    "steeringDegreesBySpeed": {
+        "serializedVersion": "2",
+        "m_Curve": [
+            {
+                "serializedVersion": "3",
+                "time": 0.0,
+                "value": 125.0,
+                "inSlope": -67.0,
+                "outSlope": -67.0,
+                "tangentMode": 0,
+                "weightedMode": 0,
+                "inWeight": 0.3333333432674408,
+                "outWeight": 0.3333333432674408
+            },
+            {
+                "serializedVersion": "3",
+                "time": 1.0,
+                "value": 58.0,
+                "inSlope": -67.0,
+                "outSlope": -67.0,
+                "tangentMode": 0,
+                "weightedMode": 0,
+                "inWeight": 0.3333333432674408,
+                "outWeight": 0.3333333432674408
+            }
+        ],
+        "m_PreInfinity": 2,
+        "m_PostInfinity": 2,
+        "m_RotationOrder": 4
+    },
+    "gripMultiplierBySpeed": {
+        "serializedVersion": "2",
+        "m_Curve": [
+            {
+                "serializedVersion": "3",
+                "time": 0.0,
+                "value": 1.0,
+                "inSlope": 0.0,
+                "outSlope": 0.0,
+                "tangentMode": 0,
+                "weightedMode": 0,
+                "inWeight": 0.3333333432674408,
+                "outWeight": 0.3333333432674408
+            },
+            {
+                "serializedVersion": "3",
+                "time": 2.0,
+                "value": 1.0,
+                "inSlope": 0.0,
+                "outSlope": 0.0,
+                "tangentMode": 0,
+                "weightedMode": 0,
+                "inWeight": 0.3333333432674408,
+                "outWeight": 0.3333333432674408
+            }
+        ],
+        "m_PreInfinity": 2,
+        "m_PostInfinity": 2,
+        "m_RotationOrder": 4
+    },
+    "lowSpeedTurnDegrees": 125.0,
+    "highSpeedTurnDegrees": 58.0,
+    "automaticGears": true,
+    "forwardGearSpeedFractions": [
+        0.2800000011920929,
+        0.49000000953674319,
+        0.699999988079071,
+        0.8799999952316284,
+        1.1200000047683716
+    ],
+    "forwardGearThrust": [
+        0.5799999833106995,
+        0.4000000059604645,
+        0.36000001430511477,
+        0.3199999928474426,
+        0.30000001192092898
+    ],
+    "downshiftHysteresis": 0.2199999988079071,
+    "gearShiftTime": 0.2199999988079071,
+    "shiftThrustRetention": 0.11999999731779099,
+    "gearMinimumHoldTime": 0.6499999761581421,
+    "shiftUnloadFraction": 0.3499999940395355,
+    "progressiveShift": true,
+    "shiftFeedbackVolume": 0.18000000715255738,
+    "gearShiftClip": {
+        "instanceID": 0
+    },
+    "shiftRumbleEnabled": true,
+    "shiftRumbleLow": 0.2199999988079071,
+    "shiftRumbleHigh": 0.11999999731779099,
+    "shiftRumbleDuration": 0.09000000357627869,
+    "engineIdleRpm": 900.0,
+    "engineRedlineRpm": 6500.0,
+    "engineRpmResponse": 16000.0,
+    "engineLoadRpm": 550.0,
+    "engineAudio": true,
+    "engineLoop": {
+        "instanceID": 0
+    },
+    "roadLoop": {
+        "instanceID": 0
+    },
+    "engineVolume": 0.11999999731779099,
+    "engineIdlePitch": 0.550000011920929,
+    "engineRedlinePitch": 2.200000047683716,
+    "roadAudioVolume": 0.09000000357627869,
+    "inputWindow": 0.30000001192092898,
+    "minimumGap": 0.00800000037997961,
+    "pedalFloor": 0.8999999761581421,
+    "dashSpeed": 38.0,
+    "dashAcceleration": 60.0,
+    "dashDuration": 0.699999988079071,
+    "limiterSpeedStep": 6.0,
+    "limiterMaximumSpeed": 56.0,
+    "backDashSpeed": 20.0,
+    "stopDeceleration": 85.0,
+    "driftMinimumSpeed": 5.0,
+    "driftDuration": 1.2000000476837159,
+    "driftTurnDegrees": 150.0,
+    "driftGrip": 5.0,
+    "driftDrag": 1.7999999523162842,
+    "driftExitGrip": 45.0,
+    "driftExitGripTime": 0.3499999940395355,
+    "trickSteerThreshold": 0.25,
+    "driftReleasedSteer": 0.25,
+    "dashChainGraceTime": 0.3499999940395355,
+    "quickSpinEnabled": true,
+    "quickSpinTurnDegrees": 360.0,
+    "quickSpinYawAcceleration": 30.0,
+    "quickSpinDuration": 0.8999999761581421,
+    "quickSpinCooldown": 0.6499999761581421,
+    "quickSpinTravelSpeed": 6.0,
+    "quickSpinMomentumRetention": 0.6499999761581421,
+    "quickSpinRedirectAcceleration": 65.0,
+    "quickSpinTargetGain": 7.0,
+    "quickSpinCompletionAngle": 4.0,
+    "drivableUprightness": 0.5,
+    "recoveryUprightness": 0.25,
+    "recoveryMaximumSpeed": 1.5,
+    "automaticRecoveryDelay": 2.5,
+    "recoveryLift": 0.800000011920929,
+    "recoveryClearanceHalfSize": {
+        "x": 1.0,
+        "y": 0.5,
+        "z": 1.7999999523162842
+    },
+    "techniquesCauseHardBrakeDamage": false,
+    "techniqueCargoGraceTime": 0.10000000149011612,
+    "cameraDistance": 5.599999904632568,
+    "cameraHeight": 2.0999999046325685,
+    "cameraLookAhead": 7.0,
+    "cameraAimHeight": 1.149999976158142,
+    "cameraVelocityMinimumSpeed": 2.0,
+    "cameraMaximumDriftLead": 80.0,
+    "cameraHeadingTime": 0.18000000715255738,
+    "cameraFollowTime": 0.07000000029802323,
+    "cameraFov": 65.0,
+    "speedCameraCues": true,
+    "cameraSpeedFovAddition": 9.0,
+    "cameraFovResponseTime": 0.25,
+    "cameraSpeedDistanceAddition": 0.6000000238418579,
+    "cameraAccelerationPullback": 0.30000001192092898,
+    "cameraAccelerationResponseTime": 0.18000000715255738,
+    "cameraDriftVelocityBlend": 0.550000011920929,
+    "cameraCollisionRadius": 0.3499999940395355,
+    "cameraWallReturnTime": 0.30000001192092898,
+    "cameraWallPadding": 0.05000000074505806,
+    "cameraOverlapPasses": 4,
+    "cameraNearClip": 0.10000000149011612,
+    "cameraFollowReverse": false,
+    "cameraReverseSpeedThreshold": 1.0,
+    "useCameraFovCurve": false,
+    "cameraFovBySpeed": {
+        "serializedVersion": "2",
+        "m_Curve": [
+            {
+                "serializedVersion": "3",
+                "time": 0.0,
+                "value": 65.0,
+                "inSlope": 2.5,
+                "outSlope": 2.5,
+                "tangentMode": 0,
+                "weightedMode": 0,
+                "inWeight": 0.3333333432674408,
+                "outWeight": 0.3333333432674408
+            },
+            {
+                "serializedVersion": "3",
+                "time": 2.0,
+                "value": 70.0,
+                "inSlope": 2.5,
+                "outSlope": 2.5,
+                "tangentMode": 0,
+                "weightedMode": 0,
+                "inWeight": 0.3333333432674408,
+                "outWeight": 0.3333333432674408
+            }
+        ],
+        "m_PreInfinity": 2,
+        "m_PostInfinity": 2,
+        "m_RotationOrder": 4
+    }
+}

@@ -1,0 +1,73 @@
+{
+  "verdict": "CHANGES_REQUESTED",
+  "pass": 4,
+  "summary": "All five findings from the prior gate pass are closed and were re-verified line by line (seven OrderResolved sites with the OrderTicketStrip freeze row, twelve per-scene camera-chain lines, m_GameObject fields in place of block headers in all four scenes, the MEASURED relabel on the uniqueness sweep, and lines on the brake-intent quote and the six-and-six point arrays). Four findings remain, all sourcing or disclosure form; no figure sampled in this pass came back wrong. All required sections are present and all five mandated contradictions name both sources and the runtime winner.",
+  "requiredSections": {
+    "howToReadThis": "present - label table plus the four rules",
+    "perSceneConfigurationTable": "present - four gameplay scenes re-read from the ref blobs, MainMenu and VehicleLab columns disclosed as not re-verified",
+    "unknownNeedsRunningGame": "present - 28 items, each with a single Check",
+    "contradictionsFound": "present - C1 to C24; the five mandated ones (value formula, 45/50/75 timer, EndShift divergence, System.Random determinism, camera sensitivity) each name both sources, the discriminating check and the runtime winner"
+  },
+  "findings": [
+    {
+      "id": "F1",
+      "label": "Easy's greybox scale is uncited",
+      "confidence": "confirmed",
+      "severity": "medium",
+      "location": "docs/DESIGN-OVERVIEW.md - Per-scene configuration table, row 'City container / uniform scale'; and section 6 item 28",
+      "claim": "Easy's city container scale is 8.97659 and Medium's is 1.23330, in a table whose preamble states 'Every value is READ from the cited line of that scene's origin/main blob unless marked otherwise'. Section 6 item 28 repeats the 8.97659 as 'the same import scale 8.97659'.",
+      "why": "Neither cell carries a line. Easy's figure appears nowhere in the document with a path, and the section 6 repetition has no file either; Medium's is only recoverable from section 5.4, which cites it for a different purpose. A READ value with no line is the citation-form defect items 26 to 32, 43, 45 and 46 of section 6a already struck elsewhere.",
+      "verified": "Values are correct. Easy: m_LocalScale {x: 8.976594, y: 8.976594, z: 8.976594} at ref/Easy.unity:15888, on the transform whose m_GameObject 2491368242438309547 is named 'Group 15 Greybox real one 1' at :16084. Medium: m_LocalScale 1.2333 at ref/Medium.unity:177909, m_GameObject at :177905, object named 'City ' at :165599.",
+      "fix": "Add source: cite ref/Easy.unity:15888 (object named at :16084) in the table cell and at section 6 item 28, and give Medium's cell ref/Medium.unity:177909 (object named at :165599)."
+    },
+    {
+      "id": "F2",
+      "label": "Controls-screen claim has no file behind it",
+      "confidence": "confirmed",
+      "severity": "medium",
+      "location": "docs/DESIGN-OVERVIEW.md section 5.3",
+      "claim": "'the dedicated non-reversing brake ... is absent from the build's Controls screen. A tester who only knows about S reverses every time they brake to a standstill.'",
+      "why": "The quoted intent is sourced (VehicleInput.cs:29, verified) but the clause the finding rests on is stated as fact about the shipped build with no file, no label and no UNKNOWN. Section 5's preamble excludes the incomplete Controls screen as already known, which covers mentioning it, not using it as the premise of a finding. The evidence is one readable line, and reading it also corrects the inherited premise.",
+      "verified": "origin/main:Assets/Project/Scenes/MainMenu.unity:1023 holds the Controls panel text: 'W = Acceleration/Forward\\nA = Steer Left\\nS = Brake/Reverse\\nD = Steer Right\\nShift  = Jump\\nSpaceBar = Hand Brake'. Left Ctrl, Left Alt (boost), Q (flip) and the mouse are absent, so the claim is true; but the panel lists six bindings, not the W/A/S/D-only screen the QA brief describes.",
+      "fix": "Add source: cite origin/main:Assets/Project/Scenes/MainMenu.unity:1023 with a READ label, state the six bindings the panel does list so the inherited W/A/S/D-only premise is corrected, and name the tree - if the sentence is about the 2026-10-14 08:31 build rather than origin/main, that is level0 in the build data and should be read or demoted to UNKNOWN with that check."
+    },
+    {
+      "id": "F3",
+      "label": "Section 7's notes disclosure is one place short",
+      "confidence": "confirmed",
+      "severity": "low",
+      "location": "docs/DESIGN-OVERVIEW.md section 7, against the Per-scene configuration table's closing caveat",
+      "claim": "'There are five such places, each flagged at the point of use ... Those are the only figures in this document whose inputs live solely in the task notes.'",
+      "why": "The per-scene table's own caveat says the MainMenu and VehicleLab columns 'come from the investigation notes and were not re-verified here'. Those figures - VehicleLab's 5 SurfaceType tags, its WeatherState 0, MainMenu's zeroes - also live solely in the notes, carry no notes line, and sit outside section 7's enumeration. Same defect the prior pass raised against section 5.2, in the one place the fix did not reach.",
+      "verified": "notes-vehicle.md:315 is the per-scene surface table carrying VehicleLab 0 / n-a to Dry / 5, with the prose restatement at :703. No notes citation appears on those two columns in the document.",
+      "fix": "Add source or narrow the claim: cite notes/notes-vehicle.md:315 on the MainMenu and VehicleLab columns and add them to section 7's enumeration as a sixth place, or narrow section 7's sentence so it claims only the figures it enumerates."
+    },
+    {
+      "id": "F4",
+      "label": "Two citation-form slips inside 'all READ' paragraphs",
+      "confidence": "confirmed",
+      "severity": "low",
+      "location": "docs/DESIGN-OVERVIEW.md sections 1.1 and 1.5",
+      "claim": "Section 1.1: 'no WheelCollider anywhere in the project (MEASURED - 6 hits for the type name across Assets, every one of them inside a /// comment block explaining why it is not used, at VehicleController.cs:77,79,80,82, SurfaceType.cs:45 and VehicleTuning.cs:87, READ at those lines)'. Section 1.5: 'Bindings (READ, VehicleInput.cs:218-234): handbrake Space / gamepad LB, boost Left Alt / RB, jump Left Shift / A, flip Q + WASD / X + stick'.",
+      "why": "The absence and all six lines are right, but VehicleTuning.cs:87 is '// WHEELS AND SUSPENSION (raycasts, not WheelColliders)', a plain // section banner rather than a /// block explaining the choice; and the six-hit count reproduces only case-insensitively, because VehicleController.cs:79 reads '/// WHY RAYCASTS AND NOT WHEELCOLLIDERS' - a case-sensitive git grep returns five lines. The binding range stops at :234 while the flip's gamepad binding, flip.AddBinding(\"<Gamepad>/buttonWest\"), is at :235.",
+      "verified": "git grep -n \"WheelCollider\" origin/main -- \"Assets/\" returns five lines: VehicleController.cs:77, :80, :82, SurfaceType.cs:45, VehicleTuning.cs:87. VehicleInput.cs:233-235 holds the flip action and both its bindings.",
+      "fix": "Relabel and re-source: say the mentions are comments (one of them a // banner) rather than all /// blocks, state that the sweep was case-insensitive, and extend the binding citation to VehicleInput.cs:218-235."
+    }
+  ],
+  "closedFromPriorPass": [
+    "Section 4.3's OrderResolved subscriber list - seven sites, MEASURED with the command, all lines verified on origin/main; OrderTicketStrip freeze row added to section 4.2 with its :133-135, :138, :155-170, :158-159, :192 and :207-209 citations verified and the ShiftEnded/IsShiftActive sweep re-run (returns nothing); per-scene attachment census reproduces (five live in Hard, Medium, Easy; four in Possible game scene; PlaytestLogger 1/0/0/0)",
+    "Section 5.2's camera chain - twelve per-scene lines added and all verified (controlsAsset PGS:594, Hard:1158, Medium:39024, Easy:3130; tuningOverride PGS:2316, Hard:3455, Medium:81838, Easy:8073; input PGS:2317, Hard:3456, Medium:81839, Easy:8074), with the VehicleInput identity resolving at PGS:582/:588/:591/:593",
+    "Section 3.1's uniqueness claim relabelled MEASURED with the sweep (four hits, one call)",
+    "Section 5.3's brake-intent quote sourced to VehicleInput.cs:29 and section 3.4's six-and-six arrays sourced per scene (PGS:1665/:1672, Hard:2253/:2260, Medium:54288/:54295, Easy:5520/:5527)",
+    "Section 4.2 and C3 now cite m_GameObject fields rather than --- !u!114 block headers, in all four gameplay scenes, with both identities resolved by name; C3's stated check narrowed to match what was run"
+  ],
+  "notReChecked": [
+    "the build-binary unpack and the expiry-cadence model",
+    "the commit archaeology behind the 50 and the 75",
+    "the lab CSV readings and the seven shift-log rows (verified exact in the prior pass)",
+    "the turning-geometry report's two cited figures",
+    "section 5.9's serialization drift run",
+    "the resolved world-y bucket run behind sections 2.2 and 2.3, and the speed bumps' 0.228 m pivot height"
+  ],
+  "reviewDoc": "c:\\Users\\akoba\\DIGI2001\\Project\\GameDesign\\Zoom Zoom Delivery Co\\.agents\\tasks\\design-overview-2026-10-14/review.md"
+}
