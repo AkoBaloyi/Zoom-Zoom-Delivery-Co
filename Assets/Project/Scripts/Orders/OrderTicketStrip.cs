@@ -5,47 +5,56 @@ using UnityEngine.UI;
 namespace ZoomZoom.Orders.UI
 {
     /// <summary>
-    /// Overcooked style order cards along the top left of the screen, oldest on the left.
+    /// The order list, styled like a food delivery app on a phone: a phone shaped panel down the
+    /// left of the screen, one notification per order, oldest at the top and newest at the
+    /// bottom. New orders slide in like notifications; finished ones get a stamp and slide away,
+    /// and the rest move up. The phone has room for four, which is why there are never more than
+    /// four orders at once.
     ///
-    /// Each card shows the order number, the food and the seconds left, then a row of chips: one
-    /// per ingredient (filled in once collected), a COOK chip (counts down while cooking, then
-    /// flashes green while ready and red when about to burn), and a DROP chip. Under the chips
-    /// is one line saying exactly what to do next, what the order pays right now (early, on time
-    /// or late), and its own patience bar, with marks where early ends and late begins.
+    /// Each notification shows:
+    ///   a coloured tag with the order number, in the order's own colour, which is also the
+    ///   colour of its beacons, its arrow and its GPS line;
+    ///   the food and the seconds left;
+    ///   a chip per ingredient (filled in once collected), a COOK chip (counts down, then READY,
+    ///   flashing red before it burns) and a DROP chip;
+    ///   what it pays right now, the next thing to do, and its patience bar.
     ///
-    /// When an order ends, a stamp lands on its card (EARLY, ON TIME, LATE, CANCELLED or
-    /// BURNED), a short message says what it paid or cost, and the card slides away. Short
-    /// messages also confirm each ingredient, each bay load and food becoming ready.
-    ///
-    /// Built in code, nothing to wire. All pay numbers come from the Order Tuning asset.
+    /// The selected order (see OrderFocus) glows in its colour, so the player always knows which
+    /// order is the priority. Built in code, nothing to wire.
     /// </summary>
     [DisallowMultipleComponent]
     public class OrderTicketStrip : MonoBehaviour
     {
-        [Header("Wiring")]
+        [Header("Wiring (all found automatically if left empty)")]
         [SerializeField] private OrderManager orderManager;
         [SerializeField] private CargoSystem cargoSystem;
         [SerializeField] private CargoCondition cargoCondition;
+        [SerializeField] private OrderFocus focus;
 
         [Header("Art (optional)")]
-        [Tooltip("Sprites for cards, badges, stamps and bars. Leave empty for flat colours.")]
+        [Tooltip("Only the stamps and the drop off icon are used from this.")]
         [SerializeField] private HudSkin skin;
 
-        [Header("Layout")]
-        [Tooltip("Offset from the screen's top left corner, in reference pixels (1920x1080).")]
-        [SerializeField] private Vector2 stripOrigin = new Vector2(24f, -24f);
-        [Tooltip("Size of one order card before Ticket Scale.")]
-        [SerializeField] private Vector2 cardSize = new Vector2(240f, 156f);
-        [SerializeField] private float ticketGap = 10f;
-        [Tooltip("Scales every card, its text and the gaps. 1 is the original size.")]
-        [SerializeField] private float ticketScale = 1.05f;
+        [Header("Phone")]
+        [Tooltip("Draw the phone around the notifications. Off shows the notifications on their own.")]
+        [SerializeField] private bool showPhoneFrame = true;
+        [Tooltip("Shown at the top of the phone screen, like the app's name.")]
+        [SerializeField] private string appName = "Zoom Zoom Eats";
+        [Tooltip("Offset of the phone from the screen's top left corner, in reference pixels (1920x1080).")]
+        [SerializeField] private Vector2 phoneOrigin = new Vector2(24f, -24f);
+        [Tooltip("Scales the whole phone.")]
+        [SerializeField] private float phoneScale = 1f;
+
+        [Header("Notifications")]
+        [SerializeField] private Vector2 notificationSize = new Vector2(372f, 104f);
+        [SerializeField] private float notificationGap = 8f;
 
         [Header("Behaviour")]
-        [Tooltip("Seconds left below which a card's bar shakes.")]
+        [Tooltip("Seconds left below which a notification shakes and its time turns red.")]
         [SerializeField] private float urgentBelowSeconds = 8f;
         [Tooltip("Seconds before burning at which the COOK chip flashes red.")]
         [SerializeField] private float burnWarningSeconds = 4f;
-        [Tooltip("Seconds a stamp stays on a card before it slides away.")]
+        [Tooltip("Seconds a stamp stays on a notification before it slides away.")]
         [SerializeField] private float resolvedLingerSeconds = 1.1f;
         [Tooltip("Seconds each message stays on screen.")]
         [SerializeField] private float popupSeconds = 1.8f;
@@ -53,6 +62,10 @@ namespace ZoomZoom.Orders.UI
         [SerializeField] private bool popupOnIngredient = true;
         [Tooltip("Seconds before the same warning (for example \"car full\") can show again.")]
         [SerializeField] private float repeatWarningSeconds = 3f;
+
+        private const float Padding = 14f;
+        private const float StatusBarHeight = 40f;
+        private const float HomeBarHeight = 22f;
 
         private enum ChipKind { Ingredient, Cook, Drop }
 
@@ -70,10 +83,10 @@ namespace ZoomZoom.Orders.UI
         {
             public Order Order;
             public RectTransform Root;
-            public Image Paper;
-            public Text Title;
+            public Image Glow;
+            public Image Background;
             public Text TimeText;
-            public Image FoodIcon;
+            public RectTransform GpsTag;
             public List<Chip> Chips = new List<Chip>();
             public Text StepText;
             public Text PayText;
@@ -82,6 +95,7 @@ namespace ZoomZoom.Orders.UI
             public Text Stamp;
             public Image StampImage;
             public RectTransform StampRect;
+            public CanvasGroup Group;
 
             public Vector2 Position;
             public bool Resolving;
@@ -95,15 +109,21 @@ namespace ZoomZoom.Orders.UI
         private readonly Queue<KeyValuePair<string, Color>> _popupQueue = new Queue<KeyValuePair<string, Color>>();
         private readonly Dictionary<string, float> _lastWarning = new Dictionary<string, float>();
 
-        private RectTransform _stripRoot;
+        private RectTransform _listRoot;
+        private Text _statusCount;
+        private Text _emptyText;
         private Text _popup;
         private float _popupTimer;
         private Font _font;
 
-        private static readonly Color DoneText = new Color(1f, 1f, 1f, 1f);
+        private static readonly Color CardColour = new Color(0.97f, 0.96f, 0.93f, 1f);
+        private static readonly Color UrgentCard = new Color(1f, 0.80f, 0.76f, 1f);
         private static readonly Color GoodGreen = new Color(0.1f, 0.5f, 0.2f, 1f);
+        private static readonly Color MutedInk = new Color(0.25f, 0.15f, 0.08f, 0.6f);
 
-        private float BarWidth => cardSize.x - 20f;
+        private float W => notificationSize.x;
+        private float H => notificationSize.y;
+        private float BarWidth => W - 36f;
 
         // ---- setup ----------------------------------------------------------------------------
 
@@ -121,7 +141,6 @@ namespace ZoomZoom.Orders.UI
             }
 
             _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            HudSkin.LogStatus(skin, "OrderTicketStrip", this);
             BuildCanvas();
 
             orderManager.OrderPaid += HandleOrderPaid;
@@ -134,6 +153,12 @@ namespace ZoomZoom.Orders.UI
             }
         }
 
+        private void Start()
+        {
+            if (focus == null) focus = OrderFocus.Ensure(orderManager);
+            if (focus != null) focus.GpsToggled += HandleGpsToggled;
+        }
+
         private void OnDestroy()
         {
             if (orderManager != null) orderManager.OrderPaid -= HandleOrderPaid;
@@ -144,6 +169,7 @@ namespace ZoomZoom.Orders.UI
                 cargoSystem.IngredientCollected -= HandleIngredientCollected;
                 cargoSystem.Refused -= HandleRefused;
             }
+            if (focus != null) focus.GpsToggled -= HandleGpsToggled;
         }
 
         // ---- events ---------------------------------------------------------------------------
@@ -202,7 +228,7 @@ namespace ZoomZoom.Orders.UI
             string text = order.AllIngredientsCollected && order.NeedsCooking
                 ? $"Got {stop.Name}. #{order.Id} {order.FoodName} ready to cook!"
                 : $"Got {stop.Name} for #{order.Id}";
-            PushPopup(text, OrderPalette.Pickup);
+            PushPopup(text, OrderPalette.OrderColour(order));
         }
 
         private void HandleBayEvent(ProcessingBay bay, Order order, string what)
@@ -231,12 +257,18 @@ namespace ZoomZoom.Orders.UI
             PushPopup($"Cargo upgraded: {capacity} slots", OrderPalette.Money);
         }
 
+        private void HandleGpsToggled(bool on)
+        {
+            PushPopup(on ? "GPS on" : "GPS off", OrderPalette.Neutral);
+        }
+
         // ---- per frame ------------------------------------------------------------------------
 
         private void Update()
         {
             SyncCards();
             UpdateCards(Time.unscaledDeltaTime);
+            UpdateStatusBar();
             UpdatePopup(Time.unscaledDeltaTime);
         }
 
@@ -249,9 +281,28 @@ namespace ZoomZoom.Orders.UI
             }
         }
 
+        private void UpdateStatusBar()
+        {
+            int live = 0;
+            foreach (Order o in orderManager.ActiveOrders) if (!o.IsTerminal) live++;
+
+            int max = orderManager.Tuning != null
+                ? Mathf.Min(orderManager.Tuning.maxActiveOrders, OrderTuning.MaxOrders)
+                : OrderTuning.MaxOrders;
+
+            if (_statusCount != null)
+            {
+                string gps = focus != null && focus.GpsOn ? "GPS  " : "";
+                _statusCount.text = $"{gps}{live}/{max}";
+            }
+
+            if (_emptyText != null) _emptyText.enabled = _cards.Count == 0;
+        }
+
         private void UpdateCards(float dt)
         {
             float follow = 1f - Mathf.Exp(-12f * dt);
+            Order selected = focus != null ? focus.Selected : null;
 
             for (int i = _cards.Count - 1; i >= 0; i--)
             {
@@ -269,21 +320,25 @@ namespace ZoomZoom.Orders.UI
                     }
                 }
 
-                RefreshCard(c);
+                RefreshCard(c, c.Order == selected && !c.Resolving);
             }
 
             for (int i = 0; i < _cards.Count; i++)
             {
                 Card c = _cards[i];
-                var target = new Vector2(i * (cardSize.x + ticketGap), 0f);
-                if (c.Resolving && c.ResolveTimer <= 0f) target.y = 240f; // slide up and away
+
+                // Oldest at the top, newest at the bottom, like a notification feed.
+                var target = new Vector2(0f, -i * (H + notificationGap));
+                bool leaving = c.Resolving && c.ResolveTimer <= 0f;
+                if (leaving) target.x = -(W + 60f); // slide out to the left
 
                 c.Position = Vector2.Lerp(c.Position, target, follow);
+                c.Group.alpha = leaving ? Mathf.Clamp01(1f + c.ResolveTimer * 2f) : 1f;
 
                 Vector2 shake = Vector2.zero;
-                if (!c.Resolving && !c.Order.IsTerminal && c.Order.TimeRemaining < urgentBelowSeconds)
+                if (!c.Resolving && !c.Order.IsTerminal && c.Order.SecondsUntilLost < urgentBelowSeconds)
                 {
-                    float strength = 1f - Mathf.Clamp01(c.Order.TimeRemaining / urgentBelowSeconds);
+                    float strength = 1f - Mathf.Clamp01(c.Order.SecondsUntilLost / urgentBelowSeconds);
                     shake.x = Mathf.Sin(Time.unscaledTime * 45f) * 2.5f * strength;
                 }
 
@@ -304,20 +359,32 @@ namespace ZoomZoom.Orders.UI
             }
         }
 
-        private void RefreshCard(Card c)
+        private void RefreshCard(Card c, bool selected)
         {
             Order order = c.Order;
             OrderTuning tuning = orderManager.Tuning;
             float pulse = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 6f);
             float fastPulse = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 14f);
+            Color orderColour = OrderPalette.OrderColour(order);
 
+            // Selection glow, in the order's colour.
+            c.Glow.enabled = selected;
+            if (selected)
+            {
+                Color glow = orderColour;
+                glow.a = Mathf.Lerp(0.65f, 1f, pulse);
+                c.Glow.color = glow;
+            }
+
+            c.GpsTag.gameObject.SetActive(selected && focus != null && focus.GpsOn);
+
+            // Time left, red when urgent.
+            bool urgent = !order.IsTerminal && order.SecondsUntilLost < urgentBelowSeconds;
             c.TimeText.text = order.IsTerminal ? "" : $"{Mathf.CeilToInt(order.TimeRemaining)}s";
+            c.TimeText.color = urgent ? OrderPalette.Urgent : OrderPalette.Ink;
 
-            float urgency = order.IsTerminal
-                ? 0f
-                : 1f - Mathf.Clamp01(order.TimeRemaining / Mathf.Max(0.01f, urgentBelowSeconds));
-            Color paperBase = SkinSprite(s => s.ticketPaper) != null ? Color.white : OrderPalette.Paper;
-            c.Paper.color = Color.Lerp(paperBase, new Color(1f, 0.78f, 0.72f, 1f), urgency * pulse);
+            float urgency = urgent ? 1f - Mathf.Clamp01(order.SecondsUntilLost / Mathf.Max(0.01f, urgentBelowSeconds)) : 0f;
+            c.Background.color = Color.Lerp(CardColour, UrgentCard, urgency * pulse);
 
             foreach (Chip chip in c.Chips) RefreshChip(chip, order, pulse, fastPulse);
 
@@ -333,17 +400,14 @@ namespace ZoomZoom.Orders.UI
             else if (tuning != null)
             {
                 PreviewPay(order, tuning, out string label, out float pay, out Color colour);
-                c.PayText.text = $"{label}: R{pay:0}";
+                c.PayText.text = $"{label} R{pay:0}";
                 c.PayText.color = colour;
             }
 
             // Patience bar, coloured by the pay bracket it is currently in.
             float fraction = order.PatienceFraction;
-            float barHeight = c.BarFill.sizeDelta.y;
-            float width = BarWidth * fraction;
-            bool pill = SkinSprite(s => s.barFill) != null;
-            c.BarFillImage.enabled = !order.IsTerminal && (!pill || width >= barHeight);
-            c.BarFill.sizeDelta = new Vector2(Mathf.Max(pill ? barHeight : 0f, width), barHeight);
+            c.BarFillImage.enabled = !order.IsTerminal;
+            c.BarFill.sizeDelta = new Vector2(BarWidth * fraction, c.BarFill.sizeDelta.y);
             c.BarFillImage.color = tuning == null ? OrderPalette.TimerBar(fraction)
                 : fraction > tuning.earlyAbovePatienceLeft ? OrderPalette.Deliver
                 : fraction < tuning.lateBelowPatienceLeft ? OrderPalette.Urgent
@@ -355,7 +419,6 @@ namespace ZoomZoom.Orders.UI
             bool live = !order.IsTerminal;
             OrderStep step = order.CurrentStep;
             Color off = OrderPalette.BadgeOff;
-            Color offText = new Color(OrderPalette.Ink.r, OrderPalette.Ink.g, OrderPalette.Ink.b, 0.6f);
             float scale = 1f;
 
             switch (chip.Kind)
@@ -366,14 +429,13 @@ namespace ZoomZoom.Orders.UI
                         if (chip.Stop.Collected)
                         {
                             chip.Background.color = ingredientColour;
-                            SetChip(chip, chip.Stop.ChipLabel, DoneText, 1f);
+                            SetChip(chip, chip.Stop.ChipLabel, Color.white, 1f);
                         }
                         else
                         {
-                            // Still needed: cream chip that pulses while this order is gathering.
                             bool needed = live && step == OrderStep.Gather;
                             chip.Background.color = needed ? Color.Lerp(off, OrderPalette.Pickup, 0.35f * pulse) : off;
-                            SetChip(chip, chip.Stop.ChipLabel, needed ? OrderPalette.Ink : offText, 0.5f);
+                            SetChip(chip, chip.Stop.ChipLabel, needed ? OrderPalette.Ink : MutedInk, 0.5f);
                             if (needed) scale = 1f + 0.06f * pulse;
                         }
                         break;
@@ -384,7 +446,7 @@ namespace ZoomZoom.Orders.UI
                         if (order.State == OrderState.Cooking)
                         {
                             chip.Background.color = OrderPalette.Cook;
-                            SetChip(chip, $"{Mathf.CeilToInt(order.BayTimeRemaining)}s", DoneText, 1f);
+                            SetChip(chip, $"{Mathf.CeilToInt(order.BayTimeRemaining)}s", Color.white, 1f);
                         }
                         else if (order.State == OrderState.Ready)
                         {
@@ -392,17 +454,16 @@ namespace ZoomZoom.Orders.UI
                             chip.Background.color = burning
                                 ? Color.Lerp(OrderPalette.Deliver, OrderPalette.Urgent, fastPulse)
                                 : OrderPalette.Deliver;
-                            SetChip(chip, burning ? $"{Mathf.CeilToInt(order.BayTimeRemaining)}s" : "READY", DoneText, 1f);
+                            SetChip(chip, burning ? $"{Mathf.CeilToInt(order.BayTimeRemaining)}s" : "READY", Color.white, 1f);
                             scale = 1f + 0.1f * pulse;
                         }
                         else if (order.State == OrderState.Carried || order.State == OrderState.Delivered)
                         {
                             chip.Background.color = Color.Lerp(OrderPalette.Cook, OrderPalette.Ink, 0.25f);
-                            SetChip(chip, "COOK", DoneText, 1f);
+                            SetChip(chip, "COOK", Color.white, 1f);
                         }
                         else if (live && step == OrderStep.Cook)
                         {
-                            // Every ingredient is in the car: go to a bay.
                             chip.Background.color = OrderPalette.Cook;
                             SetChip(chip, "COOK", OrderPalette.Ink, 1f);
                             scale = 1f + 0.08f * pulse;
@@ -410,7 +471,7 @@ namespace ZoomZoom.Orders.UI
                         else
                         {
                             chip.Background.color = off;
-                            SetChip(chip, "COOK", offText, 0.5f);
+                            SetChip(chip, "COOK", MutedInk, 0.5f);
                         }
                         break;
                     }
@@ -420,7 +481,7 @@ namespace ZoomZoom.Orders.UI
                         if (order.State == OrderState.Delivered)
                         {
                             chip.Background.color = Color.Lerp(OrderPalette.Deliver, OrderPalette.Ink, 0.25f);
-                            SetDropChip(chip, true, DoneText, 1f);
+                            SetDropChip(chip, true, Color.white, 1f);
                         }
                         else if (live && step == OrderStep.Deliver)
                         {
@@ -431,7 +492,7 @@ namespace ZoomZoom.Orders.UI
                         else
                         {
                             chip.Background.color = off;
-                            SetDropChip(chip, false, offText, 0.45f);
+                            SetDropChip(chip, false, MutedInk, 0.45f);
                         }
                         break;
                     }
@@ -479,14 +540,14 @@ namespace ZoomZoom.Orders.UI
                     {
                         IngredientStop next = order.NextStop;
                         int left = order.Stops.Count - order.IngredientsCollected;
-                        text = next == null ? "" : $"Get {next.Name}: {next.PlaceName}";
-                        if (left > 1) text += $" +{left - 1}";
+                        text = next == null ? "" : $"Get {next.Name} at {next.PlaceName}";
+                        if (left > 1) text += $" (+{left - 1} more)";
                         colour = Color.Lerp(OrderPalette.Pickup, OrderPalette.Ink, 0.45f);
                     }
                     break;
             }
 
-            c.StepText.text = Shorten(text, 30);
+            c.StepText.text = Shorten(text, 44);
             c.StepText.color = colour;
         }
 
@@ -557,7 +618,7 @@ namespace ZoomZoom.Orders.UI
 
         private void BuildCanvas()
         {
-            var canvasGO = new GameObject("OrderCards Canvas");
+            var canvasGO = new GameObject("Order Phone Canvas");
             canvasGO.transform.SetParent(transform, false);
 
             Canvas canvas = canvasGO.AddComponent<Canvas>();
@@ -569,19 +630,64 @@ namespace ZoomZoom.Orders.UI
             scaler.referenceResolution = new Vector2(1920f, 1080f);
             scaler.matchWidthOrHeight = 0.5f;
 
-            var stripGO = new GameObject("Cards");
-            stripGO.transform.SetParent(canvasGO.transform, false);
-            _stripRoot = stripGO.AddComponent<RectTransform>();
-            _stripRoot.anchorMin = _stripRoot.anchorMax = _stripRoot.pivot = new Vector2(0f, 1f);
-            _stripRoot.anchoredPosition = stripOrigin;
-            _stripRoot.sizeDelta = new Vector2(100f, cardSize.y);
-            _stripRoot.localScale = Vector3.one * Mathf.Max(0.1f, ticketScale);
+            int slots = OrderTuning.MaxOrders;
+            float listHeight = slots * H + (slots - 1) * notificationGap;
+            float phoneW = W + Padding * 2f;
+            float phoneH = Padding + StatusBarHeight + listHeight + HomeBarHeight + Padding;
+
+            RectTransform phone = MakeRect(canvasGO.transform, "Phone", phoneOrigin, new Vector2(phoneW, phoneH));
+            phone.localScale = Vector3.one * Mathf.Max(0.1f, phoneScale);
+
+            if (showPhoneFrame)
+            {
+                // Body (the bezel), then the screen inset inside it.
+                Image body = phone.gameObject.AddComponent<Image>();
+                body.raycastTarget = false;
+                ApplyRounded(body, 30f);
+                body.color = new Color(0.05f, 0.05f, 0.07f, 0.94f);
+
+                RectTransform screen = MakeRect(phone, "Screen", new Vector2(6f, -6f), new Vector2(phoneW - 12f, phoneH - 12f));
+                Image screenImage = screen.gameObject.AddComponent<Image>();
+                screenImage.raycastTarget = false;
+                ApplyRounded(screenImage, 24f);
+                screenImage.color = new Color(0.15f, 0.16f, 0.20f, 0.92f);
+
+                // Notch
+                RectTransform notch = MakeRect(phone, "Notch", new Vector2(phoneW * 0.5f - 45f, -6f), new Vector2(90f, 16f));
+                Image notchImage = notch.gameObject.AddComponent<Image>();
+                notchImage.raycastTarget = false;
+                ApplyRounded(notchImage, 8f);
+                notchImage.color = new Color(0.05f, 0.05f, 0.07f, 1f);
+
+                // Home indicator
+                RectTransform home = MakeRect(phone, "Home bar", new Vector2(phoneW * 0.5f - 60f, -(phoneH - Padding - 10f)), new Vector2(120f, 5f));
+                Image homeImage = home.gameObject.AddComponent<Image>();
+                homeImage.raycastTarget = false;
+                ApplyRounded(homeImage, 2.5f);
+                homeImage.color = new Color(1f, 1f, 1f, 0.55f);
+
+                // Status bar: app name on the left, order count (and GPS) on the right.
+                Text title = MakeText(phone, "App name", new Vector2(Padding + 6f, -Padding - 4f),
+                    new Vector2(W * 0.65f, 28f), 18, Color.white, TextAnchor.MiddleLeft, true);
+                title.text = appName;
+
+                _statusCount = MakeText(phone, "Order count", new Vector2(Padding + W * 0.55f, -Padding - 4f),
+                    new Vector2(W * 0.45f - 6f, 28f), 16, new Color(1f, 1f, 1f, 0.8f), TextAnchor.MiddleRight, true);
+            }
+
+            _listRoot = MakeRect(phone, "Notifications", new Vector2(Padding, -(Padding + StatusBarHeight)),
+                new Vector2(W, listHeight));
+            _listRoot.gameObject.AddComponent<RectMask2D>(); // finished orders slide out of view
+
+            _emptyText = MakeText(_listRoot, "No orders", new Vector2(0f, -listHeight * 0.4f), new Vector2(W, 30f),
+                16, new Color(1f, 1f, 1f, 0.5f), TextAnchor.MiddleCenter, false);
+            _emptyText.text = "No orders right now";
 
             var popupGO = new GameObject("Popup");
             popupGO.transform.SetParent(canvasGO.transform, false);
             _popup = popupGO.AddComponent<Text>();
             _popup.font = _font;
-            _popup.fontSize = 40;
+            _popup.fontSize = 38;
             _popup.fontStyle = FontStyle.Bold;
             _popup.alignment = TextAnchor.MiddleCenter;
             _popup.horizontalOverflow = HorizontalWrapMode.Overflow;
@@ -591,55 +697,83 @@ namespace ZoomZoom.Orders.UI
             RectTransform popupRect = _popup.rectTransform;
             popupRect.anchorMin = popupRect.anchorMax = new Vector2(0.5f, 1f);
             popupRect.pivot = new Vector2(0.5f, 1f);
-            popupRect.anchoredPosition = new Vector2(0f, -240f);
-            popupRect.sizeDelta = new Vector2(1400f, 70f);
+            popupRect.anchoredPosition = new Vector2(120f, -40f);
+            popupRect.sizeDelta = new Vector2(1200f, 60f);
             AddOutline(popupGO, 3f);
         }
 
         private void BuildCard(Order order)
         {
             var c = new Card { Order = order };
-            float w = cardSize.x, h = cardSize.y;
+            Color orderColour = OrderPalette.OrderColour(order);
 
-            var rootGO = new GameObject($"Order card {order.Id}");
-            rootGO.transform.SetParent(_stripRoot, false);
+            var rootGO = new GameObject($"Order {order.Id}");
+            rootGO.transform.SetParent(_listRoot, false);
             c.Root = rootGO.AddComponent<RectTransform>();
             c.Root.anchorMin = c.Root.anchorMax = c.Root.pivot = new Vector2(0f, 1f);
-            c.Root.sizeDelta = new Vector2(w, h);
+            c.Root.sizeDelta = new Vector2(W, H);
+            c.Group = rootGO.AddComponent<CanvasGroup>();
+            c.Group.interactable = false;
+            c.Group.blocksRaycasts = false;
 
-            c.Paper = rootGO.AddComponent<Image>();
-            c.Paper.color = OrderPalette.Paper;
-            c.Paper.raycastTarget = false;
-            if (skin != null) skin.ApplyFrame(c.Paper, skin.ticketPaper, h);
-            var shadow = rootGO.AddComponent<Shadow>();
-            shadow.effectColor = new Color(0f, 0f, 0f, 0.45f);
-            shadow.effectDistance = new Vector2(4f, -4f);
+            // Selection glow, drawn behind the card and slightly larger than it.
+            RectTransform glow = MakeRect(c.Root, "Selected glow", new Vector2(-3f, 3f), new Vector2(W + 6f, H + 6f));
+            c.Glow = glow.gameObject.AddComponent<Image>();
+            c.Glow.raycastTarget = false;
+            ApplyRounded(c.Glow, 17f);
+            c.Glow.enabled = false;
 
-            // Header: food colour, icon, "#1 BURGER", seconds left
-            RectTransform header = MakeRect(c.Root, "Header", Vector2.zero, new Vector2(w, 34f));
-            Image headerImage = header.gameObject.AddComponent<Image>();
-            headerImage.color = order.Food != null ? order.Food.cardColour : OrderPalette.TicketHeader(order.Id);
-            headerImage.raycastTarget = false;
+            RectTransform bg = MakeRect(c.Root, "Card", Vector2.zero, new Vector2(W, H));
+            c.Background = bg.gameObject.AddComponent<Image>();
+            c.Background.raycastTarget = false;
+            ApplyRounded(c.Background, 14f);
+            c.Background.color = CardColour;
 
-            float titleX = 8f;
+            // Colour strip down the left edge.
+            RectTransform strip = MakeRect(c.Root, "Colour strip", new Vector2(6f, -10f), new Vector2(6f, H - 20f));
+            Image stripImage = strip.gameObject.AddComponent<Image>();
+            stripImage.raycastTarget = false;
+            ApplyRounded(stripImage, 3f);
+            stripImage.color = orderColour;
+
+            // Order number tag in the order's colour, then the food.
+            RectTransform tag = MakeRect(c.Root, "Order tag", new Vector2(18f, -8f), new Vector2(42f, 24f));
+            Image tagImage = tag.gameObject.AddComponent<Image>();
+            tagImage.raycastTarget = false;
+            ApplyRounded(tagImage, 7f);
+            tagImage.color = orderColour;
+            Text tagText = MakeText(tag, "Number", Vector2.zero, new Vector2(42f, 24f), 16, OrderPalette.Ink, TextAnchor.MiddleCenter, true);
+            Stretch(tagText.rectTransform);
+            tagText.text = $"#{order.Id}";
+
+            float titleX = 66f;
             if (order.Food != null && order.Food.icon != null)
             {
-                RectTransform iconRect = MakeRect(header, "Food icon", new Vector2(6f, -3f), new Vector2(28f, 28f));
-                c.FoodIcon = iconRect.gameObject.AddComponent<Image>();
-                c.FoodIcon.sprite = order.Food.icon;
-                c.FoodIcon.preserveAspect = true;
-                c.FoodIcon.raycastTarget = false;
-                titleX = 38f;
+                RectTransform iconRect = MakeRect(c.Root, "Food icon", new Vector2(66f, -6f), new Vector2(28f, 28f));
+                Image icon = iconRect.gameObject.AddComponent<Image>();
+                icon.sprite = order.Food.icon;
+                icon.preserveAspect = true;
+                icon.raycastTarget = false;
+                titleX = 98f;
             }
 
-            c.Title = MakeText(header, "Title", new Vector2(titleX, -2f), new Vector2(w - titleX - 52f, 30f),
-                17, Color.white, TextAnchor.MiddleLeft, true);
-            c.Title.text = $"#{order.Id} {Shorten(order.FoodName.ToUpper(), 16)}";
-            AddOutline(c.Title.gameObject, 2f);
+            Text title = MakeText(c.Root, "Food", new Vector2(titleX, -8f), new Vector2(W - titleX - 120f, 24f),
+                17, OrderPalette.Ink, TextAnchor.MiddleLeft, true);
+            title.text = Shorten(order.FoodName.ToUpper(), 16);
 
-            c.TimeText = MakeText(header, "Time", new Vector2(w - 52f, -2f), new Vector2(44f, 30f),
-                18, Color.white, TextAnchor.MiddleRight, true);
-            AddOutline(c.TimeText.gameObject, 2f);
+            c.TimeText = MakeText(c.Root, "Time", new Vector2(W - 62f, -8f), new Vector2(50f, 24f),
+                18, OrderPalette.Ink, TextAnchor.MiddleRight, true);
+
+            // "GPS" tag on the selected order while the route line is on.
+            c.GpsTag = MakeRect(c.Root, "GPS tag", new Vector2(W - 112f, -10f), new Vector2(44f, 20f));
+            Image gpsImage = c.GpsTag.gameObject.AddComponent<Image>();
+            gpsImage.raycastTarget = false;
+            ApplyRounded(gpsImage, 6f);
+            gpsImage.color = OrderPalette.Ink;
+            Text gpsText = MakeText(c.GpsTag, "Label", Vector2.zero, new Vector2(44f, 20f), 12, orderColour, TextAnchor.MiddleCenter, true);
+            Stretch(gpsText.rectTransform);
+            gpsText.text = "GPS";
+            c.GpsTag.gameObject.SetActive(false);
 
             // Chip row: one per ingredient, then COOK (if this scene has bays), then DROP.
             var kinds = new List<KeyValuePair<ChipKind, IngredientStop>>();
@@ -647,23 +781,19 @@ namespace ZoomZoom.Orders.UI
             if (order.NeedsCooking) kinds.Add(new KeyValuePair<ChipKind, IngredientStop>(ChipKind.Cook, null));
             kinds.Add(new KeyValuePair<ChipKind, IngredientStop>(ChipKind.Drop, null));
 
-            const float chipGap = 4f, chipH = 32f, chipTop = -40f;
-            float chipW = Mathf.Min(52f, (w - 16f - chipGap * (kinds.Count - 1)) / kinds.Count);
-            bool badgeArt = SkinSprite(s => s.badgeBackground) != null;
-
+            const float chipGap = 3f, chipH = 26f, chipTop = -38f, chipW = 40f;
             for (int i = 0; i < kinds.Count; i++)
             {
                 var chip = new Chip { Kind = kinds[i].Key, Stop = kinds[i].Value };
                 chip.Rect = MakeRect(c.Root, $"Chip {i}", Vector2.zero, new Vector2(chipW, chipH));
                 chip.Rect.pivot = new Vector2(0.5f, 0.5f);
-                chip.Rect.anchoredPosition = new Vector2(8f + chipW * 0.5f + i * (chipW + chipGap), chipTop - chipH * 0.5f);
+                chip.Rect.anchoredPosition = new Vector2(18f + chipW * 0.5f + i * (chipW + chipGap), chipTop - chipH * 0.5f);
 
                 chip.Background = chip.Rect.gameObject.AddComponent<Image>();
                 chip.Background.raycastTarget = false;
-                if (badgeArt) HudSkin.ApplyIcon(chip.Background, skin.badgeBackground);
-                if (badgeArt) chip.Background.preserveAspect = false;
+                ApplyRounded(chip.Background, 7f);
 
-                RectTransform iconRect = MakeRect(chip.Rect, "Icon", Vector2.zero, new Vector2(chipH * 0.75f, chipH * 0.75f));
+                RectTransform iconRect = MakeRect(chip.Rect, "Icon", Vector2.zero, new Vector2(chipH * 0.8f, chipH * 0.8f));
                 iconRect.anchorMin = iconRect.anchorMax = iconRect.pivot = new Vector2(0.5f, 0.5f);
                 iconRect.anchoredPosition = Vector2.zero;
                 chip.Icon = iconRect.gameObject.AddComponent<Image>();
@@ -683,43 +813,41 @@ namespace ZoomZoom.Orders.UI
                 c.Chips.Add(chip);
             }
 
-            // What to do next
-            c.StepText = MakeText(c.Root, "Next step", new Vector2(8f, -76f), new Vector2(w - 16f, 20f),
+            // Pay, to the right of the chips.
+            c.PayText = MakeText(c.Root, "Pay", new Vector2(W - 132f, chipTop), new Vector2(120f, chipH),
+                15, OrderPalette.Ink, TextAnchor.MiddleRight, true);
+
+            // Next step
+            c.StepText = MakeText(c.Root, "Next step", new Vector2(18f, -68f), new Vector2(W - 30f, 20f),
                 14, OrderPalette.Ink, TextAnchor.MiddleLeft, true);
 
-            // What it pays right now
-            c.PayText = MakeText(c.Root, "Pay", new Vector2(8f, -98f), new Vector2(w - 16f, 22f),
-                15, OrderPalette.Ink, TextAnchor.MiddleLeft, true);
-
             // Patience bar with early and late marks
-            float barH = SkinSprite(s => s.barFill) != null ? 18f : 16f;
-            float barY = -(h - barH - 12f);
-            RectTransform barBg = MakeRect(c.Root, "Patience background", new Vector2(10f, barY), new Vector2(BarWidth, barH));
+            const float barH = 7f;
+            float barY = -(H - barH - 9f);
+            RectTransform barBg = MakeRect(c.Root, "Patience background", new Vector2(18f, barY), new Vector2(BarWidth, barH));
             Image barBgImage = barBg.gameObject.AddComponent<Image>();
-            barBgImage.color = new Color(0.2f, 0.12f, 0.08f, 0.85f);
+            barBgImage.color = new Color(0.2f, 0.12f, 0.08f, 0.25f);
             barBgImage.raycastTarget = false;
-            if (skin != null && HudSkin.ApplyPill(barBgImage, skin.barBackground, barH)) barBgImage.color = Color.white;
 
-            c.BarFill = MakeRect(c.Root, "Patience fill", new Vector2(10f, barY), new Vector2(BarWidth, barH));
+            c.BarFill = MakeRect(c.Root, "Patience fill", new Vector2(18f, barY), new Vector2(BarWidth, barH));
             c.BarFillImage = c.BarFill.gameObject.AddComponent<Image>();
             c.BarFillImage.raycastTarget = false;
-            if (skin != null) HudSkin.ApplyPill(c.BarFillImage, skin.barFill, barH);
 
             OrderTuning tuning = orderManager.Tuning;
             if (tuning != null)
             {
-                AddBarMark(c.Root, "Early mark", 10f + BarWidth * tuning.earlyAbovePatienceLeft, barY, barH);
-                AddBarMark(c.Root, "Late mark", 10f + BarWidth * tuning.lateBelowPatienceLeft, barY, barH);
+                AddBarMark(c.Root, "Early mark", 18f + BarWidth * tuning.earlyAbovePatienceLeft, barY, barH);
+                AddBarMark(c.Root, "Late mark", 18f + BarWidth * tuning.lateBelowPatienceLeft, barY, barH);
             }
 
             // Stamps, last so they draw on top
-            c.StampRect = MakeRect(c.Root, "Stamp", Vector2.zero, new Vector2(w, 60f));
+            c.StampRect = MakeRect(c.Root, "Stamp", Vector2.zero, new Vector2(W, 50f));
             c.StampRect.pivot = new Vector2(0.5f, 0.5f);
-            c.StampRect.anchoredPosition = new Vector2(w * 0.5f, -h * 0.5f);
-            c.StampRect.localRotation = Quaternion.Euler(0f, 0f, 12f);
+            c.StampRect.anchoredPosition = new Vector2(W * 0.5f, -H * 0.5f);
+            c.StampRect.localRotation = Quaternion.Euler(0f, 0f, 8f);
             c.Stamp = c.StampRect.gameObject.AddComponent<Text>();
             c.Stamp.font = _font;
-            c.Stamp.fontSize = 36;
+            c.Stamp.fontSize = 34;
             c.Stamp.fontStyle = FontStyle.Bold;
             c.Stamp.alignment = TextAnchor.MiddleCenter;
             c.Stamp.horizontalOverflow = HorizontalWrapMode.Overflow;
@@ -727,21 +855,21 @@ namespace ZoomZoom.Orders.UI
             c.Stamp.raycastTarget = false;
             AddOutline(c.Stamp.gameObject, 3f);
 
-            RectTransform stampImageRect = MakeRect(c.Root, "Stamp image", Vector2.zero, new Vector2(w - 8f, h * 0.6f));
+            RectTransform stampImageRect = MakeRect(c.Root, "Stamp image", Vector2.zero, new Vector2(W * 0.6f, H * 0.8f));
             stampImageRect.pivot = new Vector2(0.5f, 0.5f);
-            stampImageRect.anchoredPosition = new Vector2(w * 0.5f, -h * 0.5f);
+            stampImageRect.anchoredPosition = new Vector2(W * 0.5f, -H * 0.5f);
             c.StampImage = stampImageRect.gameObject.AddComponent<Image>();
             c.StampImage.preserveAspect = true;
             c.StampImage.raycastTarget = false;
             c.StampImage.enabled = false;
 
-            // Drops in from above its slot
-            c.Position = new Vector2(_cards.Count * (w + ticketGap), 240f);
+            // Slides in from the left, in its slot at the bottom of the feed.
+            c.Position = new Vector2(-(W + 60f), -_cards.Count * (H + notificationGap));
             c.Root.anchoredPosition = c.Position;
 
             _cards.Add(c);
             _byOrder[order] = c;
-            RefreshCard(c);
+            RefreshCard(c, false);
         }
 
         private void AddBarMark(RectTransform parent, string name, float x, float barY, float barH)
@@ -766,6 +894,58 @@ namespace ZoomZoom.Orders.UI
             c.StampRect = useSprite ? c.StampImage.rectTransform : c.Stamp.rectTransform;
             c.StampDuration = resolvedLingerSeconds + 0.6f;
             c.StampTimer = c.StampDuration;
+        }
+
+        // ---- rounded corners ------------------------------------------------------------------
+
+        private const int RoundTexSize = 64;
+        private const float RoundTexRadius = 24f;
+        private static Sprite _rounded;
+
+        /// <summary>A white rounded rectangle, generated once in code and 9 sliced, so any panel
+        /// can have rounded corners of any radius with no art asset.</summary>
+        private static Sprite RoundedSprite()
+        {
+            if (_rounded != null) return _rounded;
+
+            var tex = new Texture2D(RoundTexSize, RoundTexSize, TextureFormat.RGBA32, false)
+            {
+                filterMode = FilterMode.Bilinear,
+                wrapMode = TextureWrapMode.Clamp
+            };
+
+            var pixels = new Color32[RoundTexSize * RoundTexSize];
+            float r = RoundTexRadius;
+            for (int y = 0; y < RoundTexSize; y++)
+            {
+                for (int x = 0; x < RoundTexSize; x++)
+                {
+                    // Distance from the nearest corner centre, only inside the corner squares.
+                    float px = x + 0.5f, py = y + 0.5f;
+                    float cx = Mathf.Clamp(px, r, RoundTexSize - r);
+                    float cy = Mathf.Clamp(py, r, RoundTexSize - r);
+                    float dx = px - cx, dy = py - cy;
+                    float d = Mathf.Sqrt(dx * dx + dy * dy);
+                    float alpha = Mathf.Clamp01(r - d + 0.5f);
+                    pixels[y * RoundTexSize + x] = new Color32(255, 255, 255, (byte)(alpha * 255f));
+                }
+            }
+
+            tex.SetPixels32(pixels);
+            tex.Apply();
+
+            _rounded = Sprite.Create(tex, new Rect(0, 0, RoundTexSize, RoundTexSize), new Vector2(0.5f, 0.5f),
+                100f, 0, SpriteMeshType.FullRect, new Vector4(r, r, r, r));
+            _rounded.name = "Rounded rect (generated)";
+            return _rounded;
+        }
+
+        private static void ApplyRounded(Image image, float radius)
+        {
+            image.sprite = RoundedSprite();
+            image.type = Image.Type.Sliced;
+            image.fillCenter = true;
+            image.pixelsPerUnitMultiplier = RoundTexRadius / Mathf.Max(0.5f, radius);
         }
 
         // ---- helpers --------------------------------------------------------------------------

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using ZoomZoom.Orders.UI;
 
 namespace ZoomZoom.Orders
 {
@@ -194,7 +195,7 @@ namespace ZoomZoom.Orders
 
         private void TrySpawn(float dt)
         {
-            if (_activeOrders.Count >= tuning.maxActiveOrders) return;
+            if (_activeOrders.Count >= Mathf.Min(tuning.maxActiveOrders, OrderTuning.MaxOrders)) return;
             if (_dropOffPositions.Length == 0) return;
 
             _timeUntilNextSpawn -= dt;
@@ -228,7 +229,7 @@ namespace ZoomZoom.Orders
                 needsCooking: needsCooking,
                 cookSeconds: tuning.CookSecondsFor(food),
                 burnSeconds: tuning.BurnSecondsFor(food),
-                patienceAfterBay: tuning.patienceAfterBay);
+                colourIndex: FreeColourIndex());
 
             if (needsCooking)
             {
@@ -246,10 +247,7 @@ namespace ZoomZoom.Orders
                 Debug.Log($"[OrderManager] Order {order.Id} spawned: {order.FoodName} needs " +
                           $"{string.Join(", ", parts)}" +
                           (needsCooking ? $", cooks {order.CookSeconds:0.#} s" : "") +
-                          $", to {order.DropOffName}. {tuning.orderTimeLimit:0} s patience" +
-                          (needsCooking && tuning.patienceAfterBay > 0f
-                              ? $" (refills to {tuning.patienceAfterBay:0} s at the bay)" : "") +
-                          ", base pay " +
+                          $", to {order.DropOffName}. {tuning.orderTimeLimit:0} s patience, base pay " +
                           $"R{tuning.BasePayFor(order.Food, order.DesignedDistance):0}. " +
                           $"{_activeOrders.Count}/{tuning.maxActiveOrders} active.");
             }
@@ -302,6 +300,20 @@ namespace ZoomZoom.Orders
             }
 
             return stops;
+        }
+
+        /// <summary>The first order colour no active order is using, so no two live orders ever
+        /// share a colour.</summary>
+        private int FreeColourIndex()
+        {
+            for (int i = 0; i < OrderPalette.OrderColourCount; i++)
+            {
+                bool used = false;
+                foreach (Order o in _activeOrders)
+                    if (o.ColourIndex == i) { used = true; break; }
+                if (!used) return i;
+            }
+            return (_nextOrderId - 1) % OrderPalette.OrderColourCount;
         }
 
         private static string NameAt(string[] names, int index, string fallbackPrefix)

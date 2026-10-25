@@ -4,23 +4,22 @@ using UnityEngine;
 namespace ZoomZoom.Orders.UI
 {
     /// <summary>
-    /// Bright, in-world beacons at every place an active order needs the car right now:
-    ///   blue at each ingredient source still needed ("#3 MEAT"),
-    ///   orange at the bay once every ingredient is in the car ("#3 COOK"),
-    ///   green at the bay when the food is ready ("#3 READY"), and at the customer once the
-    ///   food is in the car ("#3").
-    /// Nothing is shown while food is cooking, because the bay shows its own countdown.
+    /// Bright, in-world beacons at every place an active order needs the car right now: each
+    /// ingredient source still needed, the bay once every ingredient is in the car or the food
+    /// is ready, and the customer once the food is in the car. Nothing is shown while food is
+    /// cooking, because the bay shows its own countdown.
     ///
-    /// When two orders need the same place (both need the butcher, or both are waiting on the
-    /// bay), they share one beacon with both labels, so the map stays readable.
+    /// Every beacon is drawn in its order's own colour, the same colour as the order's
+    /// notification on the phone and its arrow on screen, and labelled with the order number,
+    /// what to do there and the seconds left, so the player can tell which beacon belongs to
+    /// which order and when it expires. Beacons flash red when their order is about to be lost.
+    /// The selected order's beacons are solid; the others are faded.
     ///
-    /// SIZE AND COLOUR
+    /// When two orders need the same place they share one beacon, with one label line per order
+    /// in that order's colour.
+    ///
     /// Beacons grow the further they are from the car, so a far target is still easy to spot,
-    /// and shrink back to normal up close so they do not swamp the road. The ground disc never
-    /// scales, because it shows the real zone. Each beacon blends toward red as its order runs
-    /// out of patience.
-    ///
-    /// DestinationMarker is the matching screen space arrow, one per order.
+    /// and shrink back up close. The ground disc never scales, because it shows the real zone.
     /// </summary>
     [DisallowMultipleComponent]
     public class OrderBeacon : MonoBehaviour
@@ -52,16 +51,12 @@ namespace ZoomZoom.Orders.UI
         [SerializeField] private float numberCharacterSize = 0.3f;
         [SerializeField] private float numberHeightAboveBeam = 1.5f;
 
-        [Header("Colours")]
-        [Tooltip("Cooked food in the car, heading to the customer.")]
-        [SerializeField] private Color carriedColour = OrderPalette.Deliver;
-        [Tooltip("Ingredients still to collect.")]
-        [SerializeField] private Color waitingColour = OrderPalette.Pickup;
-        [Tooltip("Every ingredient is in the car: take it to the bay.")]
-        [SerializeField] private Color cookColour = OrderPalette.Cook;
-        [Tooltip("Food ready to collect from the bay.")]
-        [SerializeField] private Color readyColour = OrderPalette.Deliver;
-        [Tooltip("Seconds of order time left below which a beacon blends toward red.")]
+        [Header("Priority")]
+        [Tooltip("Found automatically. The selected order's beacons are solid, the rest faded.")]
+        [SerializeField] private OrderFocus focus;
+        [Tooltip("Opacity of beacons for orders that are not selected.")]
+        [SerializeField] private float unselectedAlpha = 0.5f;
+        [Tooltip("Seconds of order time left below which a beacon flashes red.")]
         [SerializeField] private float urgentBelowSeconds = 8f;
 
         [Header("Size by distance (further is bigger)")]
@@ -98,6 +93,7 @@ namespace ZoomZoom.Orders.UI
             public string Label;
             public Color Colour;
             public float Radius;
+            public bool Selected;
         }
 
         private readonly List<BeaconSlot> _slots = new List<BeaconSlot>();
@@ -138,6 +134,11 @@ namespace ZoomZoom.Orders.UI
             for (int i = 0; i < Mathf.Max(1, poolSize); i++) _slots.Add(BuildSlot(i));
         }
 
+        private void Start()
+        {
+            if (focus == null) focus = OrderFocus.Ensure(orderManager);
+        }
+
         private void Update()
         {
             if (_camera == null) _camera = Camera.main;
@@ -157,7 +158,9 @@ namespace ZoomZoom.Orders.UI
                     sizeScale = Mathf.Lerp(nearScale, farScale, f);
                 }
 
-                PlaceBeacon(_slots[i], t.Position, t.Colour, t.Label, t.Radius, sizeScale);
+                Color colour = t.Colour;
+                if (!t.Selected) colour.a = unselectedAlpha;
+                PlaceBeacon(_slots[i], t.Position, colour, t.Label, t.Radius, sizeScale * (t.Selected ? 1.15f : 1f));
             }
 
             for (int i = _targets.Count; i < _slots.Count; i++)
@@ -175,10 +178,16 @@ namespace ZoomZoom.Orders.UI
             float dropR = zoneDetection != null ? zoneDetection.DropOffRadius : fallbackGroundDiscRadius;
 
             IReadOnlyList<Order> active = orderManager.ActiveOrders;
+            Order selected = focus != null ? focus.Selected : null;
+
             for (int i = 0; i < active.Count; i++)
             {
                 Order order = active[i];
                 if (!order.HasWorldTarget) continue;
+
+                Color colour = OrderPalette.OrderColourWithUrgency(order, urgentBelowSeconds, Time.time);
+                bool isSelected = order == selected;
+                string seconds = $"{Mathf.CeilToInt(order.SecondsUntilLost)}s";
 
                 switch (order.CurrentStep)
                 {
@@ -186,38 +195,42 @@ namespace ZoomZoom.Orders.UI
                         foreach (IngredientStop stop in order.Stops)
                         {
                             if (stop.Collected) continue;
-                            AddTarget(stop.Point, $"#{order.Id} {stop.Name.ToUpper()}",
-                                Urgent(waitingColour, order), pickupR);
+                            AddTarget(stop.Point, $"#{order.Id} {stop.Name.ToUpper()} {seconds}", colour, pickupR, isSelected);
                         }
                         break;
 
                     case OrderStep.Cook:
                         if (!order.HasBay) break;
                         bool ready = order.State == OrderState.Ready;
-                        AddTarget(order.BayPoint, ready ? $"#{order.Id} READY" : $"#{order.Id} COOK",
-                            Urgent(ready ? readyColour : cookColour, order), bayR);
+                        AddTarget(order.BayPoint, $"#{order.Id} {(ready ? "READY" : "COOK")} {seconds}", colour, bayR, isSelected);
                         break;
 
                     default:
-                        AddTarget(order.DropOffPoint, $"#{order.Id}", Urgent(carriedColour, order), dropR);
+                        AddTarget(order.DropOffPoint, $"#{order.Id} DROP {seconds}", colour, dropR, isSelected);
                         break;
                 }
             }
         }
 
-        private Color Urgent(Color baseColour, Order order) =>
-            OrderPalette.WithUrgency(baseColour, order.TimeRemaining, urgentBelowSeconds);
-
         /// <summary>Adds a place to mark, merging with one already at the same spot. The first
         /// (oldest) order keeps its colour, since it is the most urgent.</summary>
-        private void AddTarget(Vector3 position, string label, Color colour, float radius)
+        private void AddTarget(Vector3 position, string label, Color colour, float radius, bool selected)
         {
+            // Each line of a shared label is tinted in its own order's colour.
+            string line = $"<color=#{OrderPalette.Hex(colour)}>{label}</color>";
+
             foreach (Target existing in _targets)
             {
                 if ((existing.Position - position).sqrMagnitude < 1f)
                 {
-                    existing.Label += "\n" + label;
+                    existing.Label += "\n" + line;
                     existing.Radius = Mathf.Max(existing.Radius, radius);
+                    if (selected)
+                    {
+                        // The selected order's colour wins the beam.
+                        existing.Selected = true;
+                        existing.Colour = colour;
+                    }
                     return;
                 }
             }
@@ -225,9 +238,10 @@ namespace ZoomZoom.Orders.UI
             if (_targetPool.Count <= _targets.Count) _targetPool.Add(new Target());
             Target t = _targetPool[_targets.Count];
             t.Position = position;
-            t.Label = label;
+            t.Label = line;
             t.Colour = colour;
             t.Radius = radius;
+            t.Selected = selected;
             _targets.Add(t);
         }
 
@@ -261,7 +275,7 @@ namespace ZoomZoom.Orders.UI
             slot.GroundDiscRenderer.SetPropertyBlock(slot.DiscBlock);
 
             slot.Number.text = label;
-            slot.Number.color = colour;
+            slot.Number.color = new Color(1f, 1f, 1f, Mathf.Max(0.75f, colour.a));
             slot.Number.characterSize = numberCharacterSize * sizeScale;
 
             Vector3 numberPos = groundPosition + Vector3.up * (height + numberHeightAboveBeam * sizeScale);
@@ -311,6 +325,7 @@ namespace ZoomZoom.Orders.UI
             number.anchor = TextAnchor.LowerCenter;
             number.alignment = TextAlignment.Center;
             number.fontStyle = FontStyle.Bold;
+            number.richText = true;
 
             MeshRenderer numberRenderer = numberGO.GetComponent<MeshRenderer>();
             numberRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;

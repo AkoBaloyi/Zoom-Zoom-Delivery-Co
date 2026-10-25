@@ -31,6 +31,48 @@ namespace ZoomZoom.Orders.UI
         public static readonly Color Money = new Color(1.00f, 0.80f, 0.20f, 1f);
         public static readonly Color Neutral = Color.white;
 
+        /// <summary>
+        /// One colour per live order, shared by its card, beacons, arrow and GPS line. Four, to
+        /// match the four order cap. Chosen to stay clear of the colours that mean something else:
+        /// red (urgent), green (ready) and orange (cooking).
+        /// </summary>
+        private static readonly Color[] OrderColours =
+        {
+            new Color(0.20f, 0.55f, 1.00f, 1f), // blue
+            new Color(1.00f, 0.84f, 0.10f, 1f), // yellow
+            new Color(0.92f, 0.30f, 0.85f, 1f), // magenta
+            new Color(0.10f, 0.90f, 0.80f, 1f), // cyan
+        };
+
+        public static int OrderColourCount => OrderColours.Length;
+
+        public static Color OrderColour(int index) =>
+            OrderColours[((index % OrderColours.Length) + OrderColours.Length) % OrderColours.Length];
+
+        public static Color OrderColour(Order order) => OrderColour(order.ColourIndex);
+
+        /// <summary>The order's colour, flashing toward red once it is about to be lost, so the
+        /// marker shows both whose it is and how soon it expires.</summary>
+        public static Color OrderColourWithUrgency(Order order, float urgentBelowSeconds, float time)
+        {
+            Color c = OrderColour(order);
+            float left = order.SecondsUntilLost;
+            if (left >= urgentBelowSeconds) return c;
+
+            float urgency = 1f - Mathf.Clamp01(left / Mathf.Max(0.01f, urgentBelowSeconds));
+            float flash = 0.5f + 0.5f * Mathf.Sin(time * Mathf.Lerp(6f, 16f, urgency));
+            return Color.Lerp(c, Urgent, flash * Mathf.Lerp(0.4f, 1f, urgency));
+        }
+
+        /// <summary>"RRGGBB" for rich text colour tags.</summary>
+        public static string Hex(Color c)
+        {
+            int r = Mathf.RoundToInt(Mathf.Clamp01(c.r) * 255f);
+            int g = Mathf.RoundToInt(Mathf.Clamp01(c.g) * 255f);
+            int b = Mathf.RoundToInt(Mathf.Clamp01(c.b) * 255f);
+            return $"{r:X2}{g:X2}{b:X2}";
+        }
+
         /// <summary>Header colours cycled by order id, for orders with no food set.</summary>
         private static readonly Color[] TicketHeaders =
         {

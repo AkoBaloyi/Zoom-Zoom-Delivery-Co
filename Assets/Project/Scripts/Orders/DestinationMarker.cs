@@ -5,61 +5,64 @@ using UnityEngine.UI;
 namespace ZoomZoom.Orders.UI
 {
     /// <summary>
-    /// The one piece of Task 11 that didn't exist yet: an on-screen marker telling the player
-    /// where to actually drive. One arrow per active order: at the nearest ingredient it still
-    /// needs, then its bay, then its customer. Hidden while the food cooks. When the target is on screen, the
-    /// arrow sits over it with a distance readout. When it isn't, whether behind the camera or
-    /// just off to the side, the arrow clamps to the screen edge and rotates to keep pointing the
-    /// right way, the same convention as a race game's off-track waypoint arrow.
+    /// The on screen arrows: one per order, pointing at where that order needs the car next
+    /// (the nearest ingredient still needed, then the bay, then the customer). Hidden while the
+    /// food cooks, because there is nothing to drive to yet.
     ///
-    /// SIZE AND COLOUR
-    /// Arrows grow as the car gets closer to their target and shrink as it gets further away, so
-    /// the nearest job stands out. An order already in the cargo hold uses the carried colour and
-    /// orders still waiting to be picked up use the waiting colour, so the active job is obvious.
+    /// WHAT AN ARROW TELLS YOU AT A GLANCE
+    ///   Whose it is: it is drawn in the order's own colour, the same as its notification on the
+    ///   phone and its beacon in the world, and labelled with the order number.
+    ///   When it expires: the label shows the seconds left, and the arrow flashes red near the end.
+    ///   How far: closer targets get bigger arrows and further ones smaller, like the markers in
+    ///   a racing game, on a scale that stays readable out to several hundred metres. The exact
+    ///   distance is written underneath.
+    ///   What matters most: the selected order (see OrderFocus) gets a full size, solid arrow
+    ///   drawn on top; the others are smaller and faded.
     ///
-    /// WHY THIS EXISTS SEPARATELY FROM ORDERHUD
-    /// OrderHUD is a list, useful for checking status at a glance. This is spatial, useful while
-    /// actually driving, and it needs camera projection math OrderHUD has no reason to carry.
-    /// Keeping them separate means either can be turned off without losing the other.
+    /// When the target is on screen the arrow sits over it. When it is not, the arrow sits on
+    /// the edge of the play area like a compass: ahead is the top, behind is the bottom. The
+    /// play area leaves out the phone on the left and the stats panel at the top.
     /// </summary>
     [DisallowMultipleComponent]
     public class DestinationMarker : MonoBehaviour
     {
-        [Header("Wiring")]
+        [Header("Wiring (found automatically if left empty)")]
         [SerializeField] private OrderManager orderManager;
         [SerializeField] private Camera targetCamera;
-
-        [Header("Markers")]
-        [SerializeField] private int markerPoolSize = 6;
-        [SerializeField] private float markerSize = 96f;
-        [SerializeField] private float edgeMargin = 60f;
-        [SerializeField] private int distanceFontSize = 22;
-        [SerializeField] private int idFontSize = 30;
-
-        [Header("Colours")]
-        [Tooltip("Cooked food in the car, heading to the customer.")]
-        [SerializeField] private Color carriedColour = OrderPalette.Deliver;
-        [Tooltip("Ingredients still to collect.")]
-        [SerializeField] private Color waitingColour = OrderPalette.Pickup;
-        [Tooltip("Every ingredient is in the car: take it to the bay.")]
-        [SerializeField] private Color cookColour = OrderPalette.Cook;
-        [Tooltip("Food ready to collect from the bay.")]
-        [SerializeField] private Color readyColour = OrderPalette.Deliver;
-        [Tooltip("Seconds of order time left below which an arrow blends toward red.")]
-        [SerializeField] private float urgentBelowSeconds = 8f;
-
-        [Header("Size by distance (closer is bigger)")]
+        [SerializeField] private OrderFocus focus;
         [Tooltip("Distance is measured from this. Found automatically: the car (the object with " +
                  "ZoneDetection), or the camera if there is no car.")]
         [SerializeField] private Transform distanceFrom;
-        [Tooltip("Metres. At or closer than this, an arrow is at Near Scale.")]
-        [SerializeField] private float nearDistance = 20f;
-        [Tooltip("Metres. At or further than this, an arrow is at Far Scale.")]
-        [SerializeField] private float farDistance = 250f;
-        [SerializeField] private float nearScale = 1.4f;
-        [SerializeField] private float farScale = 0.6f;
 
-        [Header("Pulse, so an arrow demands attention rather than sitting static")]
+        [Header("Markers")]
+        [SerializeField] private float markerSize = 96f;
+        [SerializeField] private float edgeMargin = 60f;
+        [SerializeField] private int distanceFontSize = 22;
+        [SerializeField] private int labelFontSize = 26;
+
+        [Header("Keep clear (reference pixels, 1920x1080)")]
+        [Tooltip("Width kept clear on the left for the order phone.")]
+        [SerializeField] private float reservedLeft = 440f;
+        [Tooltip("Height kept clear at the top for the stats panel.")]
+        [SerializeField] private float reservedTop = 190f;
+
+        [Header("Size by distance (closer is bigger)")]
+        [Tooltip("Metres. At or closer than this, an arrow is at Close Scale.")]
+        [SerializeField] private float closeDistance = 15f;
+        [Tooltip("Metres. At or further than this, an arrow is at Farthest Scale.")]
+        [SerializeField] private float farthestDistance = 600f;
+        [SerializeField] private float closeScale = 1.5f;
+        [SerializeField] private float farthestScale = 0.45f;
+
+        [Header("Priority")]
+        [Tooltip("Size of arrows for orders that are not selected, relative to the selected one.")]
+        [SerializeField] private float unselectedScale = 0.75f;
+        [Tooltip("Opacity of arrows for orders that are not selected.")]
+        [SerializeField] private float unselectedAlpha = 0.6f;
+        [Tooltip("Seconds left below which an arrow flashes red.")]
+        [SerializeField] private float urgentBelowSeconds = 8f;
+
+        [Header("Pulse")]
         [SerializeField] private float pulseSpeed = 4f;
         [SerializeField] private float pulseScaleAmount = 0.12f;
 
@@ -68,12 +71,12 @@ namespace ZoomZoom.Orders.UI
             public RectTransform Root;
             public Image Arrow;
             public Text Distance;
-            public Text IdLabel;
+            public Text Label;
         }
 
         private readonly List<MarkerSlot> _slots = new List<MarkerSlot>();
-        private RectTransform _canvasRect;
         private Canvas _canvas;
+        private RectTransform _canvasRoot;
 
         private void Awake()
         {
@@ -98,57 +101,68 @@ namespace ZoomZoom.Orders.UI
             BuildCanvas();
         }
 
+        private void Start()
+        {
+            if (focus == null) focus = OrderFocus.Ensure(orderManager);
+        }
+
         private void Update()
         {
             if (orderManager == null || targetCamera == null) return;
+            if (targetCamera == null) targetCamera = Camera.main;
 
             IReadOnlyList<Order> active = orderManager.ActiveOrders;
+            Order selected = focus != null ? focus.Selected : null;
             int used = 0;
+            int selectedSlot = -1;
 
-            for (int i = 0; i < active.Count && used < _slots.Count; i++)
+            for (int i = 0; i < active.Count; i++)
             {
                 Order order = active[i];
                 if (!order.HasWorldTarget) continue; // cooking: nothing to drive to yet
                 if (order.CurrentStep == OrderStep.Cook && !order.HasBay) continue;
 
-                // While gathering, point at the nearest ingredient still needed.
+                if (used >= _slots.Count) _slots.Add(BuildSlot(used));
+
                 Vector3 target = order.TargetFrom(DistanceOrigin);
-
-                Color baseColour;
-                string label;
-                switch (order.CurrentStep)
-                {
-                    case OrderStep.Gather:
-                        baseColour = waitingColour;
-                        IngredientStop next = NearestStop(order);
-                        label = next != null ? $"#{order.Id} {next.Name}" : $"#{order.Id}";
-                        break;
-                    case OrderStep.Cook:
-                        bool ready = order.State == OrderState.Ready;
-                        baseColour = ready ? readyColour : cookColour;
-                        label = ready ? $"#{order.Id} READY" : $"#{order.Id} COOK";
-                        break;
-                    default:
-                        baseColour = carriedColour;
-                        label = $"#{order.Id}";
-                        break;
-                }
-
-                Color colour = OrderPalette.WithUrgency(baseColour, order.TimeRemaining, urgentBelowSeconds);
-
                 float distance = Vector3.Distance(DistanceOrigin, target);
-                float sizeScale = ScaleForDistance(distance);
+                bool isSelected = order == selected;
 
-                PlaceMarker(_slots[used], target, colour, label, distance, sizeScale);
+                Color colour = OrderPalette.OrderColourWithUrgency(order, urgentBelowSeconds, Time.time);
+                if (!isSelected) colour.a = unselectedAlpha;
+
+                float scale = ScaleForDistance(distance) * (isSelected ? 1f : unselectedScale);
+                string label = $"#{order.Id} {StepWord(order)}  {Mathf.CeilToInt(order.SecondsUntilLost)}s";
+
+                PlaceMarker(_slots[used], target, colour, label, distance, scale);
+                if (isSelected) selectedSlot = used;
                 used++;
             }
 
             for (int i = used; i < _slots.Count; i++)
                 _slots[i].Root.gameObject.SetActive(false);
+
+            // The selected arrow is drawn on top of the others.
+            if (selectedSlot >= 0) _slots[selectedSlot].Root.SetAsLastSibling();
         }
 
         private Vector3 DistanceOrigin =>
             distanceFrom != null ? distanceFrom.position : targetCamera.transform.position;
+
+        /// <summary>The word after the order number: the ingredient to get, COOK, READY or DROP.</summary>
+        private string StepWord(Order order)
+        {
+            switch (order.CurrentStep)
+            {
+                case OrderStep.Gather:
+                    IngredientStop next = NearestStop(order);
+                    return next != null ? next.Name.ToUpper() : "";
+                case OrderStep.Cook:
+                    return order.State == OrderState.Ready ? "READY" : "COOK";
+                default:
+                    return "DROP";
+            }
+        }
 
         private IngredientStop NearestStop(Order order)
         {
@@ -164,34 +178,21 @@ namespace ZoomZoom.Orders.UI
             return best;
         }
 
-        /// <summary>Near Scale up close, Far Scale far away, a smooth blend in between.</summary>
+        /// <summary>
+        /// Close Scale up close, Farthest Scale far away. The blend follows the logarithm of the
+        /// distance, so each doubling of distance shrinks the arrow by about the same step:
+        /// 30 m, 60 m, 150 m, 300 m and 600 m all look different, instead of everything past
+        /// 200 m looking the same size.
+        /// </summary>
         private float ScaleForDistance(float distance)
         {
-            float t = Mathf.InverseLerp(nearDistance, Mathf.Max(nearDistance + 0.01f, farDistance), distance);
-            return Mathf.Lerp(nearScale, farScale, t);
+            float near = Mathf.Max(1f, closeDistance);
+            float far = Mathf.Max(near + 1f, farthestDistance);
+            float d = Mathf.Clamp(distance, near, far);
+            float t = Mathf.Log(d / near) / Mathf.Log(far / near);
+            return Mathf.Lerp(closeScale, farthestScale, t);
         }
 
-        /// <summary>
-        /// Projects target into screen space, then either sits the marker directly over it (on
-        /// screen) or clamps it to the screen edge with a rotated arrow (off screen, including
-        /// straight behind the camera, which needs its own flip before the normal clamp math works).
-        /// </summary>
-        /// <summary>
-        /// Projects target into screen space when it's genuinely in front of and within the
-        /// camera's view, otherwise computes the clamp direction from the camera's own local axes
-        /// rather than from the projected screen position.
-        ///
-        /// WHY NOT JUST USE WorldToScreenPoint'S z SIGN
-        /// The original version flipped screenPoint through the centre whenever z was negative,
-        /// the usual trick for a point behind the camera. That works exactly at and past 180
-        /// degrees from forward, but perspective projection has a genuine singularity at 90
-        /// degrees to either side, tan(90) is undefined, so screenPoint.x shoots toward infinity
-        /// there while z is still technically positive. The arrow would jump or fail to clamp
-        /// sensibly right around "directly to the side", which is exactly the case reported:
-        /// arrows not appearing correctly whenever the player wasn't already facing the target.
-        /// Camera-local direction (right/up relative to the camera, from InverseTransformDirection)
-        /// has no such singularity in any direction, including straight behind.
-        /// </summary>
         private void PlaceMarker(MarkerSlot slot, Vector3 target, Color colour, string label,
             float distance, float sizeScale)
         {
@@ -200,73 +201,75 @@ namespace ZoomZoom.Orders.UI
 
             Vector3 toTarget = target - targetCamera.transform.position;
             Vector3 localDir = targetCamera.transform.InverseTransformDirection(toTarget);
-
             bool inFront = localDir.z > 0.01f;
-
-            float halfW = Screen.width * 0.5f;
-            float halfH = Screen.height * 0.5f;
-
             Vector3 screenPoint = inFront ? targetCamera.WorldToScreenPoint(target) : Vector3.zero;
 
-            bool onScreen = inFront
-                             && screenPoint.x >= 0f && screenPoint.x <= Screen.width
-                             && screenPoint.y >= 0f && screenPoint.y <= Screen.height;
+            float scaleFactor = _canvas.scaleFactor > 0.01f ? _canvas.scaleFactor : 1f;
+
+            // The area arrows may use: inside the screen, clear of the phone and the stats panel.
+            float margin = edgeMargin * Mathf.Max(1f, sizeScale) * scaleFactor;
+            float minX = reservedLeft * scaleFactor + margin * 0.5f;
+            float maxX = Screen.width - margin;
+            float minY = margin;
+            float maxY = Screen.height - reservedTop * scaleFactor - margin * 0.5f;
+            if (maxX <= minX) maxX = minX + 1f;
+            if (maxY <= minY) maxY = minY + 1f;
+
+            bool insideArea = inFront
+                              && screenPoint.x >= minX && screenPoint.x <= maxX
+                              && screenPoint.y >= minY && screenPoint.y <= maxY;
 
             Vector2 finalScreenPos;
-            float rotationDegrees;
-            bool showArrowRotated;
+            float rotationDegrees = 0f;
+            bool rotated = false;
 
-            if (onScreen)
+            if (insideArea)
             {
-                finalScreenPos = new Vector2(screenPoint.x, screenPoint.y);
-                rotationDegrees = 0f;
-                showArrowRotated = false;
+                // Lift the arrow so its tip, pointing down, touches the target.
+                finalScreenPos = new Vector2(screenPoint.x, screenPoint.y + markerSize * 0.5f * sizeScale * scaleFactor);
             }
             else
             {
-                // Camera-local right (x) and up (y). Directly behind the camera both approach
-                // zero, an inherent ambiguity, "which side is directly behind me" has no real
-                // answer, so a stable default direction is used rather than letting floating
-                // point noise pick unpredictably.
-                Vector2 dir = new Vector2(localDir.x, localDir.y);
-                if (dir.sqrMagnitude < 0.0001f) dir = Vector2.up;
+                // A flat compass bearing: ahead is the top of the area, behind is the bottom, left
+                // and right are the sides. Using the camera's own up axis instead sends anything
+                // behind the car to the top edge, because a chase camera tilts down.
+                Vector3 flatForward = targetCamera.transform.forward;
+                flatForward.y = 0f;
+                Vector3 flatRight = targetCamera.transform.right;
+                flatRight.y = 0f;
+
+                Vector2 dir = new Vector2(
+                    Vector3.Dot(toTarget, flatRight.normalized),
+                    Vector3.Dot(toTarget, flatForward.normalized));
+                if (dir.sqrMagnitude < 0.0001f) dir = Vector2.down;
                 dir.Normalize();
 
-                // A bigger arrow needs more room from the screen edge so it is not cut off.
-                float margin = edgeMargin * Mathf.Max(1f, sizeScale);
-                float availableW = halfW - margin;
-                float availableH = halfH - margin;
-
-                float scaleX = Mathf.Abs(dir.x) > 0.0001f ? availableW / Mathf.Abs(dir.x) : float.MaxValue;
-                float scaleY = Mathf.Abs(dir.y) > 0.0001f ? availableH / Mathf.Abs(dir.y) : float.MaxValue;
-                float scale = Mathf.Min(scaleX, scaleY);
-
-                Vector2 clamped = dir * scale;
-                finalScreenPos = new Vector2(halfW + clamped.x, halfH + clamped.y);
+                Vector2 centre = new Vector2((minX + maxX) * 0.5f, (minY + maxY) * 0.5f);
+                float halfW = (maxX - minX) * 0.5f;
+                float halfH = (maxY - minY) * 0.5f;
+                float scaleX = Mathf.Abs(dir.x) > 0.0001f ? halfW / Mathf.Abs(dir.x) : float.MaxValue;
+                float scaleY = Mathf.Abs(dir.y) > 0.0001f ? halfH / Mathf.Abs(dir.y) : float.MaxValue;
+                finalScreenPos = centre + dir * Mathf.Min(scaleX, scaleY);
 
                 rotationDegrees = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg - 90f;
-                showArrowRotated = true;
+                rotated = true;
             }
 
-            float scaleFactor = _canvas.scaleFactor > 0.01f ? _canvas.scaleFactor : 1f;
             slot.Root.anchoredPosition = finalScreenPos / scaleFactor;
-            slot.Arrow.rectTransform.localRotation = showArrowRotated
-                ? Quaternion.Euler(0f, 0f, rotationDegrees)
-                : Quaternion.identity;
 
-            // A constant, unchanging arrow is easy to tune out. A slight breathing scale on the
-            // arrow itself, distinct from the marker's fixed-size root and label, is what actually
-            // keeps catching the eye without needing to grow the whole thing.
+            // On screen the arrow points down at the target; off screen it points the way to turn.
+            slot.Arrow.rectTransform.localRotation = rotated
+                ? Quaternion.Euler(0f, 0f, rotationDegrees)
+                : Quaternion.Euler(0f, 0f, 180f);
+
             float pulse = 1f + Mathf.Sin(Time.time * pulseSpeed) * pulseScaleAmount;
             slot.Arrow.rectTransform.localScale = Vector3.one * pulse;
 
             slot.Arrow.color = colour;
             slot.Distance.color = colour;
-
-            slot.IdLabel.text = label;
-            slot.IdLabel.color = colour;
-
-            slot.Distance.text = onScreen ? $"{distance:0}m" : $"{distance:0}m \u2192";
+            slot.Distance.text = $"{distance:0}m";
+            slot.Label.text = label;
+            slot.Label.color = colour;
         }
 
         private void BuildCanvas()
@@ -282,81 +285,72 @@ namespace ZoomZoom.Orders.UI
             scaler.referenceResolution = new Vector2(1920f, 1080f);
             scaler.matchWidthOrHeight = 0.5f;
 
-            canvasGO.AddComponent<GraphicRaycaster>();
+            _canvasRoot = canvasGO.GetComponent<RectTransform>();
 
-            _canvasRect = canvasGO.GetComponent<RectTransform>();
+            for (int i = 0; i < OrderTuning.MaxOrders; i++) _slots.Add(BuildSlot(i));
+        }
 
+        private MarkerSlot BuildSlot(int index)
+        {
             Sprite arrowSprite = GetOrCreateArrowSprite();
 
-            for (int i = 0; i < Mathf.Max(1, markerPoolSize); i++)
-            {
-                var rootGO = new GameObject($"Marker {i}");
-                rootGO.transform.SetParent(canvasGO.transform, false);
+            var rootGO = new GameObject($"Marker {index}");
+            rootGO.transform.SetParent(_canvasRoot, false);
 
-                RectTransform root = rootGO.AddComponent<RectTransform>();
-                root.anchorMin = new Vector2(0f, 0f);
-                root.anchorMax = new Vector2(0f, 0f);
-                root.pivot = new Vector2(0.5f, 0.5f);
-                root.sizeDelta = new Vector2(markerSize, markerSize);
+            RectTransform root = rootGO.AddComponent<RectTransform>();
+            root.anchorMin = root.anchorMax = Vector2.zero;
+            root.pivot = new Vector2(0.5f, 0.5f);
+            root.sizeDelta = new Vector2(markerSize, markerSize);
 
-                var arrowGO = new GameObject("Arrow");
-                arrowGO.transform.SetParent(rootGO.transform, false);
-                Image arrow = arrowGO.AddComponent<Image>();
-                arrow.sprite = arrowSprite;
-                RectTransform arrowRect = arrow.rectTransform;
-                arrowRect.anchorMin = new Vector2(0.5f, 0.5f);
-                arrowRect.anchorMax = new Vector2(0.5f, 0.5f);
-                arrowRect.pivot = new Vector2(0.5f, 0.5f);
-                arrowRect.sizeDelta = new Vector2(markerSize, markerSize);
-                arrowRect.anchoredPosition = Vector2.zero;
+            var arrowGO = new GameObject("Arrow");
+            arrowGO.transform.SetParent(rootGO.transform, false);
+            Image arrow = arrowGO.AddComponent<Image>();
+            arrow.sprite = arrowSprite;
+            arrow.raycastTarget = false;
+            RectTransform arrowRect = arrow.rectTransform;
+            arrowRect.anchorMin = arrowRect.anchorMax = arrowRect.pivot = new Vector2(0.5f, 0.5f);
+            arrowRect.sizeDelta = new Vector2(markerSize, markerSize);
+            arrowRect.anchoredPosition = Vector2.zero;
 
-                var labelGO = new GameObject("Distance");
-                labelGO.transform.SetParent(rootGO.transform, false);
-                Text label = labelGO.AddComponent<Text>();
-                label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-                label.fontSize = distanceFontSize;
-                label.fontStyle = FontStyle.Bold;
-                label.alignment = TextAnchor.UpperCenter;
-                label.horizontalOverflow = HorizontalWrapMode.Overflow;
-                label.verticalOverflow = VerticalWrapMode.Overflow;
-                RectTransform labelRect = label.rectTransform;
-                labelRect.anchorMin = new Vector2(0.5f, 0f);
-                labelRect.anchorMax = new Vector2(0.5f, 0f);
-                labelRect.pivot = new Vector2(0.5f, 1f);
-                labelRect.anchoredPosition = new Vector2(0f, -markerSize * 0.5f - 4f);
-                labelRect.sizeDelta = new Vector2(140f, 28f);
+            Text distance = MakeLabel(rootGO.transform, "Distance", distanceFontSize, TextAnchor.UpperCenter,
+                new Vector2(0.5f, 1f), new Vector2(0f, -markerSize * 0.5f - 4f));
 
-                // The order's own number, distinct from the distance readout below, since without
-                // it two active orders look identical apart from where they happen to be pointing.
-                var idGO = new GameObject("Order Id");
-                idGO.transform.SetParent(rootGO.transform, false);
-                Text idLabel = idGO.AddComponent<Text>();
-                idLabel.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-                idLabel.fontSize = idFontSize;
-                idLabel.fontStyle = FontStyle.Bold;
-                idLabel.alignment = TextAnchor.LowerCenter;
-                idLabel.horizontalOverflow = HorizontalWrapMode.Overflow;
-                idLabel.verticalOverflow = VerticalWrapMode.Overflow;
-                RectTransform idRect = idLabel.rectTransform;
-                idRect.anchorMin = new Vector2(0.5f, 0f);
-                idRect.anchorMax = new Vector2(0.5f, 0f);
-                idRect.pivot = new Vector2(0.5f, 0f);
-                idRect.anchoredPosition = new Vector2(0f, markerSize * 0.5f + 4f);
-                idRect.sizeDelta = new Vector2(140f, 36f);
+            Text label = MakeLabel(rootGO.transform, "Order", labelFontSize, TextAnchor.LowerCenter,
+                new Vector2(0.5f, 0f), new Vector2(0f, markerSize * 0.5f + 4f));
 
-                var outline = idGO.AddComponent<Outline>();
-                outline.effectColor = new Color(0f, 0f, 0f, 0.9f);
-                outline.effectDistance = new Vector2(2f, -2f);
+            rootGO.SetActive(false);
+            return new MarkerSlot { Root = root, Arrow = arrow, Distance = distance, Label = label };
+        }
 
-                rootGO.SetActive(false);
+        private static Text MakeLabel(Transform parent, string name, int size, TextAnchor alignment,
+            Vector2 pivot, Vector2 position)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+            Text text = go.AddComponent<Text>();
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = size;
+            text.fontStyle = FontStyle.Bold;
+            text.alignment = alignment;
+            text.horizontalOverflow = HorizontalWrapMode.Overflow;
+            text.verticalOverflow = VerticalWrapMode.Overflow;
+            text.raycastTarget = false;
 
-                _slots.Add(new MarkerSlot { Root = root, Arrow = arrow, Distance = label, IdLabel = idLabel });
-            }
+            RectTransform rect = text.rectTransform;
+            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.pivot = pivot;
+            rect.anchoredPosition = position;
+            rect.sizeDelta = new Vector2(220f, 32f);
+
+            var outline = go.AddComponent<Outline>();
+            outline.effectColor = new Color(0f, 0f, 0f, 0.9f);
+            outline.effectDistance = new Vector2(2f, -2f);
+            return text;
         }
 
         /// <summary>
-        /// A small upward-pointing triangle, generated in code rather than imported as art: it is a
-        /// handful of numbers, not a picture, so it is crisp at any size and needs no asset dependency.
+        /// A small upward pointing triangle, generated in code rather than imported as art: it is a
+        /// handful of numbers, not a picture, so it is crisp at any size and needs no asset.
         /// </summary>
         private static Sprite _cachedArrowSprite;
 
@@ -391,8 +385,7 @@ namespace ZoomZoom.Orders.UI
             tex.SetPixels32(pixels);
             tex.Apply();
 
-            _cachedArrowSprite = Sprite.Create(
-                tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f));
+            _cachedArrowSprite = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f));
             return _cachedArrowSprite;
         }
     }
