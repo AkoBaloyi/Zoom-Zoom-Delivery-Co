@@ -28,9 +28,8 @@ namespace ZoomZoom.Orders
                  "script to wire that up.")]
         [SerializeField] private OrderManager orderManager;
 
-        [Tooltip("Optional. Found automatically if present on this GameObject. When assigned, a " +
-                 "delivery's payout is scaled by the order's condition at the moment it's " +
-                 "delivered instead of always paying full value.")]
+        [Tooltip("Optional. Found automatically if present on this GameObject. When it is " +
+                 "switched on, a delivery's pay is scaled by the cargo's condition.")]
         [SerializeField] private CargoCondition cargoCondition;
 
         [Header("Capacity")]
@@ -148,8 +147,7 @@ namespace ZoomZoom.Orders
             orderManager.ResolveDelivery(expectedOrder, conditionMultiplier);
 
             if (logActivity)
-                Debug.Log($"[CargoSystem] Order {expectedOrder.Id} delivered at " +
-                          $"{conditionMultiplier * 100f:0}% condition. " +
+                Debug.Log($"[CargoSystem] Order {expectedOrder.Id} delivered. " +
                           $"{_carriedOrders.Count}/{capacity} slots used.");
 
             return true;

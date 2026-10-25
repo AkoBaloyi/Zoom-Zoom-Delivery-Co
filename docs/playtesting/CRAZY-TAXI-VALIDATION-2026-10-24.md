@@ -63,3 +63,17 @@ For an isolated batch project with the required assets/packages, invoke
 `ZoomZoom.Vehicle.Editor.CrazyTaxiValidation.RunAndSmoke` with Unity's `-executeMethod` option.
 It runs the engine checks and then the actual game scene smoke test, writes both reports under
 `VehicleLab_Measurements`, and exits nonzero on a failed check.
+
+## GitHub branch integration
+
+Before publishing to `feature/vehicle-camera`, the implementation was integrated with
+`origin/main` at `4b01f51`, which contains the existing remote feature branch. Incoming scenes,
+UI, orders, assets and telemetry were preserved. The completed taxi controller replaced the
+older vehicle/input implementation at the conflicts. Recovery counts now bridge to the newer
+telemetry. Unrelated edits in the original working folder were not included.
+
+The merged tree compiles with 97 runtime scripts and 10 editor scripts, with zero errors and
+zero warnings. All 40 engine checks pass. The actual merged game scene passes its input smoke
+test with six recognised moves, 48.75 m maximum displacement, correct analog pedal travel and
+zero runtime errors. See [merged engine evidence](evidence/crazy-taxi-controller-2026-10-24/merged-validation.txt)
+and [merged Play Mode evidence](evidence/crazy-taxi-controller-2026-10-24/merged-playmode.txt).

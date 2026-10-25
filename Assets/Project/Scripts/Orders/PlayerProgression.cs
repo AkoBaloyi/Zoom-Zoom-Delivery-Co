@@ -108,15 +108,16 @@ namespace ZoomZoom.Orders
 
         private void HandleOrderResolved(Order order, float value)
         {
+            // Value is what the order paid in Rand: positive for a delivery, negative for a
+            // cancelled order (the penalty). Both change the balance.
+            AddMoney(value, order);
+
             if (order.State == OrderState.Delivered)
             {
-                AddMoney(value, order);
-                AddXp(tuning.baseXpPerDelivery + value * tuning.xpPerValuePoint, order);
+                AddXp(tuning.baseXpPerDelivery + Mathf.Max(0f, value) * tuning.xpPerValuePoint, order);
             }
             else
             {
-                // Late. Value arrives as 0 from OrderManager for a Late order, so there is no
-                // money, and the consolation XP is estimated off baseXpPerDelivery alone.
                 float xp = tuning.baseXpPerDelivery * tuning.lateConsolationXpFraction;
                 if (xp > 0f) AddXp(xp, order);
             }
@@ -137,17 +138,22 @@ namespace ZoomZoom.Orders
             return true;
         }
 
+        /// <summary>Adds earnings or subtracts a penalty. The balance can go below zero, since
+        /// profit is what the stars are judged on.</summary>
         private void AddMoney(float amount, Order source)
         {
-            if (amount <= 0f) return;
+            if (Mathf.Approximately(amount, 0f)) return;
 
             Money += amount;
-            LifetimeMoney += amount;
-            MoneyGained?.Invoke(amount, source);
+            if (amount > 0f)
+            {
+                LifetimeMoney += amount;
+                MoneyGained?.Invoke(amount, source);
+            }
             MoneyChanged?.Invoke(Money);
 
             if (logActivity)
-                Debug.Log($"[PlayerProgression] +{amount:0} money (order {source.Id}). Balance {Money:0}.");
+                Debug.Log($"[PlayerProgression] {amount:+0;-0} Rand (order {source.Id}). Balance R{Money:0}.");
         }
 
         private void AddXp(float amount, Order source)

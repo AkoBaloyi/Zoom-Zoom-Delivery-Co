@@ -14,13 +14,14 @@ namespace ZoomZoom.Orders.UI
     /// checking the HUD. They answer different questions, which way to turn versus where exactly
     /// to stop, so both stay.
     ///
-    /// WHY THIS REPLACES OrderMarkers' GROUND RINGS
-    /// OrderMarkers' rings were a flat, low-alpha, unlabelled ring, functional but not something
-    /// that grabs attention, and gave no way to tell two active orders apart beyond their colour.
-    /// This is meant to be the version that actually ships: brighter, animated, and legible from
-    /// range because it names the order. Once this is confirmed working in the scene, turn
-    /// worldMarkers off on OrderMarkers (a serialized bool there already, no code change needed)
-    /// so the two don't draw on top of each other.
+    /// SIZE AND COLOUR
+    /// Beacons grow the further they are from the car, so a far target is still easy to spot,
+    /// and shrink back to normal up close so they do not swamp the road. The ground disc never
+    /// scales, because it shows the real pickup or drop off zone. An order already in the cargo
+    /// hold uses the carried colour and orders still waiting use the waiting colour.
+    ///
+    /// This replaced the old development ground rings (OrderMarkers), which were faint, unlabelled
+    /// and could not tell two orders apart. That script has been removed.
     /// </summary>
     [DisallowMultipleComponent]
     public class OrderBeacon : MonoBehaviour
@@ -52,9 +53,24 @@ namespace ZoomZoom.Orders.UI
         [SerializeField] private float numberCharacterSize = 0.3f;
         [SerializeField] private float numberHeightAboveBeam = 1.5f;
 
-        [Tooltip("Seconds of order time left below which a beacon blends toward red. Colours " +
-                 "themselves come from OrderPalette so beacon, arrow and ticket agree.")]
+        [Header("Colours")]
+        [Tooltip("Orders already picked up and in the cargo hold, i.e. the job in progress.")]
+        [SerializeField] private Color carriedColour = OrderPalette.Deliver;
+        [Tooltip("Orders still waiting at their pickup.")]
+        [SerializeField] private Color waitingColour = OrderPalette.Pickup;
+        [Tooltip("Seconds of order time left below which a beacon blends toward red.")]
         [SerializeField] private float urgentBelowSeconds = 8f;
+
+        [Header("Size by distance (further is bigger)")]
+        [Tooltip("Distance is measured from this. Found automatically: the car (the object with " +
+                 "ZoneDetection), or the camera if there is no car.")]
+        [SerializeField] private Transform distanceFrom;
+        [Tooltip("Metres. At or closer than this, a beacon is at Near Scale.")]
+        [SerializeField] private float nearDistance = 30f;
+        [Tooltip("Metres. At or further than this, a beacon is at Far Scale.")]
+        [SerializeField] private float farDistance = 300f;
+        [SerializeField] private float nearScale = 1f;
+        [SerializeField] private float farScale = 3f;
 
         [Header("Pulse")]
         [SerializeField] private float pulseSpeed = 3f;
@@ -81,6 +97,11 @@ namespace ZoomZoom.Orders.UI
             if (orderManager == null) orderManager = FindAnyObjectByType<OrderManager>();
             if (zoneDetection == null) zoneDetection = FindAnyObjectByType<ZoneDetection>();
             _camera = Camera.main;
+            if (distanceFrom == null)
+            {
+                if (zoneDetection != null) distanceFrom = zoneDetection.transform;
+                else if (_camera != null) distanceFrom = _camera.transform;
+            }
 
             if (orderManager == null)
             {
@@ -114,8 +135,17 @@ namespace ZoomZoom.Orders.UI
 
                 Vector3 target = order.CurrentTarget;
 
+                bool carried = order.CurrentStep != OrderStep.Pickup;
                 Color colour = OrderPalette.WithUrgency(
-                    OrderPalette.ForOrder(order), order.TimeRemaining, urgentBelowSeconds);
+                    carried ? carriedColour : waitingColour, order.TimeRemaining, urgentBelowSeconds);
+
+                float sizeScale = nearScale;
+                if (distanceFrom != null)
+                {
+                    float distance = Vector3.Distance(distanceFrom.position, target);
+                    float t = Mathf.InverseLerp(nearDistance, Mathf.Max(nearDistance + 0.01f, farDistance), distance);
+                    sizeScale = Mathf.Lerp(nearScale, farScale, t);
+                }
 
                 float discRadius = fallbackGroundDiscRadius;
                 if (zoneDetection != null)
@@ -127,7 +157,7 @@ namespace ZoomZoom.Orders.UI
 
                 string label = $"#{order.Id}";
 
-                PlaceBeacon(_slots[used], target, colour, label, discRadius);
+                PlaceBeacon(_slots[used], target, colour, label, discRadius, sizeScale);
                 used++;
             }
 
@@ -138,17 +168,19 @@ namespace ZoomZoom.Orders.UI
         }
 
         private void PlaceBeacon(BeaconSlot slot, Vector3 groundPosition, Color colour, string label,
-            float discRadius)
+            float discRadius, float sizeScale)
         {
             if (!slot.Root.activeSelf) slot.Root.SetActive(true);
 
             slot.Root.transform.position = groundPosition;
 
             float pulse = 1f + Mathf.Sin(Time.time * pulseSpeed) * pulseScaleAmount;
-            float halfHeight = beamHeight * 0.5f * pulse;
+            float height = beamHeight * sizeScale;
+            float radius = beamRadius * sizeScale;
+            float halfHeight = height * 0.5f * pulse;
 
             slot.Beam.localPosition = new Vector3(0f, halfHeight, 0f);
-            slot.Beam.localScale = new Vector3(beamRadius * pulse, halfHeight, beamRadius * pulse);
+            slot.Beam.localScale = new Vector3(radius * pulse, halfHeight, radius * pulse);
 
             OrderWorldMaterial.SetColour(slot.Block, colour);
             slot.BeamRenderer.SetPropertyBlock(slot.Block);
@@ -167,8 +199,9 @@ namespace ZoomZoom.Orders.UI
 
             slot.Number.text = label;
             slot.Number.color = colour;
+            slot.Number.characterSize = numberCharacterSize * sizeScale;
 
-            Vector3 numberPos = groundPosition + Vector3.up * (beamHeight + numberHeightAboveBeam);
+            Vector3 numberPos = groundPosition + Vector3.up * (height + numberHeightAboveBeam * sizeScale);
             slot.Number.transform.position = numberPos;
 
             if (_camera != null)

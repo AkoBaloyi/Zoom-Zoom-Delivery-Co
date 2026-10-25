@@ -51,6 +51,37 @@ namespace ZoomZoom.Orders.UI
                  "that must not stretch. Raise it if the wood edge of the panel looks squashed.")]
         public float frameBorderFraction = 0.16f;
 
+        /// <summary>Logs, once at start, whether a skin is assigned and which of its slots are
+        /// empty, so "the art is not showing" can be answered from the Console.</summary>
+        public static void LogStatus(HudSkin skin, string owner, Object context)
+        {
+            if (skin == null)
+            {
+                Debug.Log($"[{owner}] No HUD Skin assigned, drawing flat colours. Drag a HUD Skin " +
+                          "asset into the Skin field (in Edit mode, not while playing).", context);
+                return;
+            }
+
+            var missing = new List<string>();
+            if (skin.badgeBackground == null) missing.Add("Badge Background");
+            if (skin.iconPickup == null) missing.Add("Icon Pickup");
+            if (skin.iconDropOff == null) missing.Add("Icon Drop Off");
+            if (skin.iconDone == null) missing.Add("Icon Done");
+            if (skin.stampDelivered == null) missing.Add("Stamp Delivered");
+            if (skin.stampLate == null) missing.Add("Stamp Late");
+            if (skin.barBackground == null) missing.Add("Bar Background");
+            if (skin.barFill == null) missing.Add("Bar Fill");
+            if (skin.statsPanel == null) missing.Add("Stats Panel");
+            if (skin.xpIcon == null) missing.Add("Xp Icon");
+            if (skin.cargoSlotEmpty == null) missing.Add("Cargo Slot Empty");
+            if (skin.cargoSlotFilled == null) missing.Add("Cargo Slot Filled");
+
+            Debug.Log(missing.Count == 0
+                ? $"[{owner}] Using HUD Skin '{skin.name}', all sprites assigned."
+                : $"[{owner}] Using HUD Skin '{skin.name}'. Empty slots (flat colour used): " +
+                  string.Join(", ", missing), context);
+        }
+
         private static readonly Dictionary<(Sprite, Vector4), Sprite> SlicedCache =
             new Dictionary<(Sprite, Vector4), Sprite>();
 
