@@ -32,13 +32,13 @@ below.
 ## Controls
 
 The `Vehicle` action map in `Assets/Project/Scripts/Vehicle/VehicleControls.inputactions` is the
-source of truth. Driving now follows the original Crazy Taxi control structure: independent gas,
-brake, and Drive/Reverse gears.
+source of truth. Driving keeps Crazy Taxi’s deliberate Dash/Drift and D/R technique structure,
+with modern brake-to-reverse assistance for ordinary manoeuvring.
 
 | Game control | Input binding | Player action |
 | --- | --- | --- |
 | Accelerate in selected gear | `W` or `Up Arrow`, or gamepad RT | `Accelerator` |
-| Brake without reversing | `S`, `Down Arrow` or `Left Ctrl`, or gamepad LT | `Brake` |
+| Brake, then reverse at rest | `S`, `Down Arrow` or `Left Ctrl`, or gamepad LT | `Brake` |
 | Steer | `A` and `D`, or `Left Arrow` and `Right Arrow`, or gamepad left stick | `Steer` |
 | Select Drive | `F`, or gamepad B | `GearDrive` |
 | Select Reverse | `R`, or gamepad A | `GearReverse` |
@@ -47,8 +47,9 @@ brake, and Drive/Reverse gears.
 | Right an overturned stationary car | `Backspace`, or gamepad View/Select | `Recover` |
 
 The main turnaround is a quick 180-degree spin on Space / LB. Reverse remains available for precise recovery.
-The car starts in Drive. Gear selections persist after releasing the button. Holding the brake
-stops the car and keeps it stopped; select Reverse and press gas to back up.
+The car starts in Drive. S/Down/L2 brakes forward travel, then reverses after a near-stop and a
+short dwell while held. W/Up/R2 brakes reverse travel before returning forward. Explicit D/R
+selections remain available for intentional techniques; automatic changes cannot trigger them.
 
 **Driving techniques:** release both pedals, tap Drive, then press gas for Crazy Dash. While moving
 forward, tap Reverse then Drive while steering for Crazy Drift. Dash during a drift to launch out
@@ -117,3 +118,6 @@ outside the team is recorded in [Credits](docs/CREDITS.md) with its author, sour
 - [Credits](docs/CREDITS.md)
 - [Build log](docs/BUILD-LOG.md)
 - [Git rules](docs/GIT-RULES.md)
+
+The [current identity and speed-feel record](docs/research/CRAZY-TAXI-IDENTITY-AND-SPEED-FEEL.md)
+explains the modern adaptations, recorded-drive findings and controlled before/after comparison.

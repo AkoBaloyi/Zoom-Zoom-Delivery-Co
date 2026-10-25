@@ -24,13 +24,13 @@ namespace ZoomZoom.Vehicle.EditorTools
     /// </summary>
     public static class VehicleLabSceneBuilder
     {
-        private const string ScenePath = "Assets/_Project/Scenes/VehicleLab.unity";
+        private const string ScenePath = "Assets/Project/Scenes/VehicleLab.unity";
         // The profiles live inside the Vehicle script folder rather than a folder of their own,
-        // because the team repo layout fixes the eight folders under Assets/_Project and adding a
+        // because the team repo layout fixes the eight folders under Assets/Project and adding a
         // ninth would break the structure everyone else is working against.
         private const string TuningPath =
-            "Assets/_Project/Scripts/Vehicle/Tuning/Tuning_Balanced.asset";
-        private const string ControlsPath = "Assets/_Project/Scripts/Vehicle/VehicleControls.inputactions";
+            "Assets/Project/Scripts/Vehicle/Tuning/Tuning_Balanced.asset";
+        private const string ControlsPath = "Assets/Project/Scripts/Vehicle/VehicleControls.inputactions";
         // No material paths any more. The car model and its materials are built by CarVisualBuilder
         // from the colours in the tuning profile, so swapping profile changes the car's paint too.
 

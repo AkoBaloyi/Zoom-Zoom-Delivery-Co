@@ -20,7 +20,7 @@ namespace ZoomZoom.Vehicle
             foreach (TMP_Text label in Object.FindObjectsByType<TMP_Text>(FindObjectsInactive.Include))
             {
                 if (label.gameObject.scene != scene || !label.text.Contains("Brake/Reverse")) continue;
-                label.text = "W / UP    ACCELERATE\nS / DOWN    BRAKE\nA / D    STEER\n" +
+                label.text = "W / UP    ACCELERATE\nS / DOWN    BRAKE, THEN REVERSE AT REST\nA / D    STEER\n" +
                     "F    DRIVE  (gamepad B)\nR    REVERSE  (gamepad A)\nC    LOOK BEHIND\n" +
                     "SPACE / LB    QUICK TURN\nBACKSPACE    RIGHT CAR\n\nDASH    Release pedals, F then W\nDRIFT    R then F while steering";
                 label.enableAutoSizing = true;

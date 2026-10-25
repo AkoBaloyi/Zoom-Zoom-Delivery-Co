@@ -45,8 +45,12 @@ namespace ZoomZoom.Vehicle.Editor
             {
                 Passed.Clear();
                 TestRhythm();
+                TestAutomaticGears();
+                TestFreeRev();
+                TestPedalDirection();
                 // Transient scene; saved scene setup is restored afterwards. No scene is saved here.
                 var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+                scene.name = "VehicleLab";
                 UnityEngine.SceneManagement.SceneManager.SetActiveScene(scene);
                 Physics.simulationMode = SimulationMode.Script;
                 GameObject floor = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -63,10 +67,13 @@ namespace ZoomZoom.Vehicle.Editor
                 serialized.FindProperty("tuning").objectReferenceValue = tuning;
                 serialized.ApplyModifiedPropertiesWithoutUndo();
                 Call(_car, "Awake");
+                Check(_car.GetComponent<VehicleLabInputMeter>() != null, "VehicleLab automatically exposes the controller meter");
                 TestPhysics();
+                RecordFeelComparison();
                 TestCamera();
                 TestInputAsset();
                 TestPedalTravel();
+                TestDualSenseTravel();
                 UnityEngine.Object.DestroyImmediate(tuning);
                 EditorSceneManager.CloseScene(scene, true);
                 success = true;
@@ -94,6 +101,141 @@ namespace ZoomZoom.Vehicle.Editor
         {
             _continueWithSmoke = true;
             Run();
+        }
+        private static void TestDualSenseTravel()
+        {
+            var pad = InputSystem.AddDevice<UnityEngine.InputSystem.DualShock.DualSenseGamepadHID>();
+            var controls = VehicleInput.BuildFallbackControls();
+            var map = controls.FindActionMap("Vehicle", true);
+            try
+            {
+                map.Enable();
+                foreach (float value in new[] { 0f, 0.25f, 0.5f, 1f })
+                {
+                    InputSystem.QueueStateEvent(pad, new UnityEngine.InputSystem.DualShock.LowLevel.DualSenseHIDInputReport
+                    {
+                        leftStickX = 128, leftStickY = 128, rightStickX = 128, rightStickY = 128,
+                        buttons0 = 8,
+                        rightTrigger = (byte)Mathf.RoundToInt(value * 255f),
+                        leftTrigger = (byte)Mathf.RoundToInt(value * 255f)
+                    });
+                    InputSystem.Update();
+                    Check(Mathf.Abs(pad.rightTrigger.ReadUnprocessedValue() - value) < 0.01f &&
+                        Mathf.Abs(pad.leftTrigger.ReadUnprocessedValue() - value) < 0.01f,
+                        $"Virtual native DualSense reads R2/L2 travel {value:0.00} (actual {pad.rightTrigger.ReadUnprocessedValue():0.000})");
+                }
+            }
+            finally
+            {
+                map.Disable();
+                UnityEngine.Object.DestroyImmediate(controls);
+                InputSystem.RemoveDevice(pad);
+            }
+        }
+        private static void TestAutomaticGears()
+        {
+            var settings = new CrazyTaxiSettings();
+            var box = new TaxiAutomaticGearbox();
+            float first = box.Step(settings, 0f, 1f, false, true, Dt);
+            float shifting = box.Step(settings, 13f, 1f, false, true, Dt);
+            Check(box.Gear == 2 && box.ShiftRemaining > 0f && shifting < first * 0.65f,
+                "Automatic upshift changes forward ratio and briefly reduces actual thrust");
+            box.Step(settings, 26f, 1f, false, true, Dt);
+            Check(box.Gear == 2, "Minimum gear hold prevents racing through several ratios on a speed spike");
+            box.Step(settings, 11.4f, 1f, false, true, 0.5f);
+            Check(box.Gear == 2, "Downshift hysteresis prevents hunting around the upshift speed");
+            box.Step(settings, 6f, 1f, false, true, 0.5f);
+            Check(box.Gear == 1, "Slowing below hysteresis band downshifts");
+            float reverse = box.Step(settings, -10f, 1f, true, true, 0.3f);
+            Check(box.Gear == 1 && reverse == 1f, "Reverse remains independent of forward ratios");
+            box.Reset();
+            box.Step(settings, 25f, 1f, false, false, 1f);
+            Check(box.Gear == 1, "Airborne speed cannot trigger an automatic shift");
+            settings.automaticGears = false;
+            Check(box.Step(settings, 20f, 1f, false, true, Dt) == 1f, "Automatic gearbox can be disabled entirely");
+            settings.automaticGears = true;
+            settings.forwardGearSpeedFractions = new float[0];
+            Check(box.Step(settings, 20f, 1f, false, true, Dt) == settings.forwardGearThrust[0],
+                "Empty gear bands safely retain a single forward gear");
+            box.Reset();
+            box.Step(settings, 0f, 0f, false, true, 1f);
+            float idle = box.Rpm;
+            box.Step(settings, 0f, 1f, false, true, 1f);
+            Check(box.Rpm > idle + 400f, "Engine load affects revs independently of road speed");
+            settings = new CrazyTaxiSettings(); box.Reset();
+            box.Step(settings, 7.7f, 1f, false, true, 1f);
+            float beforeShift = box.Rpm;
+            float unloaded = box.Step(settings, 8f, 1f, false, true, Dt);
+            box.Step(settings, 8f, 1f, false, true, 0.16f);
+            Check(box.Rpm < beforeShift - 1200f && box.ThrustEnvelope(settings) > settings.shiftThrustRetention,
+                "Upshift produces a clear RPM fall while torque progressively re-engages");
+            float engaged = box.Step(settings, 8f, 1f, false, true, 0.1f);
+            Check(engaged > unloaded * 3f && box.Gear == 2,
+                "Engagement restores real thrust while retaining the selected ratio");
+            box.Step(settings, 27f, 1f, false, true, 0.4f);
+            Check(box.Gear == 2, "Loaded gear hold starts after clutch engagement, not at shift initiation");
+        }
+        private static void TestFreeRev()
+        {
+            var s = new CrazyTaxiSettings(); var box = new TaxiAutomaticGearbox();
+            float thrust = 1f;
+            for (int i = 0; i < 120; i++) thrust = box.Step(s, 0f, 1f, false, true, Dt, true);
+            Check(Mathf.Abs(box.Rpm - 9000f) < 0.01f && box.IsAtRevLimiter && thrust == 0f && box.ShiftCount == 0,
+                "Brake-held full engine demand reaches 9000 RPM without thrust or automatic shifts");
+            bool cut = false, restored = false, withinCeiling = true;
+            for (int i = 0; i < 30; i++)
+            {
+                box.Step(s, 0f, 1f, false, true, Dt, true);
+                cut |= box.RevLimiterGain < 0.5f; restored |= box.RevLimiterGain > 0.99f;
+                withinCeiling &= box.Rpm <= 9000.01f;
+            }
+            Check(cut && restored, "Rev limiter alternates engine audio cut and recovery");
+            Check(withinCeiling, "Free-rev limiter never exceeds its authored ceiling");
+            box.Step(s, 0f, 0.5f, false, true, 2f, true);
+            Check(Mathf.Abs(box.Rpm - 5000f) < 1f && !box.IsAtRevLimiter,
+                "Half engine demand produces proportional free revs rather than a full-rev switch");
+            box.Step(s, 0f, 0f, false, true, 2f);
+            Check(box.Rpm == s.engineIdleRpm && !box.IsFreeRevving,
+                "Releasing engine demand returns revs to idle and clears free-rev state");
+        }
+        private static void TestPedalDirection()
+        {
+            var s = new CrazyTaxiSettings();
+            var pedals = new TaxiPedalDirection();
+            DriveInput input = default;
+            for (int i = 0; i < 100; i++) input = pedals.Resolve(s, 0f, 1f, 10f, 10f, true, Dt, out _);
+            Check(input.brake == 1f && input.throttle == 0f && pedals.Direction == TaxiGear.Drive,
+                "Held reverse pedal brakes forward travel without changing direction at speed");
+            input = pedals.Resolve(s, 0f, 0.5f, 0f, 0f, true, 0.1f, out _);
+            Check(input.brake == 0.5f && input.throttle == 0f, "Standstill dwell leaves time for a clean stop");
+            input = pedals.Resolve(s, 0f, 0.5f, 0f, 0f, true, 0.1f, out bool changed);
+            Check(changed && input.throttle == -0.5f && input.brake == 0f,
+                "Holding half brake at rest engages proportional reverse");
+            input = pedals.Resolve(s, 0.6f, 0f, -5f, 5f, true, 1f, out changed);
+            Check(!changed && input.brake == 0.6f && input.throttle == 0f,
+                "Forward pedal brakes reverse travel before engaging Drive");
+            input = pedals.Resolve(s, 0.6f, 0f, 0f, 0f, true, 0.2f, out changed);
+            Check(changed && input.throttle == 0.6f && pedals.Direction == TaxiGear.Drive,
+                "Forward pedal returns to Drive at rest");
+            input = pedals.Resolve(s, 1f, 1f, 0f, 0f, true, 1f, out changed);
+            Check(!changed && input.throttle == 0f && input.brake == 1f,
+                "Both pedals brake without selecting reverse or fighting the motor");
+            pedals.Reset();
+            input = pedals.Resolve(s, 0f, 1f, 0f, 4f, true, 1f, out changed);
+            Check(!changed && input.throttle == 0f, "Sideways travel cannot be mistaken for a standstill");
+            input = pedals.Resolve(s, 0f, 1f, 0f, 0f, false, 1f, out changed);
+            Check(!changed && input.throttle == 0f, "Airborne car cannot engage automatic reverse");
+            pedals.Select(TaxiGear.Reverse);
+            input = pedals.Resolve(s, 0.7f, 0f, 10f, 10f, true, Dt, out _);
+            Check(input.throttle == -0.7f, "Explicit R plus gas retains the original powered technique control");
+            pedals.Reset(); s.brakeToReverse = false;
+            input = pedals.Resolve(s, 0f, 1f, 0f, 0f, true, 1f, out changed);
+            Check(!changed && input.brake == 1f && input.throttle == 0f, "Direction assistance can be disabled for original pedal behaviour");
+            var tricks = new TaxiTrickRecognizer(0.3, 0.008);
+            Check(tricks.Push(TaxiCommand.AutoReverse, 1, true, false, false, true) == TaxiTrick.None &&
+                tricks.Push(TaxiCommand.AutoDrive, 1.1, true, false, true, true) == TaxiTrick.None &&
+                tricks.Push(TaxiCommand.GasDown, 1.15, true, false, true, true) == TaxiTrick.None,
+                "Automatic direction changes cannot synthesize Dash, Drift or Limiter Cut gestures");
         }
         private static void TestRhythm()
         {
@@ -160,8 +302,17 @@ namespace ZoomZoom.Vehicle.Editor
         private static void TestPhysics()
         {
             ResetCar();
+            _car.Drive = new DriveInput { engineThrottle = 1f, freeRev = true, brake = 1f };
+            _car.QueueTaxiCommand(TaxiCommand.Drive, 0);
+            _car.QueueTaxiCommand(TaxiCommand.GasDown, 0.06);
+            Tick(1.2f);
+            Check(_car.Speed < 0.2f && _car.EngineRpm > 8950f && _car.AppliedDriveAcceleration == 0f && _car.TrickCount == 0,
+                "Stationary brake-and-gas revs to 9000 without moving the Rigidbody or triggering tricks");
+            ResetCar();
             _car.Drive = new DriveInput { throttle = 1f };
-            Tick(4f);
+            Tick(0.5f);
+            Check(_car.Speed > 6f, "Five-speed normal launch retains over 21 km/h within half a second");
+            Tick(7.5f);
             Check(_car.Speed > 26f && _car.Speed < 29f, "Normal acceleration reaches cruise speed without overshoot");
             _car.Drive = new DriveInput { brake = 1f };
             Tick(2f);
@@ -240,6 +391,61 @@ namespace ZoomZoom.Vehicle.Editor
                 "Airborne car is ballistic: no rocket thrust or air steering");
             ResetCar();
         }
+
+        private static void RecordFeelComparison()
+        {
+            CrazyTaxiSettings original = _car.Tuning.taxi;
+            var rows = new List<string> { "configuration,cruise_kmh,time_to_40_s,time_to_60_s,time_to_80_s,time_to_100_s,shift_1_s,shift_2_s,shift_3_s,shift_4_s,max_kmh" };
+            try
+            {
+                foreach (bool before in new[] { true, false })
+                {
+                    var s = new CrazyTaxiSettings();
+                    if (before)
+                    {
+                        s.forwardGearSpeedFractions = new[] { 0.42f, 0.70f, 0.96f, 1.12f };
+                        s.forwardGearThrust = new[] { 1.15f, 1.05f, 1f, 0.95f };
+                        s.gearShiftTime = 0.09f; s.shiftThrustRetention = 0.55f;
+                        // Previous hold included shift time; the new authoring means loaded pull after it.
+                        s.gearMinimumHoldTime = 0.36f; s.progressiveShift = false;
+                    }
+                    _car.Tuning.taxi = s;
+                    ResetCar();
+                    _car.Drive = new DriveInput { throttle = 1f };
+                    float[] targets = { 40f, 60f, 80f, 100f };
+                    float[] reached = { -1f, -1f, -1f, -1f };
+                    float[] shifts = { -1f, -1f, -1f, -1f };
+                    int previousGear = 1, shift = 0;
+                    float maximum = 0f;
+                    for (int frame = 1; frame <= 8 * 120; frame++)
+                    {
+                        Tick(Dt);
+                        float kmh = _car.Speed * 3.6f;
+                        maximum = Mathf.Max(maximum, kmh);
+                        for (int i = 0; i < targets.Length; i++)
+                            if (reached[i] < 0f && kmh >= targets[i]) reached[i] = frame * Dt;
+                        if (_car.ForwardGear != previousGear && shift < shifts.Length) shifts[shift++] = frame * Dt;
+                        previousGear = _car.ForwardGear;
+                    }
+                    Check(maximum <= s.cruiseSpeed * 3.6f + 0.5f && reached[3] > 0f,
+                        (before ? "Before" : "After") + " controlled run reaches 100 km/h without raising the cruise cap");
+                    rows.Add(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                        "{0},{1:F2},{2:F3},{3:F3},{4:F3},{5:F3},{6:F3},{7:F3},{8:F3},{9:F3},{10:F3}",
+                        before ? "recorded_four_speed" : "five_speed", s.cruiseSpeed * 3.6f,
+                        reached[0], reached[1], reached[2], reached[3], shifts[0], shifts[1], shifts[2], shifts[3], maximum));
+                    if (!before)
+                    {
+                        Check(_car.ForwardGear == 5 && shift == 4, "Normal acceleration reaches all five gears with exactly four upshifts");
+                        Check(shifts[3] > 3f && shifts[3] - shifts[2] >= 0.85f,
+                            "Fifth arrives after sustained gear pulls rather than a rapid counter sequence");
+                    }
+                }
+                string directory = Path.GetFullPath(Path.Combine(Application.dataPath, "../VehicleLab_Measurements"));
+                Directory.CreateDirectory(directory);
+                File.WriteAllLines(Path.Combine(directory, "crazy_taxi_speed_feel_comparison.csv"), rows);
+            }
+            finally { _car.Tuning.taxi = original; ResetCar(); }
+        }
         private static void TestCamera()
         {
             var go = new GameObject("Taxi test camera", typeof(Camera));
@@ -276,6 +482,18 @@ namespace ZoomZoom.Vehicle.Editor
             camera.SnapToTarget();
             Check(Vector3.Distance(camera.transform.position, _car.transform.position) < 8f,
                 "Teleport snaps the camera instead of dragging it across the map");
+            _car.Body.linearVelocity = Vector3.zero;
+            camera.SnapToTarget();
+            float restFov = camera.Camera.fieldOfView;
+            _car.Body.linearVelocity = _car.transform.forward * _car.Taxi.cruiseSpeed;
+            for (int frame = 0; frame < 120; frame++) camera.RenderCamera(Dt);
+            Check(camera.Camera.fieldOfView > restFov + 7f && camera.Camera.fieldOfView <= restFov + 9.1f,
+                "Speed camera smoothly widens FOV within the authored limit at unchanged cruise speed");
+            _car.Taxi.speedCameraCues = false;
+            camera.SnapToTarget();
+            Check(Mathf.Abs(camera.Camera.fieldOfView - _car.Taxi.cameraFov) < 0.01f,
+                "Speed camera cues can be disabled for a stable authored view");
+            _car.Taxi.speedCameraCues = true;
         }
         private static void TestInputAsset()
         {

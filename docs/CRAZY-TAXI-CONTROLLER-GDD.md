@@ -14,9 +14,50 @@ the vehicle's ground movement and timed inputs.
 
 ## Core controls
 
-Acceleration, braking and gear selection are separate actions. Drive is selected at the start of
-play. Holding the brake brings the vehicle to rest without automatically reversing it. Reverse
-remains available for backing away from an obstruction or making a precise correction.
+### Modern forward gearbox and launch response
+
+Drive now contains five automatic forward gears. This is a modern project adaptation, separate
+from the original Crazy Taxi D/R selector and its trick sequences. Ordinary pedal use selects direction at a standstill; explicit Drive/Reverse buttons remain
+for technique inputs. Ordinary acceleration shifts through D1–D5 without extra buttons. Reverse remains
+available, and the quick spin remains the main turnaround move.
+
+Forward gears change actual motor thrust. The initial configuration shifts at approximately
+28, 49, 71 and 89 km/h. Each shift unloads toward 12% thrust, drops RPM, then progressively
+re-engages over 0.22 seconds. A minimum 0.65-second loaded pull AFTER engagement and downshift
+hysteresis prevent rushed changes and hunting near a shift point. Each gear's speed
+band and thrust multiplier, shift duration, RPM response, sound pitch and volume can be authored
+independently. This is an arcade gearbox using speed bands, rather than a clutch or wheel-based
+mechanical simulation. Crazy Dash, Back Dash and Limiter Cut retain their dedicated thrust so a
+normal automatic shift cannot interrupt a successful technique.
+
+Base forward acceleration is 24 m/s² before per-gear multiplication. The five gear multipliers
+are 0.58 / 0.40 / 0.36 / 0.32 / 0.30: first-gear motor demand is therefore 13.92 m/s² before surface
+and pedal factors. Normal acceleration builds through sustained pulls; Crazy Dash retains its
+separate 60 m/s² burst. The contrast between normal driving and learned techniques is deliberate. The normal
+speed ceiling remains 28 m/s (101 km/h), preserving the reward for advanced acceleration tricks.
+The HUD shows D1–D5, speed, RPM and shift state. Layered procedural placeholder engine and road-air loops provide rev changes and sustained travel
+feedback. Load also affects revs; coasting and powered acceleration sound different at the same
+road speed. Each loop can be replaced with an authored clip or muted independently of physics. A separate
+engagement cue and a short adjustable rumble pulse confirm the returning drive after each shift.
+Rumble targets the pad supplying player input and stops on pause, focus loss, disable or teleport.
+
+VehicleLab automatically displays live controller meters. Hardware trigger travel, pedal actions
+and applied motor inputs are separate readings. This supports testing quarter/half/full travel,
+detecting focus or disabled-input problems, and recording comparable tuning sessions as CSV.
+
+### Pedals and direction selection
+
+W/Up/R2 drives forward. S/Down/L2 brakes while travelling forward; holding it after a near-stop
+engages proportional reverse after a short 0.18-second dwell. W/Up/R2 brakes reverse travel
+before returning to Drive by the same rule. Standstill means planar speed at or below 0.35 m/s,
+not simply a zero forward-speed reading during a slide. Airborne movement cannot engage the
+assistance. Pressing both pedals gives brake priority and never powers both directions.
+
+Explicit D/R remains available for Crazy Taxi sequences. Selecting R and using the accelerator
+retains powered reverse/Back Dash behaviour; selecting D retains powered forward techniques.
+Automatic direction changes are distinct non-gesture events: they cannot manufacture a Dash,
+Drift or Limiter Cut. The assistance can be disabled to restore separate brake and D/R control.
+This creates an accessible basic driving layer while preserving deliberate advanced inputs.
 
 The main turnaround move is a quick 180-degree spin. This follows the desired experience of
 turning the vehicle around decisively rather than relying on extended reversing. The spin is a
@@ -27,7 +68,7 @@ Steering chooses the spin direction; without steering, the default is a rightwar
 | Action | Keyboard | Controller |
 | --- | --- | --- |
 | Accelerate | W / Up | Right trigger |
-| Brake | S / Down / Left Ctrl | Left trigger |
+| Brake, then reverse at rest | S / Down / Left Ctrl | Left trigger (L2) |
 | Steer | A–D / Left–Right | Left stick |
 | Quick turnaround | Space | Left bumper |
 | Select Drive | F | B |
@@ -36,6 +77,16 @@ Steering chooses the spin direction; without steering, the default is a rightwar
 | Right an overturned stationary vehicle | Backspace | View / Select |
 
 ## Analog trigger travel
+
+### Brake-held engine revving
+
+Holding brake and accelerator together applies the brake and disengages wheel drive, while the
+engine independently revs from a 1,000 RPM idle toward 9,000 RPM at full accelerator. Partial accelerator produces
+proportional free revs. At the cap an audible limiter pulses; releasing gas lets revs fall.
+Automatic gear shifts do not advance during free revving, and the revs do not charge a boost
+or create an automatic Dash on brake release. Engine demand is separate from wheel throttle,
+so brake priority cannot erase the accelerator's effect on sound and RPM. Normal five-speed
+shift tuning and travel ceilings remain unchanged. This is a deliberate project adaptation.
 
 Controller pedals use the full range of trigger travel. A light press produces light acceleration
 or braking; a full press requests the full available amount. This supports careful approaches,
@@ -74,7 +125,11 @@ the camera inward immediately; the normal distance returns smoothly once the vie
 The default reverse presentation retains the original forward-facing chase orientation. Players
 can hold a look-behind control; the designer can instead enable automatic reverse framing. Camera
 distance, height, aim, smoothing, drift lead, collision clearance and field of view are adjustable.
-An optional speed-based FOV curve is available as a modern presentation choice.
+Default presentation now sits 2.1 m above the chassis and 5.6 m behind it, with a 7 m look-ahead.
+Speed smoothly widens the FOV from 65 to 74 degrees, adds up to 0.6 m chase distance, and forward
+acceleration adds up to 0.3 m of eased pullback. These are bounded, authored modern cues rather
+than claimed Sega camera constants. The horizon stays stable; no random camera shake is used.
+The entire cue layer can be disabled; a custom FOV curve can replace the default speed mapping.
 
 A persistent gear and speed display makes the vehicle's state visible. Successful techniques
 produce an immediate named confirmation. The aim is to make both the input vocabulary and the
@@ -118,3 +173,8 @@ the player's experience, not a claim that the original lacked reverse.
 The direct quick-turn input, analog response authoring, optional reverse camera, recovery controls
 and tuning interface are this project's modern adaptations. Detailed evidence and implementation
 choices are recorded in [the research record](research/CRAZY-TAXI-IMPLEMENTATION-2026-10-24.md).
+The current [identity and differences record](research/CRAZY-TAXI-IDENTITY-AND-SPEED-FEEL.md)
+explains each adaptation, its purpose, and the evidence from the player recording and controlled comparison.
+
+The [five-speed gearbox record](research/CRAZY-TAXI-FIVE-SPEED-GEARBOX.md) supersedes the
+previous four-speed tune and records the new pull durations, sound/pulse controls and evidence.

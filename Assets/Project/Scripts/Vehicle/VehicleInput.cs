@@ -3,7 +3,7 @@ using UnityEngine.InputSystem;
 
 namespace ZoomZoom.Vehicle
 {
-    /// <summary>Independent pedals and latched D/R gears. Input events are buffered in order.</summary>
+    /// <summary>Analog pedals, brake-to-reverse convenience and explicit D/R technique gestures.</summary>
     [DisallowMultipleComponent]
     public class VehicleInput : MonoBehaviour
     {
@@ -15,6 +15,7 @@ namespace ZoomZoom.Vehicle
         private bool _floored, _braking, _suppress, _paused;
         private bool _hasFocus = true;
         private float _gasAmount, _brakeAmount;
+        private readonly TaxiPedalDirection _direction = new TaxiPedalDirection();
         public float RawAccelerator { get; private set; }
         public float RawBrake { get; private set; }
         public float AcceleratorAmount => _gasAmount;
@@ -24,6 +25,10 @@ namespace ZoomZoom.Vehicle
         public bool CameraLookIsMouse => false;
         public bool LookBehind => !_paused && _lookBehind != null && _lookBehind.IsPressed();
         public bool IsReady => _map != null;
+        public string AcceleratorSource => _gas?.activeControl?.path ?? "idle";
+        public string BrakeSource => _brake?.activeControl?.path ?? "idle";
+        public Gamepad ActiveGamepad => (_gas?.activeControl?.device as Gamepad)
+            ?? (_brake?.activeControl?.device as Gamepad) ?? (_steer?.activeControl?.device as Gamepad);
 
         private void Awake()
         {
@@ -113,12 +118,14 @@ namespace ZoomZoom.Vehicle
         {
             if (!AcceptInput) return;
             SelectedGear = TaxiGear.Drive;
+            _direction.Select(SelectedGear);
             controller.QueueTaxiCommand(TaxiCommand.Drive, context.time);
         }
         private void SelectReverse(InputAction.CallbackContext context)
         {
             if (!AcceptInput) return;
             SelectedGear = TaxiGear.Reverse;
+            _direction.Select(SelectedGear);
             controller.QueueTaxiCommand(TaxiCommand.Reverse, context.time);
         }
         private void Recover(InputAction.CallbackContext context)
@@ -134,6 +141,7 @@ namespace ZoomZoom.Vehicle
         {
             if (!AcceptInput || !controller.CanQuickSpinNow) return;
             SelectedGear = TaxiGear.Drive;
+            _direction.Select(SelectedGear);
             controller.QueueTaxiCommand(TaxiCommand.QuickSpin, context.time);
         }
         private void Update()
@@ -153,12 +161,19 @@ namespace ZoomZoom.Vehicle
             _gasAmount = SmoothPedal(_gasAmount, gasTarget, gasTime, Time.deltaTime);
             _brakeAmount = SmoothPedal(_brakeAmount, brakeTarget, settings.brakeResponseTime, Time.deltaTime);
             float rawSteer = Mathf.Clamp(_steer.ReadValue<float>(), -1f, 1f);
-            controller.Drive = new DriveInput
+            Vector3 planar = Vector3.ProjectOnPlane(controller.Body.linearVelocity, controller.GroundNormal);
+            DriveInput drive = _direction.Resolve(settings, _gasAmount, _brakeAmount, controller.ForwardSpeed,
+                planar.magnitude, controller.IsGrounded, Time.deltaTime, out bool directionChanged);
+            if (directionChanged)
             {
-                throttle = _gasAmount * (SelectedGear == TaxiGear.Reverse ? -1f : 1f),
-                brake = _brakeAmount,
-                steer = settings.MapPedal(Mathf.Abs(rawSteer), settings.steeringDeadzone, settings.steeringTravel) * Mathf.Sign(rawSteer)
-            };
+                SelectedGear = _direction.Direction;
+                controller.QueueTaxiCommand(SelectedGear == TaxiGear.Drive ? TaxiCommand.AutoDrive : TaxiCommand.AutoReverse,
+                    UnityEngine.InputSystem.LowLevel.InputState.currentTime);
+            }
+            drive.steer = settings.MapPedal(Mathf.Abs(rawSteer), settings.steeringDeadzone, settings.steeringTravel) * Mathf.Sign(rawSteer);
+            drive.engineThrottle = _gasAmount;
+            drive.freeRev = _gasAmount > settings.directionPedalThreshold && _brakeAmount > settings.directionPedalThreshold;
+            controller.Drive = drive;
         }
         private static float SmoothPedal(float current, float target, float responseTime, float dt) =>
             responseTime <= 0f ? target : Mathf.MoveTowards(current, target, dt / responseTime);
@@ -167,6 +182,7 @@ namespace ZoomZoom.Vehicle
             _floored = _braking = false;
             _gasAmount = _brakeAmount = RawAccelerator = RawBrake = 0f;
             SelectedGear = TaxiGear.Drive;
+            _direction.Reset();
             controller?.ClearTaxiInput();
         }
         private void OnApplicationFocus(bool focused)

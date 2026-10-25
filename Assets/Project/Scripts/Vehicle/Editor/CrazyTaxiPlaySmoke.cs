@@ -22,6 +22,11 @@ namespace ZoomZoom.Vehicle.Editor
         private static float _maximumDistance;
         private static int _stage, _frames;
         private static int _analogStage;
+        private static int _pedalStage, _tricksBeforeAuto;
+        private static bool _reversePedalWorked, _forwardPedalWorked, _bothPedalsStopped;
+        private static bool _brakeRevWorked;
+        private static bool _fiveSpeedStarted;
+        private static int _startingShiftCues, _startingPulses;
         private static readonly float[] GasSamples = new float[3];
         private static readonly float[] BrakeSamples = new float[3];
         private static readonly List<string> Moves = new List<string>();
@@ -43,12 +48,22 @@ namespace ZoomZoom.Vehicle.Editor
         }
         public static void Run()
         {
+            SessionState.SetBool("CrazyTaxiSmoke.Lab", false);
+            StartScene("Assets/Project/Scenes/Possible game scene.unity");
+        }
+        public static void RunLab()
+        {
+            SessionState.SetBool("CrazyTaxiSmoke.Lab", true);
+            StartScene("Assets/Project/Scenes/VehicleLab.unity");
+        }
+        private static void StartScene(string scene)
+        {
             if (!Application.isBatchMode) throw new InvalidOperationException("Run this smoke test in an isolated batch-mode project copy.");
             SessionState.SetBool(ActiveKey, true);
             SessionState.SetString("CrazyTaxiSmoke.Errors", "");
             Application.logMessageReceived -= Log;
             Application.logMessageReceived += Log;
-            EditorSceneManager.OpenScene("Assets/Project/Scenes/Possible game scene.unity", OpenSceneMode.Single);
+            EditorSceneManager.OpenScene(scene, OpenSceneMode.Single);
             EditorApplication.isPlaying = true;
         }
         private static void StateChanged(PlayModeStateChange state)
@@ -78,6 +93,10 @@ namespace ZoomZoom.Vehicle.Editor
             _started = EditorApplication.timeSinceStartup;
             _stage = _frames = 0;
             _analogStage = 0;
+            _pedalStage = 0;
+            _reversePedalWorked = _forwardPedalWorked = _bothPedalsStopped = false;
+            _brakeRevWorked = false;
+            _fiveSpeedStarted = false;
             Moves.Clear();
             _maximumDistance = 0f;
             Errors.Clear();
@@ -103,8 +122,11 @@ namespace ZoomZoom.Vehicle.Editor
                 {
                     _startPosition = _car.transform.position;
                     _keyboard = InputSystem.AddDevice<Keyboard>("TaxiSmokeKeyboard");
-                    _gamepad = InputSystem.AddDevice<Gamepad>("TaxiSmokeGamepad");
+                    _gamepad = InputSystem.AddDevice<UnityEngine.InputSystem.DualShock.DualSenseGamepadHID>("TaxiSmokeDualSense");
                     _car.TrickPerformed += RecordMove;
+                    var meter = _car.GetComponent<VehicleLabInputMeter>();
+                    if (SessionState.GetBool("CrazyTaxiSmoke.Lab", false) && meter != null)
+                        typeof(VehicleLabInputMeter).GetMethod("StartRecording", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).Invoke(meter, null);
                 }
             }
             _frames++;
@@ -112,6 +134,15 @@ namespace ZoomZoom.Vehicle.Editor
             {
                 _car.gameObject.SendMessage("OnApplicationFocus", true, SendMessageOptions.DontRequireReceiver);
                 TestAnalogTravel(elapsed);
+                TestAutomaticPedals(elapsed);
+                if (SessionState.GetBool("CrazyTaxiSmoke.Lab", false) && elapsed >= 18 && !_fiveSpeedStarted)
+                {
+                    _car.Teleport(_startPosition, Quaternion.identity);
+                    _startingShiftCues = _car.GetComponent<TaxiEngineAudio>().ShiftCueCount;
+                    _startingPulses = _car.GetComponent<TaxiGearHaptics>().PulseCount;
+                    QueuePedals(1f, 0f);
+                    _fiveSpeedStarted = true;
+                }
                 _maximumDistance = Mathf.Max(_maximumDistance, Vector3.Distance(_startPosition, _car.transform.position));
                 // Use real Input System events, not writes to the controller's command struct.
                 if (_stage < Times.Length && elapsed >= Times[_stage])
@@ -120,7 +151,7 @@ namespace ZoomZoom.Vehicle.Editor
                     _stage++;
                 }
             }
-            if (elapsed < 12) return;
+            if (elapsed < (SessionState.GetBool("CrazyTaxiSmoke.Lab", false) ? 26 : 18)) return;
             bool inputReady = _car != null && _car.GetComponent<VehicleInput>() != null && _car.GetComponent<VehicleInput>().IsReady;
             bool feedbackReady = _car != null && _car.GetComponent<CrazyTaxiFeedback>() != null;
             bool cameraReady = UnityEngine.Object.FindAnyObjectByType<ChaseCamera>() != null;
@@ -128,11 +159,21 @@ namespace ZoomZoom.Vehicle.Editor
             int tricks = _car != null ? _car.TrickCount : 0;
             bool analog = GasSamples[0] > 0.1f && GasSamples[0] < GasSamples[1] && GasSamples[1] < GasSamples[2] && GasSamples[2] > 0.95f &&
                 BrakeSamples[0] > 0.1f && BrakeSamples[0] < BrakeSamples[1] && BrakeSamples[1] < BrakeSamples[2] && BrakeSamples[2] > 0.95f;
-            bool passed = Errors.Count == 0 && inputReady && feedbackReady && cameraReady && retired && analog && tricks >= 2 && _maximumDistance > 2f;
-            string report = $"Actual game scene Play Mode: {(passed ? "PASS" : "FAIL")}\n" +
+            bool lab = SessionState.GetBool("CrazyTaxiSmoke.Lab", false);
+            bool meterReady = !lab || (_car != null && _car.GetComponent<VehicleLabInputMeter>() != null);
+            bool automaticPedals = _reversePedalWorked && _forwardPedalWorked && _bothPedalsStopped && _brakeRevWorked && tricks == _tricksBeforeAuto;
+            int shiftCues = _car != null ? _car.GetComponent<TaxiEngineAudio>().ShiftCueCount - _startingShiftCues : 0;
+            int pulses = _car != null ? _car.GetComponent<TaxiGearHaptics>().PulseCount - _startingPulses : 0;
+            bool fiveSpeedFeedback = !lab || (_car.ForwardGear == 5 && shiftCues >= 4 && pulses >= 4);
+            bool passed = Errors.Count == 0 && inputReady && feedbackReady && cameraReady && retired && analog && tricks >= 2 && _maximumDistance > 2f && meterReady && automaticPedals && fiveSpeedFeedback;
+            string report = $"Actual {(lab ? "VehicleLab" : "game")} scene Play Mode: {(passed ? "PASS" : "FAIL")}\n" +
+                $"Lab meter ready: {meterReady}\n" +
                 $"Frames: {_frames}\nInput ready: {inputReady}\nDriving feedback: {feedbackReady}\nCamera: {cameraReady}\n" +
                 $"Retired mechanics inactive: {retired}\nRecognised moves: {tricks}\nMaximum displacement: {_maximumDistance:0.00} m\n" +
                 $"Moves: {string.Join(", ", Moves)}\nAnalog trigger travel: {analog}\n" +
+                $"Automatic L2 reverse: {_reversePedalWorked}\nR2 returns to forward: {_forwardPedalWorked}\nBoth pedals brake: {_bothPedalsStopped}\nAutomatic direction changes create no tricks: {tricks == _tricksBeforeAuto}\n" +
+                $"Five-speed feedback: {fiveSpeedFeedback}\nEngagement sound cues dispatched: {shiftCues}\nVirtual pad engagement pulses dispatched: {pulses}\n" +
+                $"Brake + accelerator reaches 9000 RPM without wheel thrust: {_brakeRevWorked}\n" +
                 $"Accelerator outputs at quarter/half/full travel: {GasSamples[0]:0.000}, {GasSamples[1]:0.000}, {GasSamples[2]:0.000}\n" +
                 $"Brake outputs at quarter/half/full travel: {BrakeSamples[0]:0.000}, {BrakeSamples[1]:0.000}, {BrakeSamples[2]:0.000}\n" +
                 $"Runtime errors: {Errors.Count}\n" + string.Join("\n", Errors);
@@ -147,24 +188,69 @@ namespace ZoomZoom.Vehicle.Editor
             EditorApplication.isPlaying = false;
         }
         private static void RecordMove(TaxiTrick move) => Moves.Add(move.ToString());
+        private static void TestAutomaticPedals(double elapsed)
+        {
+            if (elapsed < 12) return;
+            if (_pedalStage == 0)
+            {
+                _car.Teleport(_startPosition, Quaternion.identity);
+                InputSystem.QueueStateEvent(_keyboard, new KeyboardState());
+                QueuePedals(0f, 0.5f);
+                _tricksBeforeAuto = _car.TrickCount;
+                _pedalStage = 1;
+            }
+            if (_pedalStage == 1 && elapsed > 13)
+                _reversePedalWorked |= _car.Drive.throttle < -0.4f && _car.ForwardSpeed < -0.5f;
+            if (_pedalStage == 1 && elapsed > 14) { QueuePedals(0.5f, 0f); _pedalStage = 2; }
+            if (_pedalStage == 2 && elapsed > 15)
+                _forwardPedalWorked |= _car.Drive.throttle > 0.4f && _car.ForwardSpeed > 0.5f;
+            if (_pedalStage == 2 && elapsed > 16) { QueuePedals(1f, 1f); _pedalStage = 3; }
+            if (_pedalStage == 3 && elapsed > 17)
+            {
+                _bothPedalsStopped |= _car.Drive.throttle == 0f && _car.Drive.brake > 0.4f && _car.Speed < 0.5f;
+                _brakeRevWorked |= _car.IsAtRevLimiter && _car.EngineRpm >= 8950f && _car.EngineRpm <= 9000.01f &&
+                    _car.AppliedDriveAcceleration == 0f && _car.Speed < 0.5f;
+            }
+        }
+        private static void QueuePedals(float gas, float brake)
+        {
+            InputSystem.QueueStateEvent(_gamepad, new UnityEngine.InputSystem.DualShock.LowLevel.DualSenseHIDInputReport
+            {
+                leftStickX = 128, leftStickY = 128, rightStickX = 128, rightStickY = 128, buttons0 = 8,
+                rightTrigger = (byte)Mathf.RoundToInt(gas * 255f), leftTrigger = (byte)Mathf.RoundToInt(brake * 255f)
+            }, InputState.currentTime);
+        }
         private static void TestAnalogTravel(double elapsed)
         {
             if (_gamepad == null || _analogStage >= AnalogTimes.Length || elapsed < AnalogTimes[_analogStage]) return;
             VehicleInput input = _car.GetComponent<VehicleInput>();
-            int stage = _analogStage++;
+            int stage = _analogStage;
             if (stage == 1 || stage == 3 || stage == 5)
+            {
+                float expected = stage == 1 ? 64f / 255f : stage == 3 ? 128f / 255f : 1f;
+                expected = _car.Taxi.MapPedal(expected, _car.Taxi.acceleratorDeadzone, _car.Taxi.acceleratorTravel);
+                if (Mathf.Abs(input.AcceleratorAmount - expected) > 0.01f) return;
                 GasSamples[(stage - 1) / 2] = input.AcceleratorAmount;
+            }
             else if (stage == 8 || stage == 10 || stage == 12)
+            {
+                float expected = stage == 8 ? 64f / 255f : stage == 10 ? 128f / 255f : 1f;
+                expected = _car.Taxi.MapPedal(expected, _car.Taxi.brakeDeadzone, _car.Taxi.brakeTravel);
+                if (Mathf.Abs(input.BrakeAmount - expected) > 0.01f) return;
                 BrakeSamples[(stage - 8) / 2] = input.BrakeAmount;
+            }
             else
             {
                 float value = stage == 0 || stage == 7 ? 0.25f : stage == 2 || stage == 9 ? 0.5f : stage == 4 || stage == 11 ? 1f : 0f;
-                InputSystem.QueueStateEvent(_gamepad, new GamepadState
+                InputSystem.QueueStateEvent(_gamepad, new UnityEngine.InputSystem.DualShock.LowLevel.DualSenseHIDInputReport
                 {
-                    rightTrigger = stage < 7 ? value : 0f,
-                    leftTrigger = stage >= 7 ? value : 0f
+                    leftStickX = 128, leftStickY = 128, rightStickX = 128, rightStickY = 128,
+                    buttons0 = 8,
+                    rightTrigger = (byte)Mathf.RoundToInt((stage < 7 ? value : 0f) * 255f),
+                    leftTrigger = (byte)Mathf.RoundToInt((stage >= 7 ? value : 0f) * 255f)
                 }, InputState.currentTime);
             }
+            _analogStage++;
         }
     }
 }

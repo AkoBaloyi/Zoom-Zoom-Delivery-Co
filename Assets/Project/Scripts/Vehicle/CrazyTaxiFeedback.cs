@@ -62,14 +62,19 @@ namespace ZoomZoom.Vehicle
         {
             if (_car == null) return;
             _canvas.SetActive(true);
-            _status.text = (_car.SelectedGear == TaxiGear.Drive ? "D" : "R") + "    " +
-                (_car.Speed * 3.6f).ToString("0") + " km/h";
+            _status.text = (_car.SelectedGear == TaxiGear.Drive ? "D" + _car.ForwardGear : "R") + "    " +
+                (_car.Speed * 3.6f).ToString("0") + " km/h    " + _car.EngineRpm.ToString("0") + " RPM" +
+                (_car.IsAtRevLimiter ? "  LIMITER" : _car.IsFreeRevving ? "  FREE REV" : _car.IsGearShifting ? "  SHIFT" : "");
+            _status.color = _car.IsGearShifting ? new Color(1f, 0.82f, 0.18f) : Color.white;
             _move.enabled = Time.time < _showUntil;
             bool pad = UnityEngine.InputSystem.Gamepad.current != null &&
                 (UnityEngine.InputSystem.Keyboard.current == null ||
                 UnityEngine.InputSystem.Gamepad.current.lastUpdateTime > UnityEngine.InputSystem.Keyboard.current.lastUpdateTime);
-            _hint.text = pad ? "RT  GAS     LT  BRAKE     LB  QUICK TURN     B  DRIVE     A  REVERSE" :
-                "W  GAS     S  BRAKE     SPACE  QUICK TURN     F  DRIVE     R  REVERSE";
+            bool sony = pad && UnityEngine.InputSystem.Gamepad.current is UnityEngine.InputSystem.DualShock.DualShockGamepad;
+            string brakeHint = _car.Taxi.brakeToReverse ? "BRAKE / REVERSE" : "BRAKE";
+            _hint.text = sony ? "R2  GAS     L2  " + brakeHint + "     L1  QUICK TURN     CIRCLE / CROSS  D/R" :
+                pad ? "RT  GAS     LT  " + brakeHint + "     LB  QUICK TURN     B / A  D/R" :
+                "W / UP  GAS     S / DOWN  " + brakeHint + "     SPACE  QUICK TURN     F / R  D/R";
         }
         private void OnDestroy() { if (_canvas != null) Destroy(_canvas); }
     }

@@ -232,6 +232,55 @@ MonoBehaviour:
   driftSlipAngleThreshold: 12
   driftMinimumSpeed: 4
   taxi:
+    brakeToReverse: 1
+    reverseEngageSpeed: 0.35
+    reverseEngageDelay: 0.18
+    directionPedalThreshold: 0.04
+    automaticGears: 1
+    forwardGearSpeedFractions:
+    - 0.28
+    - 0.49
+    - 0.7
+    - 0.88
+    - 1.12
+    forwardGearThrust:
+    - 0.58
+    - 0.4
+    - 0.36
+    - 0.32
+    - 0.3
+    downshiftHysteresis: 0.22
+    gearShiftTime: 0.22
+    shiftThrustRetention: 0.12
+    gearMinimumHoldTime: 0.65
+    shiftUnloadFraction: 0.35
+    progressiveShift: 1
+    shiftFeedbackVolume: 0.18
+    shiftRumbleEnabled: 1
+    shiftRumbleLow: 0.22
+    shiftRumbleHigh: 0.12
+    shiftRumbleDuration: 0.09
+    engineIdleRpm: 1000
+    engineRedlineRpm: 6500
+    engineRpmResponse: 16000
+    engineLoadRpm: 550
+    engineFreeRevLimit: 9000
+    engineFreeRevRiseRate: 12000
+    engineFreeRevFallRate: 6500
+    engineFreeRevPitch: 2.8
+    engineLimiterFrequency: 12
+    engineLimiterRetention: 0.25
+    engineAudio: 1
+    engineVolume: 0.12
+    engineIdlePitch: 0.55
+    engineRedlinePitch: 2.2
+    roadAudioVolume: 0.09
+    speedCameraCues: 1
+    cameraSpeedFovAddition: 9
+    cameraFovResponseTime: 0.25
+    cameraSpeedDistanceAddition: 0.6
+    cameraAccelerationPullback: 0.3
+    cameraAccelerationResponseTime: 0.18
     overspeedDeceleration: 8
     acceleratorDeadzone: 0.04
     brakeDeadzone: 0.04
@@ -243,7 +292,7 @@ MonoBehaviour:
     brakeTrickThreshold: 0.08
     cruiseSpeed: 28
     reverseSpeed: 12
-    acceleration: 18
+    acceleration: 24
     reverseAcceleration: 14
     braking: 28
     coasting: 2.5
@@ -293,9 +342,9 @@ MonoBehaviour:
     automaticRecoveryDelay: 2.5
     recoveryLift: 0.8
     techniquesCauseHardBrakeDamage: 0
-    cameraDistance: 6.5
-    cameraHeight: 3.1
-    cameraLookAhead: 5
+    cameraDistance: 5.6
+    cameraHeight: 2.1
+    cameraLookAhead: 7
     cameraAimHeight: 1.15
     cameraVelocityMinimumSpeed: 2
     cameraMaximumDriftLead: 80

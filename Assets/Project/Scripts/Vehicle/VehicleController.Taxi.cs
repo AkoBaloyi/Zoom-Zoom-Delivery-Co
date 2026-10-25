@@ -30,6 +30,19 @@ namespace ZoomZoom.Vehicle
         public bool CanQuickSpinNow => tuning != null && Taxi.quickSpinEnabled && IsGrounded && IsUpright && _spinCooldownRemaining <= 0f;
         public event Action<TaxiTrick> TrickPerformed;
         public event Action Repositioned;
+        public event Action<int, int> GearShifted;
+        private readonly TaxiAutomaticGearbox _gearbox = new TaxiAutomaticGearbox();
+        public int ForwardGear => _gearbox.Gear;
+        public float EngineRpm => _gearbox.Rpm;
+        public float EngineDemand => Mathf.Clamp01(Mathf.Max(Mathf.Abs(Drive.throttle), Drive.engineThrottle));
+        public bool IsFreeRevving => _gearbox.IsFreeRevving;
+        public bool IsAtRevLimiter => _gearbox.IsAtRevLimiter;
+        public float RevLimiterGain => _gearbox.RevLimiterGain;
+        public bool IsGearShifting => _gearbox.ShiftRemaining > 0f;
+        public float GearShiftProgress => _gearbox.ShiftProgress;
+        public float GearThrustEnvelope => _gearbox.ThrustEnvelope(Taxi);
+        public int ForwardShiftCount => _gearbox.ShiftCount;
+        public float AppliedDriveAcceleration { get; private set; }
 
         private void InitialiseTaxi()
         {
@@ -38,6 +51,10 @@ namespace ZoomZoom.Vehicle
             var oldMoves = GetComponent<VehicleJumpFlip>();
             if (oldMoves != null) oldMoves.enabled = false;
             if (GetComponent<CrazyTaxiFeedback>() == null) gameObject.AddComponent<CrazyTaxiFeedback>();
+            if (GetComponent<TaxiEngineAudio>() == null) gameObject.AddComponent<TaxiEngineAudio>();
+            if (GetComponent<TaxiGearHaptics>() == null) gameObject.AddComponent<TaxiGearHaptics>();
+            if (gameObject.scene.name == "VehicleLab" && GetComponent<VehicleLabInputMeter>() == null)
+                gameObject.AddComponent<VehicleLabInputMeter>();
             ResetTaxi();
         }
 
@@ -52,6 +69,8 @@ namespace ZoomZoom.Vehicle
         public void ClearTaxiInput()
         {
             _taxiCommands.Clear();
+            _gearbox.Reset(Taxi.engineIdleRpm);
+            AppliedDriveAcceleration = 0f;
             _tricks?.Reset();
             SelectedGear = TaxiGear.Drive;
             Drive = default;
@@ -120,6 +139,7 @@ namespace ZoomZoom.Vehicle
             _spinCooldownRemaining = Mathf.Max(0f, _spinCooldownRemaining - dt);
             _cargoProtectionRemaining = Mathf.Max(0f, _cargoProtectionRemaining - dt);
             if (_trickRemaining <= 0f) ActiveTrick = TaxiTrick.None;
+            bool freeRev = Drive.freeRev || (EngineDemand > Taxi.directionPedalThreshold && Drive.brake > Taxi.directionPedalThreshold);
 
             while (_taxiCommands.Count > 0)
             {
@@ -129,7 +149,8 @@ namespace ZoomZoom.Vehicle
                     ForwardSpeed >= Taxi.driftMinimumSpeed, Mathf.Abs(Drive.steer) >= Taxi.trickSteerThreshold,
                     _dashWindow > 0f && ForwardSpeed > Taxi.cruiseSpeed * 0.8f);
                 SelectedGear = _tricks.Gear;
-                if (trick != TaxiTrick.None) BeginTaxiTrick(trick);
+                if (trick != TaxiTrick.None && (!freeRev || trick == TaxiTrick.Stop || trick == TaxiTrick.QuickSpin))
+                    BeginTaxiTrick(trick);
             }
             if (ActiveTrick != TaxiTrick.None) _cargoProtectionRemaining = Taxi.techniqueCargoGraceTime;
 
@@ -142,6 +163,12 @@ namespace ZoomZoom.Vehicle
             LongitudinalDemand = AvailableLateralGrip = 0f;
 
             RecoverTaxi(dt);
+            AppliedDriveAcceleration = 0f;
+            int previousGear = _gearbox.Gear;
+            int previousShiftCount = _gearbox.ShiftCount;
+            float gearThrust = _gearbox.Step(Taxi, ForwardSpeed, EngineDemand,
+                Drive.throttle < 0f || SelectedGear == TaxiGear.Reverse, IsGrounded, dt, freeRev);
+            if (_gearbox.ShiftCount != previousShiftCount) GearShifted?.Invoke(previousGear, _gearbox.Gear);
             if (!IsGrounded || !IsUpright) return;
             if (ActiveTrick == TaxiTrick.QuickSpin)
             {
@@ -150,7 +177,7 @@ namespace ZoomZoom.Vehicle
             }
 
             // Signed throttle remains an adapter for the existing measurement harness. Human input
-            // always gets its sign from a latched Drive/Reverse button, never from the brake.
+            // gets its sign from explicit D/R or the standstill pedal-direction helper.
             float gas = Mathf.Clamp(Drive.throttle, -1f, 1f);
             float pedal = Mathf.Abs(gas);
             float direction = Mathf.Sign(gas);
@@ -172,6 +199,7 @@ namespace ZoomZoom.Vehicle
 
             float speedLimit = direction >= 0f ? Taxi.cruiseSpeed : Taxi.reverseSpeed;
             float acceleration = direction >= 0f ? Taxi.acceleration : Taxi.reverseAcceleration;
+            if (direction >= 0f) acceleration *= gearThrust;
             if (ActiveTrick == TaxiTrick.Dash || ActiveTrick == TaxiTrick.LimiterCut)
             {
                 speedLimit = _dashCeiling;
@@ -185,7 +213,7 @@ namespace ZoomZoom.Vehicle
             }
 
             float push = 0f;
-            if (pedal > 0f && brake < 0.05f && ActiveTrick != TaxiTrick.Stop && !drift)
+            if (pedal > 0f && brake < 0.05f && !freeRev && ActiveTrick != TaxiTrick.Stop && !drift)
             {
                 float along = ForwardSpeed * direction;
                 float fade = ActiveTrick == TaxiTrick.Dash || ActiveTrick == TaxiTrick.LimiterCut
@@ -195,6 +223,7 @@ namespace ZoomZoom.Vehicle
                 push = Mathf.Min(acceleration * pedal * fade * Surface.driveMultiplier,
                     Mathf.Max(0f, speedLimit - along) / dt);
                 _rb.AddForce(GroundForward * (push * direction), ForceMode.Acceleration);
+                AppliedDriveAcceleration = push * direction;
             }
 
             // A ceiling ends thrust; it never deletes existing speed. Landing/collisions stay physical.

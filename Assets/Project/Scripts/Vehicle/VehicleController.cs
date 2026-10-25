@@ -11,6 +11,9 @@ namespace ZoomZoom.Vehicle
     {
         /// <summary>-1 full reverse, 0 coast, +1 full throttle.</summary>
         public float throttle;
+        // Engine demand survives brake priority even when wheel throttle is zero.
+        public float engineThrottle;
+        public bool freeRev;
 
         /// <summary>-1 full left, 0 straight, +1 full right.</summary>
         public float steer;

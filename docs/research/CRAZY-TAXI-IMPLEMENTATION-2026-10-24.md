@@ -1,5 +1,8 @@
 # Crazy Taxi driving and camera reconstruction
 
+> Initial reconstruction record. The later brake-to-reverse and speed-feel changes supersede
+> the pedal-direction and camera defaults below; see [the current identity record](CRAZY-TAXI-IDENTITY-AND-SPEED-FEEL.md).
+
 24 October 2026. Target: the original 1999 arcade / 2000 Dreamcast Crazy Taxi.
 This supersedes the implementation recommendations in the 14 October research. It does not target
 Crazy Taxi 2, High Roller, mobile spinoffs or World Tour. The player character here is the vehicle.

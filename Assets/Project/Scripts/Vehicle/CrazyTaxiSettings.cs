@@ -19,10 +19,15 @@ namespace ZoomZoom.Vehicle
         [Min(0f)] public float brakeResponseTime = 0.02f;
         [Range(0f, 0.3f)] public float pedalFloorHysteresis = 0.1f;
         [Range(0.01f, 0.5f)] public float brakeTrickThreshold = 0.08f;
+        [Header("Modern pedal direction assistance")]
+        public bool brakeToReverse = true;
+        [Min(0f)] public float reverseEngageSpeed = 0.35f;
+        [Min(0f)] public float reverseEngageDelay = 0.18f;
+        [Range(0.001f, 0.5f)] public float directionPedalThreshold = 0.04f;
         [Header("Arcade driving (metres / seconds)")]
         [Min(1f)] public float cruiseSpeed = 28f;
         [Min(1f)] public float reverseSpeed = 12f;
-        [Min(1f)] public float acceleration = 18f;
+        [Min(1f)] public float acceleration = 24f;
         [Min(1f)] public float reverseAcceleration = 14f;
         [Min(1f)] public float braking = 28f;
         [Min(0f)] public float coasting = 2.5f;
@@ -40,6 +45,44 @@ namespace ZoomZoom.Vehicle
         public AnimationCurve gripMultiplierBySpeed = AnimationCurve.Linear(0f, 1f, 2f, 1f);
         [Min(1f)] public float lowSpeedTurnDegrees = 125f;
         [Min(1f)] public float highSpeedTurnDegrees = 58f;
+        [Header("Modern automatic forward gears (D/R still selects direction)")]
+        public bool automaticGears = true;
+        [Tooltip("Upshift speeds as fractions of cruise speed. Last entry sets top-gear RPM range.")]
+        public float[] forwardGearSpeedFractions = { 0.28f, 0.49f, 0.70f, 0.88f, 1.12f };
+        [Tooltip("Actual drive acceleration multiplier per forward gear. Missing entries use 1.")]
+        public float[] forwardGearThrust = { 0.58f, 0.40f, 0.36f, 0.32f, 0.30f };
+        [Range(0.05f, 0.8f)] public float downshiftHysteresis = 0.22f;
+        [Min(0f)] public float gearShiftTime = 0.22f;
+        [Range(0f, 1f)] public float shiftThrustRetention = 0.12f;
+        [Tooltip("Minimum loaded pull AFTER the shift has completed, not including shift time.")]
+        [Min(0f)] public float gearMinimumHoldTime = 0.65f;
+        [Range(0.05f, 0.9f)] public float shiftUnloadFraction = 0.35f;
+        public bool progressiveShift = true;
+        [Min(0f)] public float shiftFeedbackVolume = 0.18f;
+        public AudioClip gearShiftClip;
+        public bool shiftRumbleEnabled = true;
+        [Range(0f, 1f)] public float shiftRumbleLow = 0.22f;
+        [Range(0f, 1f)] public float shiftRumbleHigh = 0.12f;
+        [Min(0.01f)] public float shiftRumbleDuration = 0.09f;
+        [Min(100f)] public float engineIdleRpm = 1000f;
+        [Tooltip("Road-coupled automatic gear RPM reference. Brake-held revs use Engine Free Rev Limit.")]
+        [Min(1000f)] public float engineRedlineRpm = 6500f;
+        [Min(1f)] public float engineRpmResponse = 16000f;
+        [Min(0f)] public float engineLoadRpm = 550f;
+        [Header("Brake-held free revving")]
+        [Min(1000f)] public float engineFreeRevLimit = 9000f;
+        [Min(1f)] public float engineFreeRevRiseRate = 12000f;
+        [Min(1f)] public float engineFreeRevFallRate = 6500f;
+        [Range(0.2f, 3f)] public float engineFreeRevPitch = 2.8f;
+        [Min(1f)] public float engineLimiterFrequency = 12f;
+        [Range(0f, 1f)] public float engineLimiterRetention = 0.25f;
+        public bool engineAudio = true;
+        public AudioClip engineLoop;
+        public AudioClip roadLoop;
+        [Range(0f, 1f)] public float engineVolume = 0.12f;
+        [Range(0.1f, 2f)] public float engineIdlePitch = 0.55f;
+        [Range(0.2f, 3f)] public float engineRedlinePitch = 2.2f;
+        [Range(0f, 1f)] public float roadAudioVolume = 0.09f;
         [Header("Input rhythm")]
         [Range(0.1f, 0.6f)] public float inputWindow = 0.3f;
         [Range(0f, 0.05f)] public float minimumGap = 0.008f;
@@ -84,15 +127,21 @@ namespace ZoomZoom.Vehicle
         public bool techniquesCauseHardBrakeDamage = false;
         [Min(0f)] public float techniqueCargoGraceTime = 0.1f;
         [Header("Automatic chase camera")]
-        [Min(1f)] public float cameraDistance = 6.5f;
-        [Min(0.1f)] public float cameraHeight = 3.1f;
-        [Min(0f)] public float cameraLookAhead = 5f;
+        [Min(1f)] public float cameraDistance = 5.6f;
+        [Min(0.1f)] public float cameraHeight = 2.1f;
+        [Min(0f)] public float cameraLookAhead = 7f;
         [Min(0f)] public float cameraAimHeight = 1.15f;
         [Min(0f)] public float cameraVelocityMinimumSpeed = 2f;
         [Range(0f, 180f)] public float cameraMaximumDriftLead = 80f;
         [Min(0.01f)] public float cameraHeadingTime = 0.18f;
         [Min(0.01f)] public float cameraFollowTime = 0.07f;
         [Range(30f, 100f)] public float cameraFov = 65f;
+        public bool speedCameraCues = true;
+        [Range(0f, 20f)] public float cameraSpeedFovAddition = 9f;
+        [Min(0.01f)] public float cameraFovResponseTime = 0.25f;
+        [Min(0f)] public float cameraSpeedDistanceAddition = 0.6f;
+        [Min(0f)] public float cameraAccelerationPullback = 0.3f;
+        [Min(0.01f)] public float cameraAccelerationResponseTime = 0.18f;
         [Range(0f, 0.8f)] public float cameraDriftVelocityBlend = 0.55f;
         [Min(0.1f)] public float cameraCollisionRadius = 0.35f;
         [Min(0.01f)] public float cameraWallReturnTime = 0.3f;
