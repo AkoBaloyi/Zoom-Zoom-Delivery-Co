@@ -80,6 +80,13 @@ namespace ZoomZoom.Orders
             ShiftStarted?.Invoke();
         }
 
+        public void ApplyTimePenalty(float seconds)
+        {
+            if (!IsShiftActive || seconds <= 0f) return;
+            TimeRemaining = Mathf.Max(0f, TimeRemaining - seconds);
+            if (TimeRemaining <= 0f) EndShift();
+        }
+
         private void EndShift()
         {
             IsShiftActive = false;

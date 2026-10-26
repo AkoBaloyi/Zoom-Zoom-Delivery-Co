@@ -19,6 +19,8 @@ A marker should open the `main` branch.
 For the sharper steering and stronger acceleration team test, use
 `codex/crazy-taxi-handling-playtest` and follow the
 [25 October playtest guide](docs/playtesting/CRAZY-TAXI-HANDLING-2026-10-25.md).
+The [26 October controls and level numbers](docs/playtesting/CONTROLS-AND-LEVEL-NUMBERS-2026-10-26.md)
+document the current W/S pedals, F/R tricks, recovery, camera fixes and measured turning clearance.
 
 1. Add this project folder in Unity Hub.
 2. Select Unity Editor `6000.5.4f1` for the project.
@@ -41,23 +43,25 @@ with modern brake-to-reverse assistance for ordinary manoeuvring.
 
 | Game control | Input binding | Player action |
 | --- | --- | --- |
-| Accelerate in selected gear | `W` or `Up Arrow`, or gamepad RT | `Accelerator` |
+| Drive forward; brake when reversing | `W` or `Up Arrow`, or gamepad RT | `Accelerator` |
 | Brake, then reverse at rest | `S`, `Down Arrow` or `Left Ctrl`, or gamepad LT | `Brake` |
 | Steer | `A` and `D`, or `Left Arrow` and `Right Arrow`, or gamepad left stick | `Steer` |
-| Select Drive | `F`, or gamepad B | `GearDrive` |
-| Select Reverse | `R`, or gamepad A | `GearReverse` |
-| Quick 180-degree turnaround | `Space`, or gamepad LB | `QuickSpin` |
+| Drive trick gesture | `F`, or gamepad B | `GearDrive` |
+| Reverse trick gesture | `R`, or gamepad A | `GearReverse` |
+| Steer + quick 180-degree turnaround | `A`/`D` + `Space`, or stick + LB | `QuickSpin` |
 | Hold to look behind | `C`, or gamepad right-stick click | `LookBehind` |
-| Right an overturned stationary car | `Backspace`, or gamepad View/Select | `Recover` |
+| Reset a stranded car to last clear road point | `Backspace`, or gamepad View/Select | `Recover` |
 
-The main turnaround is a quick 180-degree spin on Space / LB. Reverse remains available for precise recovery.
+Quick turn follows the held steering direction and does nothing with neutral steering. It retains
+90% of entry speed before any collision losses. Anti-roll support keeps the chassis flat.
 The car starts in Drive. S/Down/L2 brakes forward travel, then reverses after a near-stop and a
-short dwell while held. W/Up/R2 brakes reverse travel before returning forward. Explicit D/R
-selections remain available for intentional techniques; automatic changes cannot trigger them.
+short dwell while held. W/Up/R2 brakes reverse travel before returning forward. F/R are trick
+gestures only; they never change W/S pedal direction. Automatic direction changes cannot trigger tricks.
 
-**Driving techniques:** release both pedals, tap Drive, then press gas for Crazy Dash. While moving
+**Driving techniques:** press F and W together from slow speed for Crazy Dash (either input order
+within 0.3 seconds works). While moving
 forward, tap Reverse then Drive while steering for Crazy Drift. Dash during a drift to launch out
-of the turn. Reverse followed by brake performs Crazy Stop. While a dash is still fast, release
+of the turn. S and R together perform Crazy Stop. While a dash is still fast, release
 gas, tap Reverse then Drive and press gas again for Limiter Cut. Reverse immediately after a dash
 with gas held performs Back Dash; Drive then Reverse while turning performs Back Drift.
 
@@ -69,6 +73,10 @@ The gear/speed readout and named move confirmation are visible at the bottom lef
 boost tank, jump, handbrake button, directional flip or aerial steering. Space / LB now performs a
 quick turnaround rather than the retired handbrake behaviour. The camera follows
 automatically. Looking behind is optional; reversing alone keeps the normal forward view.
+
+After three seconds upside down or trying to accelerate while stuck, the car resets to its last
+clear supported road point and costs five seconds on the active shift timer. Parking and holding
+the brake do not trigger a reset. Manual recovery has the same cost. The camera snaps to the reset.
 
 There is no pickup/drop-off key. Driving into the appropriate zone collects or delivers the order
 when a cargo slot allows it, following the existing delivery rules.

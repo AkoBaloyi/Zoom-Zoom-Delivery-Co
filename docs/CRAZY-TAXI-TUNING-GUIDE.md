@@ -1,5 +1,10 @@
 # Customising the controller and camera
 
+Current controls and measurements are in the [26 October report](playtesting/CONTROLS-AND-LEVEL-NUMBERS-2026-10-26.md):
+W/S choose travel direction; F/R are trick gestures; quick turn requires steering and retains
+90% momentum; stuck recovery waits three seconds and costs five seconds. Anti-roll is controlled
+by `antiRollStrength` and `antiRollDamping`. Recovery cost is `recoveryTimeCost`.
+
 The 25 October team-test branch uses tighter normal steering, higher corner grip and stronger
 five-speed acceleration. See the [current values and measured comparison](playtesting/CRAZY-TAXI-HANDLING-2026-10-25.md).
 Earlier dated comparisons below describe their recorded builds.

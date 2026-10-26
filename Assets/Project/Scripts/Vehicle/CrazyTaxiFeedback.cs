@@ -43,10 +43,16 @@ namespace ZoomZoom.Vehicle
             go.GetComponent<Outline>().effectDistance = new Vector2(1.5f, -1.5f);
             return text;
         }
-        private void OnEnable() { if (_car != null) _car.TrickPerformed += Confirm; }
+        private void OnEnable()
+        {
+            if (_car == null) return;
+            _car.TrickPerformed += Confirm;
+            _car.Recovered += ShowRecovery;
+        }
         private void OnDisable()
         {
             if (_car != null) _car.TrickPerformed -= Confirm;
+            if (_car != null) _car.Recovered -= ShowRecovery;
             if (_canvas != null) _canvas.SetActive(false);
         }
         private void Confirm(TaxiTrick trick)
@@ -57,6 +63,11 @@ namespace ZoomZoom.Vehicle
                 trick == TaxiTrick.BackDrift ? "CRAZY BACK DRIFT" : "CRAZY " + trick.ToString().ToUpperInvariant();
             _move.text = name;
             _showUntil = Time.time + 1.1f;
+        }
+        private void ShowRecovery(float cost)
+        {
+            _move.text = $"BACK ON ROAD   -{cost:0.#}s";
+            _showUntil = Time.time + 2f;
         }
         private void LateUpdate()
         {
@@ -72,9 +83,9 @@ namespace ZoomZoom.Vehicle
                 UnityEngine.InputSystem.Gamepad.current.lastUpdateTime > UnityEngine.InputSystem.Keyboard.current.lastUpdateTime);
             bool sony = pad && UnityEngine.InputSystem.Gamepad.current is UnityEngine.InputSystem.DualShock.DualShockGamepad;
             string brakeHint = _car.Taxi.brakeToReverse ? "BRAKE / REVERSE" : "BRAKE";
-            _hint.text = sony ? "R2  GAS     L2  " + brakeHint + "     L1  QUICK TURN     CIRCLE / CROSS  D/R" :
-                pad ? "RT  GAS     LT  " + brakeHint + "     LB  QUICK TURN     B / A  D/R" :
-                "W / UP  GAS     S / DOWN  " + brakeHint + "     SPACE  QUICK TURN     F / R  D/R";
+            _hint.text = sony ? "R2  GAS     L2  " + brakeHint + "     STEER + L1  TURN     CIRCLE / CROSS  TRICKS" :
+                pad ? "RT  GAS     LT  " + brakeHint + "     STEER + LB  TURN     B / A  TRICKS" :
+                "W  GAS     S  " + brakeHint + "     A/D + SPACE  TURN     F / R  TRICKS";
         }
         private void OnDestroy() { if (_canvas != null) Destroy(_canvas); }
     }

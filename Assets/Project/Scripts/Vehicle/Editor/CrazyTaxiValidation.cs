@@ -10,7 +10,7 @@ using UnityEngine.InputSystem;
 namespace ZoomZoom.Vehicle.Editor
 {
     /// <summary>Real Unity physics, input rhythm and scene wiring checks. Does not save scenes.</summary>
-    public static class CrazyTaxiValidation
+    public static partial class CrazyTaxiValidation
     {
         private static readonly List<string> Passed = new List<string>();
         private static VehicleController _car;
@@ -58,7 +58,9 @@ namespace ZoomZoom.Vehicle.Editor
                 floor.transform.position = new Vector3(0f, -0.5f, 0f);
                 floor.transform.localScale = new Vector3(1000f, 1f, 1000f);
                 GameObject car = new GameObject("Taxi test car", typeof(Rigidbody), typeof(BoxCollider));
-                car.GetComponent<BoxCollider>().size = new Vector3(1.8f, 0.6f, 3f);
+                var productionBox = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Project/Prefabs/Car.prefab").GetComponent<BoxCollider>();
+                car.GetComponent<BoxCollider>().size = productionBox.size;
+                car.GetComponent<BoxCollider>().center = productionBox.center;
                 _car = car.AddComponent<VehicleController>();
                 var tuning = ScriptableObject.CreateInstance<VehicleTuning>();
                 tuning.name = "Crazy Taxi test";
@@ -69,8 +71,10 @@ namespace ZoomZoom.Vehicle.Editor
                 Call(_car, "Awake");
                 Check(_car.GetComponent<VehicleLabInputMeter>() != null, "VehicleLab automatically exposes the controller meter");
                 TestPhysics();
+                TestRoadRecovery();
                 TestSharperHandling();
                 RecordFeelComparison();
+                MeasureLevelDesign();
                 TestCamera();
                 TestInputAsset();
                 TestPedalTravel();
@@ -226,9 +230,8 @@ namespace ZoomZoom.Vehicle.Editor
             Check(!changed && input.throttle == 0f, "Sideways travel cannot be mistaken for a standstill");
             input = pedals.Resolve(s, 0f, 1f, 0f, 0f, false, 1f, out changed);
             Check(!changed && input.throttle == 0f, "Airborne car cannot engage automatic reverse");
-            pedals.Select(TaxiGear.Reverse);
             input = pedals.Resolve(s, 0.7f, 0f, 10f, 10f, true, Dt, out _);
-            Check(input.throttle == -0.7f, "Explicit R plus gas retains the original powered technique control");
+            Check(input.throttle == 0.7f, "Gas always drives forward regardless of trick selector history");
             pedals.Reset(); s.brakeToReverse = false;
             input = pedals.Resolve(s, 0f, 1f, 0f, 0f, true, 1f, out changed);
             Check(!changed && input.brake == 1f && input.throttle == 0f, "Direction assistance can be disabled for original pedal behaviour");
@@ -252,14 +255,17 @@ namespace ZoomZoom.Vehicle.Editor
             Check(Push(TaxiCommand.GasDown, 1.24, fast: true) == TaxiTrick.LimiterCut, "Limiter cut chains a live dash");
             r.Reset();
             Push(TaxiCommand.Drive, 2);
-            Check(Push(TaxiCommand.GasDown, 2) == TaxiTrick.None, "Simultaneous gear and gas do not dash");
+            Check(Push(TaxiCommand.GasDown, 2) == TaxiTrick.Dash, "Simultaneous Drive and gas recognise dash");
+            r.Reset();
+            Push(TaxiCommand.GasDown, 2.1);
+            Check(Push(TaxiCommand.Drive, 2.1) == TaxiTrick.Dash, "Simultaneous gas and Drive work in either event order");
             r.Reset();
             Push(TaxiCommand.Drive, 3);
             Check(Push(TaxiCommand.GasDown, 3.5) == TaxiTrick.None, "Expired gear input does not dash");
             r.Reset();
             Push(TaxiCommand.GasDown, 4);
-            Push(TaxiCommand.Drive, 4.1);
-            Check(Push(TaxiCommand.GasDown, 4.16) == TaxiTrick.None, "Gear with gas already held cannot dash");
+            Check(Push(TaxiCommand.Drive, 4.5) == TaxiTrick.None, "Drive with gas held beyond the input window cannot dash");
+            Check(Push(TaxiCommand.GasDown, 4.56) == TaxiTrick.None, "Held gas cannot replay a dash");
             r.Reset();
             Push(TaxiCommand.Reverse, 5);
             Check(Push(TaxiCommand.Drive, 5.04, steer: true) == TaxiTrick.Drift, "Ordered reverse-drive with steering recognises drift");
@@ -267,6 +273,12 @@ namespace ZoomZoom.Vehicle.Editor
             r.Reset();
             Push(TaxiCommand.Reverse, 6);
             Check(Push(TaxiCommand.BrakeDown, 6.04) == TaxiTrick.Stop, "Reverse plus brake recognises stop");
+            r.Reset();
+            Push(TaxiCommand.Reverse, 6.1);
+            Check(Push(TaxiCommand.BrakeDown, 6.1) == TaxiTrick.Stop, "Simultaneous Reverse and brake recognise stop");
+            r.Reset();
+            Push(TaxiCommand.BrakeDown, 6.2);
+            Check(Push(TaxiCommand.Reverse, 6.2) == TaxiTrick.Stop, "Simultaneous brake and Reverse work in either event order");
             r.Reset();
             Push(TaxiCommand.Drive, 7);
             Push(TaxiCommand.GasDown, 7.04);
@@ -383,6 +395,38 @@ namespace ZoomZoom.Vehicle.Editor
                 "Quick spin turns approximately 180 degrees and leaves forward driving selected");
             Check(_car.QuickSpinCooldownRemaining > 0f && !_car.CanQuickSpinNow,
                 "Quick spin cooldown prevents repeated instant turnarounds");
+            foreach (float kmh in new[] { 50f, 96f })
+            {
+                foreach (float steer in new[] { -1f, 1f })
+                {
+                    ResetCar();
+                    _car.Body.linearVelocity = Vector3.forward * (kmh / 3.6f);
+                    _car.Drive = new DriveInput { steer = steer };
+                    _car.QueueTaxiCommand(TaxiCommand.QuickSpin, 71);
+                    float peakRoll = 0f;
+                    int leastSupport = 4;
+                    float initialYaw = 0f;
+                    for (int frame = 0; frame < 106; frame++)
+                    {
+                        Tick(Dt);
+                        peakRoll = Mathf.Max(peakRoll, Vector3.Angle(_car.transform.up, Vector3.up));
+                        leastSupport = Mathf.Min(leastSupport, _car.WheelsOnGround);
+                        if (frame == 24) initialYaw = Vector3.SignedAngle(Vector3.forward, _car.transform.forward, Vector3.up);
+                    }
+                    Check(_car.Speed > kmh / 3.6f * 0.8f,
+                        $"Quick turn from {kmh} km/h retains at least 80% speed (steer {steer}, actual {_car.Speed * 3.6f:0.0} km/h)");
+                    Check(peakRoll < 10f && leastSupport >= 3 && initialYaw * steer > 15f,
+                        $"Quick turn follows steering and stays flat throughout at {kmh} km/h (steer {steer}; peak tilt {peakRoll:0.0} degrees; minimum {leastSupport} wheels)");
+                }
+            }
+            ResetCar();
+            _car.Body.linearVelocity = Vector3.forward * 20f;
+            _car.Drive = default;
+            int beforeSpin = _car.TrickCount;
+            _car.QueueTaxiCommand(TaxiCommand.QuickSpin, 72);
+            Tick(0.2f);
+            Check(_car.TrickCount == beforeSpin && _car.ActiveTrick == TaxiTrick.None,
+                "Quick turn with neutral steering does nothing");
             ResetCar();
             _car.Teleport(new Vector3(0, 20, 0), Quaternion.identity);
             _car.Drive = new DriveInput { throttle = 1f, steer = 1f, boost = true };
@@ -521,6 +565,28 @@ namespace ZoomZoom.Vehicle.Editor
             Physics.SyncTransforms();
             camera.SnapToTarget();
             Check(camera.transform.position.z > -2.5f, "Camera pulls in before an obstructing wall");
+            var sideWall = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            sideWall.transform.position = new Vector3(-3f, 3f, 0f);
+            sideWall.transform.localScale = new Vector3(0.5f, 10f, 20f);
+            Physics.SyncTransforms();
+            bool clearCorner = true;
+            for (int frame = 0; frame < 180; frame++)
+            {
+                _car.transform.rotation = Quaternion.Euler(0f, frame * 0.5f, 0f);
+                camera.RenderCamera(1f / 60f);
+                foreach (GameObject obstacle in new[] { wall, sideWall })
+                    clearCorner &= Vector3.Distance(camera.transform.position,
+                        obstacle.GetComponent<Collider>().ClosestPoint(camera.transform.position)) >= _car.Taxi.cameraCollisionRadius - 0.02f;
+            }
+            Check(clearCorner, "Camera stays outside both walls throughout an inside-corner turn");
+            UnityEngine.Object.DestroyImmediate(sideWall);
+            _car.transform.rotation = Quaternion.identity;
+            wall.transform.position = new Vector3(0f, 3f, -0.1f);
+            Physics.SyncTransforms();
+            camera.SnapToTarget();
+            for (int frame = 0; frame < 60; frame++) camera.RenderCamera(1f / 60f);
+            Check(camera.transform.position.z > 0.45f,
+                $"Camera stays on the visible side when its aim pivot overlaps a close building (camera {camera.transform.position}; car {_car.transform.position})");
             UnityEngine.Object.DestroyImmediate(wall);
             Vector3[] positions = new Vector3[3];
             int[] rates = { 30, 60, 144 };

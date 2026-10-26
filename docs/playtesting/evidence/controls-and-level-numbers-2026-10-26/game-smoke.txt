@@ -1,0 +1,24 @@
+Actual game scene Play Mode: PASS
+Lab meter ready: True
+Frames: 32380
+Input ready: True
+Driving feedback: True
+Camera: True
+Retired mechanics inactive: True
+Recognised moves: 5
+Maximum displacement: 88.76 m
+Moves: Dash, Drift, Dash, Stop, QuickSpin
+Analog trigger travel: True
+Dash / Drift / Stop / steered Quick Turn via real input events: True
+R trick selector keeps W driving forward: True
+Automatic L2 reverse: True
+R2 returns to forward: True
+Both pedals brake: True
+Automatic direction changes create no tricks: True
+Five-speed feedback: True
+Engagement sound cues dispatched: 11
+Virtual pad engagement pulses dispatched: 2
+Brake + accelerator reaches 9000 RPM without wheel thrust: True
+Accelerator outputs at quarter/half/full travel: 0.220, 0.481, 1.000
+Brake outputs at quarter/half/full travel: 0.220, 0.481, 1.000
+Runtime errors: 0

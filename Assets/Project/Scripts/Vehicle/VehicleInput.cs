@@ -118,14 +118,12 @@ namespace ZoomZoom.Vehicle
         {
             if (!AcceptInput) return;
             SelectedGear = TaxiGear.Drive;
-            _direction.Select(SelectedGear);
             controller.QueueTaxiCommand(TaxiCommand.Drive, context.time);
         }
         private void SelectReverse(InputAction.CallbackContext context)
         {
             if (!AcceptInput) return;
             SelectedGear = TaxiGear.Reverse;
-            _direction.Select(SelectedGear);
             controller.QueueTaxiCommand(TaxiCommand.Reverse, context.time);
         }
         private void Recover(InputAction.CallbackContext context)
@@ -140,8 +138,11 @@ namespace ZoomZoom.Vehicle
         private void QuickSpin(InputAction.CallbackContext context)
         {
             if (!AcceptInput || !controller.CanQuickSpinNow) return;
-            SelectedGear = TaxiGear.Drive;
-            _direction.Select(SelectedGear);
+            float raw = Mathf.Clamp(_steer.ReadValue<float>(), -1f, 1f);
+            float steer = controller.Taxi.MapPedal(Mathf.Abs(raw), controller.Taxi.steeringDeadzone,
+                controller.Taxi.steeringTravel) * Mathf.Sign(raw);
+            if (Mathf.Abs(steer) < controller.Taxi.trickSteerThreshold) return;
+            controller.Drive.steer = steer;
             controller.QueueTaxiCommand(TaxiCommand.QuickSpin, context.time);
         }
         private void Update()
@@ -164,12 +165,8 @@ namespace ZoomZoom.Vehicle
             Vector3 planar = Vector3.ProjectOnPlane(controller.Body.linearVelocity, controller.GroundNormal);
             DriveInput drive = _direction.Resolve(settings, _gasAmount, _brakeAmount, controller.ForwardSpeed,
                 planar.magnitude, controller.IsGrounded, Time.deltaTime, out bool directionChanged);
-            if (directionChanged)
-            {
-                SelectedGear = _direction.Direction;
-                controller.QueueTaxiCommand(SelectedGear == TaxiGear.Drive ? TaxiCommand.AutoDrive : TaxiCommand.AutoReverse,
-                    UnityEngine.InputSystem.LowLevel.InputState.currentTime);
-            }
+            // Pedals alone choose travel direction. Trick gestures never change it.
+            SelectedGear = _direction.Direction;
             drive.steer = settings.MapPedal(Mathf.Abs(rawSteer), settings.steeringDeadzone, settings.steeringTravel) * Mathf.Sign(rawSteer);
             drive.engineThrottle = _gasAmount;
             drive.freeRev = _gasAmount > settings.directionPedalThreshold && _brakeAmount > settings.directionPedalThreshold;

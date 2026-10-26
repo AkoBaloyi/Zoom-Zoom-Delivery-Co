@@ -32,6 +32,7 @@ namespace ZoomZoom.Vehicle
         public event Action<TaxiTrick> TrickPerformed;
         public event Action Repositioned;
         public event Action<int, int> GearShifted;
+        public event Action<float> Recovered;
         private readonly TaxiAutomaticGearbox _gearbox = new TaxiAutomaticGearbox();
         public int ForwardGear => _gearbox.Gear;
         public float EngineRpm => _gearbox.Rpm;
@@ -89,6 +90,10 @@ namespace ZoomZoom.Vehicle
             _rightingDelay = 0f;
             _taxiRecoveryRequested = false;
             _spinCooldownRemaining = 0f;
+            _hasRecoveryPoint = false;
+            _safeSampleRemaining = 0f;
+            _monitoringStuck = false;
+            SeedRecoveryPoint();
             Repositioned?.Invoke();
         }
 
@@ -119,10 +124,10 @@ namespace ZoomZoom.Vehicle
             }
             else if (trick == TaxiTrick.QuickSpin)
             {
-                _spinSign = Mathf.Abs(Drive.steer) > Taxi.trickSteerThreshold ? Mathf.Sign(Drive.steer) : 1f;
+                _spinSign = Mathf.Sign(Drive.steer);
                 _spinTargetForward = Quaternion.AngleAxis(180f * _spinSign, GroundNormal) * GroundForward;
-                _spinSpeed = Mathf.Min(Vector3.ProjectOnPlane(_rb.linearVelocity, GroundNormal).magnitude,
-                    Taxi.quickSpinTravelSpeed) * Taxi.quickSpinMomentumRetention;
+                _spinSpeed = Vector3.ProjectOnPlane(_rb.linearVelocity, GroundNormal).magnitude
+                    * Taxi.quickSpinMomentumRetention;
                 _trickRemaining = Taxi.quickSpinDuration;
                 _spinCooldownRemaining = Taxi.quickSpinDuration + Taxi.quickSpinCooldown;
             }
@@ -140,20 +145,25 @@ namespace ZoomZoom.Vehicle
             _spinCooldownRemaining = Mathf.Max(0f, _spinCooldownRemaining - dt);
             _cargoProtectionRemaining = Mathf.Max(0f, _cargoProtectionRemaining - dt);
             if (_trickRemaining <= 0f) ActiveTrick = TaxiTrick.None;
-            bool freeRev = Drive.freeRev || (EngineDemand > Taxi.directionPedalThreshold && Drive.brake > Taxi.directionPedalThreshold);
+            // Opposite-direction W/S can be a logical brake without both physical pedals being
+            // pressed. Only the input adapter's two-pedal flag requests free revving.
+            bool freeRev = Drive.freeRev;
 
             while (_taxiCommands.Count > 0)
             {
                 TimedCommand input = _taxiCommands.Dequeue();
-                if (input.command == TaxiCommand.QuickSpin && !CanQuickSpinNow) continue;
+                if (input.command == TaxiCommand.QuickSpin && (!CanQuickSpinNow ||
+                    Mathf.Abs(Drive.steer) < Taxi.trickSteerThreshold)) continue;
                 TaxiTrick trick = _tricks.Push(input.command, input.time, IsGrounded && IsUpright,
                     ForwardSpeed >= Taxi.driftMinimumSpeed, Mathf.Abs(Drive.steer) >= Taxi.trickSteerThreshold,
                     _dashWindow > 0f && ForwardSpeed > Taxi.cruiseSpeed * 0.8f);
-                SelectedGear = _tricks.Gear;
+                if (trick == TaxiTrick.Dash && Mathf.Abs(ForwardSpeed) > Taxi.dashMaximumEntrySpeed && !IsTaxiDrifting)
+                    trick = TaxiTrick.None;
                 if (trick != TaxiTrick.None && (!freeRev || trick == TaxiTrick.Stop || trick == TaxiTrick.QuickSpin))
                     BeginTaxiTrick(trick);
             }
             if (ActiveTrick != TaxiTrick.None) _cargoProtectionRemaining = Taxi.techniqueCargoGraceTime;
+            SelectedGear = Drive.throttle < 0f || ForwardSpeed < -Taxi.reverseEngageSpeed ? TaxiGear.Reverse : TaxiGear.Drive;
 
             BoostRemaining = 0f;
             IsBoosting = IsSupersonic = IsEarningBoost = false;
@@ -168,7 +178,7 @@ namespace ZoomZoom.Vehicle
             int previousGear = _gearbox.Gear;
             int previousShiftCount = _gearbox.ShiftCount;
             float gearThrust = _gearbox.Step(Taxi, ForwardSpeed, EngineDemand,
-                Drive.throttle < 0f || SelectedGear == TaxiGear.Reverse, IsGrounded, dt, freeRev);
+                Drive.throttle < 0f || ForwardSpeed < -Taxi.reverseEngageSpeed, IsGrounded, dt, freeRev);
             if (_gearbox.ShiftCount != previousShiftCount) GearShifted?.Invoke(previousGear, _gearbox.Gear);
             if (!IsGrounded || !IsUpright) return;
             if (ActiveTrick == TaxiTrick.QuickSpin)
@@ -178,7 +188,7 @@ namespace ZoomZoom.Vehicle
             }
 
             // Signed throttle remains an adapter for the existing measurement harness. Human input
-            // gets its sign from explicit D/R or the standstill pedal-direction helper.
+            // gets its sign exclusively from the standstill pedal-direction helper.
             float gas = Mathf.Clamp(Drive.throttle, -1f, 1f);
             float pedal = Mathf.Abs(gas);
             float direction = Mathf.Sign(gas);
@@ -254,6 +264,7 @@ namespace ZoomZoom.Vehicle
             // Stabilise roll/pitch gently while allowing suspension and ramp launches to work.
             Vector3 correction = Vector3.Cross(transform.up, GroundNormal);
             _rb.AddTorque(correction * Taxi.chassisStability, ForceMode.Acceleration);
+            ApplyAntiRoll();
             if (ActiveTrick == TaxiTrick.Stop && planarSpeed < 0.3f)
             {
                 _rb.linearVelocity -= planar;
@@ -264,21 +275,7 @@ namespace ZoomZoom.Vehicle
 
         private void RecoverTaxi(float dt)
         {
-            bool stranded = Uprightness < Taxi.recoveryUprightness && Speed < Taxi.recoveryMaximumSpeed;
-            _rightingDelay = stranded ? _rightingDelay + dt : 0f;
-            bool recover = stranded && (_taxiRecoveryRequested || _rightingDelay >= Taxi.automaticRecoveryDelay);
-            _taxiRecoveryRequested = false;
-            if (!recover) return;
-            Vector3 heading = Vector3.ProjectOnPlane(transform.forward, Vector3.up);
-            if (heading.sqrMagnitude < 0.01f) heading = Vector3.forward;
-            Vector3 position = transform.position + Vector3.up * Taxi.recoveryLift;
-            // Find a clear upright box before moving; do not recover into a low ceiling.
-            Vector3 half = Taxi.recoveryClearanceHalfSize;
-            foreach (Collider obstacle in Physics.OverlapBox(position, half,
-                Quaternion.LookRotation(heading), tuning.groundMask, QueryTriggerInteraction.Ignore))
-                if (!IsOwnCollider(obstacle)) return;
-            SelfRightCount++;
-            Teleport(position, Quaternion.LookRotation(heading, Vector3.up));
+            StepRoadRecovery(dt);
         }
 
         private void ApplyQuickSpin(float dt)
@@ -290,10 +287,14 @@ namespace ZoomZoom.Vehicle
             _rb.AddTorque(GroundNormal * Mathf.Clamp((rate - YawRate) / dt,
                 -Taxi.quickSpinYawAcceleration, Taxi.quickSpinYawAcceleration), ForceMode.Acceleration);
             Vector3 planar = Vector3.ProjectOnPlane(_rb.linearVelocity, GroundNormal);
-            Vector3 desired = GroundForward * _spinSpeed * (1f - Mathf.Clamp01(Drive.brake));
+            // Collisions can remove momentum; the turn must never put that lost speed back.
+            _spinSpeed = Mathf.Min(_spinSpeed, planar.magnitude);
+            _spinSpeed = Mathf.MoveTowards(_spinSpeed, 0f, Taxi.braking * Mathf.Clamp01(Drive.brake) * dt);
+            Vector3 desired = GroundForward * _spinSpeed;
             Vector3 acceleration = Vector3.ClampMagnitude((desired - planar) / dt, Taxi.quickSpinRedirectAcceleration);
             _rb.AddForce(acceleration, ForceMode.Acceleration);
             _rb.AddTorque(Vector3.Cross(transform.up, GroundNormal) * Taxi.chassisStability, ForceMode.Acceleration);
+            ApplyAntiRoll();
             SteerAmount = _spinSign;
             AvailableLateralGrip = FrontAxleGrip = RearAxleGrip = Taxi.quickSpinRedirectAcceleration;
             LongitudinalDemand = acceleration.magnitude;
@@ -302,6 +303,15 @@ namespace ZoomZoom.Vehicle
                 ActiveTrick = TaxiTrick.None;
                 _trickRemaining = 0f;
             }
+        }
+
+        private void ApplyAntiRoll()
+        {
+            if (!IsGrounded || !IsUpright) return;
+            float error = Vector3.Dot(Vector3.Cross(transform.up, GroundNormal), GroundForward);
+            float rate = Vector3.Dot(_rb.angularVelocity, GroundForward);
+            _rb.AddTorque(GroundForward * (error * Taxi.antiRollStrength - rate * Taxi.antiRollDamping),
+                ForceMode.Acceleration);
         }
     }
 }

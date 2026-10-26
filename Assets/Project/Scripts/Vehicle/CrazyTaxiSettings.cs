@@ -37,6 +37,8 @@ namespace ZoomZoom.Vehicle
         [Min(1f)] public float yawAcceleration = 20f;
         [Min(0.1f)] public float steeringSpeedForFullAuthority = 3f;
         [Min(0f)] public float chassisStability = 18f;
+        [Min(0f)] public float antiRollStrength = 65f;
+        [Min(0f)] public float antiRollDamping = 10f;
         [Min(0.1f)] public float normalAccelerationTaper = 6f;
         public bool useCustomAccelerationCurve = false;
         public AnimationCurve accelerationMultiplierBySpeed = AnimationCurve.Linear(0f, 1f, 1f, 0f);
@@ -90,6 +92,7 @@ namespace ZoomZoom.Vehicle
         [Header("Crazy manoeuvres")]
         [Min(1f)] public float dashSpeed = 38f;
         [Min(1f)] public float dashAcceleration = 60f;
+        [Min(0f)] public float dashMaximumEntrySpeed = 8f;
         [Min(0.1f)] public float dashDuration = 0.7f;
         [Min(0f)] public float limiterSpeedStep = 6f;
         [Min(1f)] public float limiterMaximumSpeed = 56f;
@@ -112,15 +115,16 @@ namespace ZoomZoom.Vehicle
         [Min(0.1f)] public float quickSpinDuration = 0.9f;
         [Min(0f)] public float quickSpinCooldown = 0.65f;
         [Min(0f)] public float quickSpinTravelSpeed = 6f;
-        [Range(0f, 1f)] public float quickSpinMomentumRetention = 0.65f;
-        [Min(0f)] public float quickSpinRedirectAcceleration = 65f;
+        [Range(0f, 1f)] public float quickSpinMomentumRetention = 0.90f;
+        [Min(0f)] public float quickSpinRedirectAcceleration = 180f;
         [Min(0.1f)] public float quickSpinTargetGain = 7f;
         [Range(1f, 15f)] public float quickSpinCompletionAngle = 4f;
         [Header("Ground and recovery")]
         [Range(0f, 1f)] public float drivableUprightness = 0.5f;
         [Range(-1f, 0.5f)] public float recoveryUprightness = 0.25f;
         [Min(0f)] public float recoveryMaximumSpeed = 1.5f;
-        [Min(0f)] public float automaticRecoveryDelay = 2.5f;
+        [Min(0f)] public float automaticRecoveryDelay = 3f;
+        [Min(0f)] public float recoveryTimeCost = 5f;
         [Min(0.1f)] public float recoveryLift = 0.8f;
         public Vector3 recoveryClearanceHalfSize = new Vector3(1f, 0.5f, 1.8f);
         [Tooltip("Allow deliberate driving techniques to cause hard-brake cargo damage. Collisions remain independently damaging.")]

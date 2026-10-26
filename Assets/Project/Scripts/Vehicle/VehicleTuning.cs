@@ -72,7 +72,7 @@ namespace ZoomZoom.Vehicle
 
         [Tooltip("Centre of mass offset from the car origin, in local space. Pushing it DOWN makes " +
                  "the car much less likely to roll over. Pushing it BACK makes the nose lift.")]
-        public Vector3 centreOfMassOffset = new Vector3(0f, -0.35f, 0f);
+        public Vector3 centreOfMassOffset = new Vector3(0f, -0.55f, 0f);
 
         [Tooltip("Hard cap on how fast the car can spin, rad/s. Stops collisions from turning into " +
                  "a helicopter.")]

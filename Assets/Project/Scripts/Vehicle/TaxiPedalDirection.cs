@@ -7,9 +7,7 @@ namespace ZoomZoom.Vehicle
     {
         public TaxiGear Direction { get; private set; } = TaxiGear.Drive;
         private float _standstillTime;
-        private bool _manualGasDirection;
-        public void Reset() { Direction = TaxiGear.Drive; _standstillTime = 0f; _manualGasDirection = false; }
-        public void Select(TaxiGear gear) { Direction = gear; _manualGasDirection = true; _standstillTime = 0f; }
+        public void Reset() { Direction = TaxiGear.Drive; _standstillTime = 0f; }
 
         public DriveInput Resolve(CrazyTaxiSettings s, float gas, float brake, float forwardSpeed,
             float planarSpeed, bool grounded, float dt, out bool changed)
@@ -21,8 +19,6 @@ namespace ZoomZoom.Vehicle
             float threshold = Mathf.Clamp(s.directionPedalThreshold, 0.001f, 0.5f);
             bool gasHeld = gas > threshold, brakeHeld = brake > threshold;
             if (gasHeld && brakeHeld) { _standstillTime = 0f; return new DriveInput { brake = brake }; }
-            if (_manualGasDirection && gasHeld)
-            { _standstillTime = 0f; return new DriveInput { throttle = gas * (Direction == TaxiGear.Reverse ? -1f : 1f) }; }
             if (!gasHeld && !brakeHeld) { _standstillTime = 0f; return default; }
 
             TaxiGear wanted = brakeHeld ? TaxiGear.Reverse : TaxiGear.Drive;
@@ -35,7 +31,6 @@ namespace ZoomZoom.Vehicle
                 if (_standstillTime < Mathf.Max(0f, s.reverseEngageDelay) || !still)
                     return new DriveInput { brake = pedal };
                 Direction = wanted;
-                _manualGasDirection = false;
                 _standstillTime = 0f;
                 changed = true;
             }

@@ -1,0 +1,17 @@
+metric,value,unit,condition
+normal_top_speed,100.800,km/h,12 seconds full throttle; no tricks
+zero_to_99_percent_top_speed,2.842,s,99 percent of 28 m/s; exact cap is asymptotic
+zero_to_100_kmh,2.950,s,no trick; all automatic shifts included
+top_speed_to_stop,0.917,s,full brake; stopped below 0.1 m/s
+top_speed_stopping_distance,12.736,m,full brake; dry flat tarmac
+turn_radius_at_1_mps,1.111,m,steady full lock; mean actual speed / yaw rate over last 2 seconds
+turn_radius_at_2_mps,1.125,m,steady full lock; mean actual speed / yaw rate over last 2 seconds
+turn_radius_at_3_mps,1.139,m,steady full lock; mean actual speed / yaw rate over last 2 seconds
+turn_radius_at_4_mps,1.534,m,steady full lock; mean actual speed / yaw rate over last 2 seconds
+turn_radius_at_5_mps,1.943,m,steady full lock; mean actual speed / yaw rate over last 2 seconds
+turn_radius_at_8_mps,3.234,m,steady full lock; mean actual speed / yaw rate over last 2 seconds
+tightest_center_path_turning_diameter,2.222,m,lowest of tested 1 2 3 4 5 8 m/s
+tightest_whole_car_swept_turning_diameter,5.827,m,includes outer corners of production Car prefab collider
+tightest_circle_target_speed,3.600,km/h,steady full lock
+fastest_tested_90_degree_corner_entry,100.800,km/h,12m wide road; 6m inner and 18m outer radius; full lock then straighten; no tricks
+fastest_tested_90_degree_corner_exit,91.405,km/h,whole production collider footprint on road; at least 80 percent speed retained; under 10 degrees roll

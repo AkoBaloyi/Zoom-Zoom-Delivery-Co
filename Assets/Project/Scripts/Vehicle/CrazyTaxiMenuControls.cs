@@ -21,8 +21,8 @@ namespace ZoomZoom.Vehicle
             {
                 if (label.gameObject.scene != scene || !label.text.Contains("Brake/Reverse")) continue;
                 label.text = "W / UP    ACCELERATE\nS / DOWN    BRAKE, THEN REVERSE AT REST\nA / D    STEER\n" +
-                    "F    DRIVE  (gamepad B)\nR    REVERSE  (gamepad A)\nC    LOOK BEHIND\n" +
-                    "SPACE / LB    QUICK TURN\nBACKSPACE    RIGHT CAR\n\nDASH    Release pedals, F then W\nDRIFT    R then F while steering";
+                    "F / R    DRIVE / REVERSE TRICKS (B / A)\nC    LOOK BEHIND\n" +
+                    "STEER + SPACE / LB    QUICK TURN\nBACKSPACE    RESET IF STUCK (-5s)\n\nDASH    F + W together\nDRIFT    R then F while steering\nSTOP    S + R together\nAUTO RESET    Stuck/upside down for 3s (-5s)";
                 label.enableAutoSizing = true;
                 label.fontSizeMin = 18f;
                 label.fontSizeMax = 36f;

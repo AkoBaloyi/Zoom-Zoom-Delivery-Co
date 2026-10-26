@@ -25,6 +25,7 @@ namespace ZoomZoom.Vehicle.Editor
         private static int _pedalStage, _tricksBeforeAuto;
         private static bool _reversePedalWorked, _forwardPedalWorked, _bothPedalsStopped;
         private static bool _brakeRevWorked;
+        private static bool _selectorKeepsForward;
         private static bool _fiveSpeedStarted;
         private static int _startingShiftCues, _startingPulses;
         private static readonly float[] GasSamples = new float[3];
@@ -34,11 +35,11 @@ namespace ZoomZoom.Vehicle.Editor
         private static readonly List<string> Errors = new List<string>();
         private static readonly double[] Times = { 1, 2, 2.1, 2.2, 3, 3.1, 4, 4.1, 4.2, 5, 6, 7, 7.1, 7.2, 8, 8.3, 8.6, 9, 10 };
         private static readonly Key[][] Keys = {
-            new[] { Key.W }, new Key[0], new[] { Key.F }, new[] { Key.W },
+            new[] { Key.W, Key.F }, new Key[0], new[] { Key.F }, new[] { Key.W },
             new[] { Key.W, Key.D, Key.R }, new[] { Key.W, Key.D, Key.F },
             new Key[0], new[] { Key.F }, new[] { Key.W }, new[] { Key.S, Key.R },
             new[] { Key.W, Key.R }, new Key[0], new[] { Key.F }, new[] { Key.W },
-            new[] { Key.W, Key.C }, new[] { Key.W, Key.Space }, new[] { Key.W }, new[] { Key.W }, new Key[0]
+            new[] { Key.W, Key.C }, new[] { Key.W, Key.A, Key.Space }, new[] { Key.W }, new[] { Key.W }, new Key[0]
         };
         static CrazyTaxiPlaySmoke()
         {
@@ -96,6 +97,7 @@ namespace ZoomZoom.Vehicle.Editor
             _pedalStage = 0;
             _reversePedalWorked = _forwardPedalWorked = _bothPedalsStopped = false;
             _brakeRevWorked = false;
+            _selectorKeepsForward = false;
             _fiveSpeedStarted = false;
             Moves.Clear();
             _maximumDistance = 0f;
@@ -135,6 +137,8 @@ namespace ZoomZoom.Vehicle.Editor
                 _car.gameObject.SendMessage("OnApplicationFocus", true, SendMessageOptions.DontRequireReceiver);
                 TestAnalogTravel(elapsed);
                 TestAutomaticPedals(elapsed);
+                if (elapsed > 3.02 && elapsed < 3.1)
+                    _selectorKeepsForward |= _car.Drive.throttle > 0f && _car.ForwardSpeed > 0f;
                 if (SessionState.GetBool("CrazyTaxiSmoke.Lab", false) && elapsed >= 18 && !_fiveSpeedStarted)
                 {
                     _car.Teleport(_startPosition, Quaternion.identity);
@@ -165,12 +169,14 @@ namespace ZoomZoom.Vehicle.Editor
             int shiftCues = _car != null ? _car.GetComponent<TaxiEngineAudio>().ShiftCueCount - _startingShiftCues : 0;
             int pulses = _car != null ? _car.GetComponent<TaxiGearHaptics>().PulseCount - _startingPulses : 0;
             bool fiveSpeedFeedback = !lab || (_car.ForwardGear == 5 && shiftCues >= 4 && pulses >= 4);
-            bool passed = Errors.Count == 0 && inputReady && feedbackReady && cameraReady && retired && analog && tricks >= 2 && _maximumDistance > 2f && meterReady && automaticPedals && fiveSpeedFeedback;
+            bool allCoreMoves = Moves.Contains("Dash") && Moves.Contains("Drift") && Moves.Contains("Stop") && Moves.Contains("QuickSpin");
+            bool passed = Errors.Count == 0 && inputReady && feedbackReady && cameraReady && retired && analog && allCoreMoves && _selectorKeepsForward && _maximumDistance > 2f && meterReady && automaticPedals && fiveSpeedFeedback;
             string report = $"Actual {(lab ? "VehicleLab" : "game")} scene Play Mode: {(passed ? "PASS" : "FAIL")}\n" +
                 $"Lab meter ready: {meterReady}\n" +
                 $"Frames: {_frames}\nInput ready: {inputReady}\nDriving feedback: {feedbackReady}\nCamera: {cameraReady}\n" +
                 $"Retired mechanics inactive: {retired}\nRecognised moves: {tricks}\nMaximum displacement: {_maximumDistance:0.00} m\n" +
                 $"Moves: {string.Join(", ", Moves)}\nAnalog trigger travel: {analog}\n" +
+                $"Dash / Drift / Stop / steered Quick Turn via real input events: {allCoreMoves}\nR trick selector keeps W driving forward: {_selectorKeepsForward}\n" +
                 $"Automatic L2 reverse: {_reversePedalWorked}\nR2 returns to forward: {_forwardPedalWorked}\nBoth pedals brake: {_bothPedalsStopped}\nAutomatic direction changes create no tricks: {tricks == _tricksBeforeAuto}\n" +
                 $"Five-speed feedback: {fiveSpeedFeedback}\nEngagement sound cues dispatched: {shiftCues}\nVirtual pad engagement pulses dispatched: {pulses}\n" +
                 $"Brake + accelerator reaches 9000 RPM without wheel thrust: {_brakeRevWorked}\n" +

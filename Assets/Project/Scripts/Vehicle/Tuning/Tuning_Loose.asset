@@ -301,6 +301,8 @@ MonoBehaviour:
     yawAcceleration: 20
     steeringSpeedForFullAuthority: 3
     chassisStability: 18
+    antiRollStrength: 65
+    antiRollDamping: 10
     normalAccelerationTaper: 6
     useCustomAccelerationCurve: 0
     useCustomSteeringCurve: 0
@@ -311,6 +313,7 @@ MonoBehaviour:
     pedalFloor: 0.9
     dashSpeed: 38
     dashAcceleration: 60
+    dashMaximumEntrySpeed: 8
     dashDuration: 0.7
     limiterSpeedStep: 6
     limiterMaximumSpeed: 56
@@ -332,14 +335,15 @@ MonoBehaviour:
     quickSpinDuration: 0.9
     quickSpinCooldown: 0.65
     quickSpinTravelSpeed: 6
-    quickSpinMomentumRetention: 0.65
-    quickSpinRedirectAcceleration: 65
+    quickSpinMomentumRetention: 0.9
+    quickSpinRedirectAcceleration: 180
     quickSpinTargetGain: 7
     quickSpinCompletionAngle: 4
     drivableUprightness: 0.5
     recoveryUprightness: 0.25
     recoveryMaximumSpeed: 1.5
-    automaticRecoveryDelay: 2.5
+    automaticRecoveryDelay: 3
+    recoveryTimeCost: 5
     recoveryLift: 0.8
     techniquesCauseHardBrakeDamage: 0
     cameraDistance: 5.6

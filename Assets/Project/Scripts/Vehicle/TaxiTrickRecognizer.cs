@@ -12,6 +12,7 @@ namespace ZoomZoom.Vehicle
         private double _window;
         private double _minimumGap;
         private double _driveAt, _reverseAt;
+        private double _gasAt;
         private bool _gas, _brake, _dashArmed, _cutArmed;
         private double _lastTime;
         private double _driftAt;
@@ -33,6 +34,7 @@ namespace ZoomZoom.Vehicle
         public void Reset()
         {
             _driveAt = _reverseAt = double.NegativeInfinity;
+            _gasAt = double.NegativeInfinity;
             _lastTime = double.NegativeInfinity;
             _driftAt = double.NegativeInfinity;
             _pendingDrift = TaxiTrick.None;
@@ -42,6 +44,7 @@ namespace ZoomZoom.Vehicle
 
         private bool Recent(double now, double before) =>
             now - before >= _minimumGap && now - before <= _window;
+        private bool Together(double now, double before) => now >= before && now - before <= _window;
 
         public TaxiTrick Push(TaxiCommand command, double time, bool grounded,
             bool movingForward, bool steering, bool dashStillFast)
@@ -73,7 +76,7 @@ namespace ZoomZoom.Vehicle
                 case TaxiCommand.BrakeDown:
                     _brake = true;
                     _dashArmed = false;
-                    if (Gear == TaxiGear.Reverse && movingForward && Recent(time, _reverseAt))
+                    if (Gear == TaxiGear.Reverse && movingForward && Together(time, _reverseAt))
                         result = TaxiTrick.Stop;
                     break;
                 case TaxiCommand.Reverse:
@@ -100,14 +103,25 @@ namespace ZoomZoom.Vehicle
                         _driftAt = time;
                         if (steering) result = _pendingDrift;
                     }
+                    if (result == TaxiTrick.None && _gas && !_brake && Together(time, _gasAt))
+                    {
+                        result = dashStillFast && Recent(time, _reverseAt) ? TaxiTrick.LimiterCut : TaxiTrick.Dash;
+                        _gasAt = double.NegativeInfinity;
+                        _dashArmed = _cutArmed = false;
+                    }
                     break;
                 case TaxiCommand.Steer:
                     if (movingForward && steering && Recent(time, _driftAt)) result = _pendingDrift;
                     break;
                 case TaxiCommand.GasDown:
+                    if (_gas) break;
                     _gas = true;
-                    if (_dashArmed && !_brake && Gear == TaxiGear.Drive && Recent(time, _driveAt))
+                    _gasAt = time;
+                    if (_dashArmed && !_brake && Gear == TaxiGear.Drive && Together(time, _driveAt))
+                    {
                         result = _cutArmed ? TaxiTrick.LimiterCut : TaxiTrick.Dash;
+                        _gasAt = double.NegativeInfinity;
+                    }
                     _dashArmed = _cutArmed = false; // a pattern is spent once, never replayed
                     break;
             }

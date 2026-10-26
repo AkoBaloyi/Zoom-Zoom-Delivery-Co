@@ -29,6 +29,7 @@ namespace ZoomZoom.Vehicle
             _camera = GetComponent<Camera>();
             _collisionProbe = GetComponent<SphereCollider>();
             if (_collisionProbe == null) _collisionProbe = gameObject.AddComponent<SphereCollider>();
+            _collisionProbe.isTrigger = true;
             _collisionProbe.enabled = false;
             if (target == null) target = FindAnyObjectByType<VehicleController>();
             if (target != null && input == null) input = target.GetComponent<VehicleInput>();
@@ -107,6 +108,13 @@ namespace ZoomZoom.Vehicle
 
             Vector3 pivot = target.transform.position + Vector3.up * s.cameraAimHeight;
             Vector3 candidate = AvoidWalls(pivot, _position, dt);
+            // The spring must continue from the collision-safe point, otherwise its hidden
+            // position can remain inside a building and push back through it on the next frame.
+            if ((candidate - _position).sqrMagnitude > 0.0001f)
+            {
+                _position = candidate;
+                _positionVelocity = Vector3.zero;
+            }
             Vector3 heading = Quaternion.Euler(0f, viewYaw, 0f) * Vector3.forward;
             Vector3 aim = pivot + heading * s.cameraLookAhead;
             Vector3 toAim = aim - candidate;
@@ -139,33 +147,63 @@ namespace ZoomZoom.Vehicle
         private Vector3 AvoidWalls(Vector3 pivot, Vector3 wanted, float dt)
         {
             CrazyTaxiSettings s = Settings;
+            // Near-plane corners also need clearance, including wide aspect ratios and speed FOV.
+            float tangent = Mathf.Tan(Mathf.Max(_camera.fieldOfView, s.cameraFov + s.cameraSpeedFovAddition) * 0.5f * Mathf.Deg2Rad);
+            float radius = Mathf.Max(s.cameraCollisionRadius, s.cameraNearClip *
+                Mathf.Sqrt(1f + tangent * tangent * (1f + _camera.aspect * _camera.aspect)));
+            // Sphere casts miss a wall that already contains their starting sphere.
+            pivot = ResolveOverlap(pivot, radius);
             Vector3 offset = wanted - pivot;
             float distance = offset.magnitude;
             if (distance < 0.001f) return pivot;
             Vector3 direction = offset / distance;
             float clear = distance;
-            int count = Physics.SphereCastNonAlloc(pivot, s.cameraCollisionRadius, direction, _hits,
+            int count = Physics.SphereCastNonAlloc(pivot, radius, direction, _hits,
                 distance, collisionLayers, QueryTriggerInteraction.Ignore);
             for (int i = 0; i < count; i++)
                 if (!IsOwn(_hits[i].collider)) clear = Mathf.Min(clear, Mathf.Max(0f, _hits[i].distance - s.cameraWallPadding));
             _wallDistance = dt <= 0f || clear < _wallDistance ? clear :
                 Mathf.Lerp(_wallDistance, clear, 1f - Mathf.Exp(-dt / s.cameraWallReturnTime));
-            Vector3 result = pivot + direction * Mathf.Min(clear, _wallDistance);
+            Vector3 result = ResolveOverlap(pivot + direction * Mathf.Min(clear, _wallDistance), radius);
+            // Depenetration at an inside corner must not push the camera through the far wall.
+            offset = result - pivot;
+            distance = offset.magnitude;
+            if (distance > 0.001f)
+            {
+                direction = offset / distance;
+                count = Physics.SphereCastNonAlloc(pivot, radius, direction, _hits,
+                    distance, collisionLayers, QueryTriggerInteraction.Ignore);
+                for (int i = 0; i < count; i++)
+                    if (!IsOwn(_hits[i].collider)) distance = Mathf.Min(distance,
+                        Mathf.Max(0f, _hits[i].distance - s.cameraWallPadding));
+                result = pivot + direction * distance;
+            }
+            return result;
+        }
+
+        private Vector3 ResolveOverlap(Vector3 result, float radius)
+        {
+            CrazyTaxiSettings s = Settings;
             // Sphere casts do not report a collider that already contains the sphere's origin.
             // Resolve overlaps too, including walls a camera entered while turning a corner.
             for (int pass = 0; pass < s.cameraOverlapPasses; pass++)
             {
-                count = Physics.OverlapSphereNonAlloc(result, s.cameraCollisionRadius, _overlaps,
+                int count = Physics.OverlapSphereNonAlloc(result, radius, _overlaps,
                     collisionLayers, QueryTriggerInteraction.Ignore);
                 bool adjusted = false;
                 for (int i = 0; i < count; i++)
                 {
                     Collider obstacle = _overlaps[i];
                     if (IsOwn(obstacle)) continue;
-                    _collisionProbe.radius = s.cameraCollisionRadius;
-                    if (Physics.ComputePenetration(_collisionProbe, result, Quaternion.identity,
+                    _collisionProbe.radius = radius;
+                    // A disabled probe may have no native shape after a domain reload. Enable
+                    // only for this immediate query, then remove it before any physics step.
+                    _collisionProbe.enabled = true;
+                    bool penetrating = Physics.ComputePenetration(_collisionProbe, result, Quaternion.identity,
                         obstacle, obstacle.transform.position, obstacle.transform.rotation,
-                        out Vector3 normal, out float depth))
+                        out Vector3 normal, out float depth);
+                    _collisionProbe.enabled = false;
+                    if (penetrating)
                     {
                         result += normal * (depth + 0.01f);
                         adjusted = true;
