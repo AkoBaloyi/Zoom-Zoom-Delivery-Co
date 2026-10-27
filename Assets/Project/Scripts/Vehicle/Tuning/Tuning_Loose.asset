@@ -13,14 +13,7 @@ MonoBehaviour:
   m_Name: Tuning_Loose
   m_EditorClassIdentifier: 
   profileName: Loose
-  whyThisSetup: 'REJECTED as the default. Grip 8 against exactly the same steering
-    curve as Balanced, so full lock always asks for more grip than the car has and
-    the back end steps out in every corner. Genuinely the most fun of the three and
-    the handbrake finally means something. Rejected because the slide is large enough
-    that stopping on a marked delivery point becomes luck rather than skill, and because
-    the 17.4 m stopping distance forces the camera further back than reads well. Keep
-    as a strong candidate for a heavy load or wet weather modifier, where the player
-    has been told the car is worse and can plan for it.'
+  whyThisSetup: 'Crazy Taxi arcade reconstruction. Independent pedals and Drive/Reverse gears, forgiving normal steering, momentum-preserving gear-flick drift and chained dash/limiter cuts. Active tuning is in taxi. Historical fields below are retained for old scene and measurement compatibility; they do not select the controller.'
   isChosenSetup: 0
   overrideFixedTimestep: 1
   physicsHz: 120
@@ -42,7 +35,7 @@ MonoBehaviour:
   groundMask:
     serializedVersion: 2
     m_Bits: 4294967295
-  topSpeed: 32
+  topSpeed: 28
   accelerationBySpeed:
     serializedVersion: 2
     m_Curve:
@@ -94,11 +87,11 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  reverseTopSpeed: 8
+  reverseTopSpeed: 12
   reverseAcceleration: 8
   inputDeadzone: 0.08
-  brakeDeceleration: 18
-  coastDeceleration: 4
+  brakeDeceleration: 28
+  coastDeceleration: 2.5
   maxCurvatureBySpeed:
     serializedVersion: 2
     m_Curve:
@@ -214,15 +207,15 @@ MonoBehaviour:
   accelerationFromFormula: 1
   launchAcceleration: 22
   accelerationFalloffPower: 1.7
-  boostEnabled: 1
+  boostEnabled: 0
   boostTopSpeed: 40
   boostAcceleration: 16
   boostCapacity: 100
   boostConsumptionRate: 33.3
   boostRechargeRate: 0
   boostRechargeDelay: 1
-  boostEarnedFromDrift: 20
-  boostEarnedFromAir: 10
+  boostEarnedFromDrift: 0
+  boostEarnedFromAir: 0
   supersonicThreshold: 38
   handbrakeDeceleration: 6
   useFrictionCircle: 1
@@ -238,3 +231,306 @@ MonoBehaviour:
   driftYawAuthority: 0.55
   driftSlipAngleThreshold: 12
   driftMinimumSpeed: 4
+  taxi:
+    brakeToReverse: 1
+    reverseEngageSpeed: 0.35
+    reverseEngageDelay: 0.18
+    directionPedalThreshold: 0.04
+    automaticGears: 1
+    forwardGearSpeedFractions:
+    - 0.28
+    - 0.49
+    - 0.7
+    - 0.88
+    - 1.12
+    forwardGearThrust:
+    - 0.78
+    - 0.68
+    - 0.60
+    - 0.54
+    - 0.50
+    downshiftHysteresis: 0.22
+    gearShiftTime: 0.16
+    shiftThrustRetention: 0.38
+    gearMinimumHoldTime: 0.7
+    shiftUnloadFraction: 0.35
+    progressiveShift: 1
+    shiftFeedbackVolume: 0.18
+    shiftRumbleEnabled: 1
+    shiftRumbleLow: 0.22
+    shiftRumbleHigh: 0.12
+    shiftRumbleDuration: 0.09
+    engineIdleRpm: 1000
+    engineRedlineRpm: 6500
+    engineRpmResponse: 16000
+    engineLoadRpm: 550
+    engineFreeRevLimit: 9000
+    engineFreeRevRiseRate: 12000
+    engineFreeRevFallRate: 6500
+    engineFreeRevPitch: 2.8
+    engineLimiterFrequency: 12
+    engineLimiterRetention: 0.25
+    engineAudio: 1
+    engineVolume: 0.12
+    engineIdlePitch: 0.55
+    engineRedlinePitch: 2.2
+    roadAudioVolume: 0.09
+    speedCameraCues: 1
+    cameraSpeedFovAddition: 9
+    cameraFovResponseTime: 0.25
+    cameraSpeedDistanceAddition: 0.6
+    cameraAccelerationPullback: 0.3
+    cameraAccelerationResponseTime: 0.18
+    overspeedDeceleration: 8
+    acceleratorDeadzone: 0.04
+    brakeDeadzone: 0.04
+    steeringDeadzone: 0.12
+    acceleratorRiseTime: 0.04
+    acceleratorReleaseTime: 0.02
+    brakeResponseTime: 0.02
+    pedalFloorHysteresis: 0.1
+    brakeTrickThreshold: 0.08
+    cruiseSpeed: 28
+    reverseSpeed: 12
+    acceleration: 24
+    reverseAcceleration: 14
+    braking: 28
+    coasting: 2.5
+    cornerGrip: 65
+    steeringResponse: 18
+    yawAcceleration: 20
+    steeringSpeedForFullAuthority: 3
+    chassisStability: 18
+    antiRollStrength: 65
+    antiRollDamping: 10
+    normalAccelerationTaper: 6
+    useCustomAccelerationCurve: 0
+    useCustomSteeringCurve: 0
+    lowSpeedTurnDegrees: 160
+    highSpeedTurnDegrees: 105
+    inputWindow: 0.3
+    minimumGap: 0.008
+    pedalFloor: 0.9
+    dashSpeed: 38
+    dashAcceleration: 60
+    dashMaximumEntrySpeed: 8
+    dashDuration: 0.7
+    limiterSpeedStep: 6
+    limiterMaximumSpeed: 56
+    backDashSpeed: 20
+    stopDeceleration: 85
+    driftMinimumSpeed: 5
+    driftDuration: 1.2
+    driftTurnDegrees: 150
+    driftGrip: 5
+    driftDrag: 1.8
+    driftExitGrip: 45
+    driftExitGripTime: 0.35
+    trickSteerThreshold: 0.25
+    driftReleasedSteer: 0.25
+    dashChainGraceTime: 0.35
+    quickSpinEnabled: 1
+    quickSpinTurnDegrees: 360
+    quickSpinYawAcceleration: 30
+    quickSpinDuration: 0.9
+    quickSpinCooldown: 0.65
+    quickSpinTravelSpeed: 6
+    quickSpinMomentumRetention: 0.9
+    quickSpinRedirectAcceleration: 180
+    quickSpinTargetGain: 7
+    quickSpinCompletionAngle: 4
+    drivableUprightness: 0.5
+    recoveryUprightness: 0.25
+    recoveryMaximumSpeed: 1.5
+    automaticRecoveryDelay: 3
+    recoveryTimeCost: 5
+    recoveryLift: 0.8
+    techniquesCauseHardBrakeDamage: 0
+    cameraDistance: 5.6
+    cameraHeight: 2.1
+    cameraLookAhead: 7
+    cameraAimHeight: 1.15
+    cameraVelocityMinimumSpeed: 2
+    cameraMaximumDriftLead: 80
+    cameraHeadingTime: 0.18
+    cameraFollowTime: 0.07
+    cameraFov: 65
+    cameraDriftVelocityBlend: 0.55
+    cameraCollisionRadius: 0.35
+    cameraWallReturnTime: 0.3
+    cameraWallPadding: 0.05
+    cameraOverlapPasses: 4
+    cameraNearClip: 0.1
+    cameraFollowReverse: 0
+    cameraReverseSpeedThreshold: 1
+    useCameraFovCurve: 0
+    recoveryClearanceHalfSize: {x: 1, y: 0.5, z: 1.8}
+    acceleratorTravel:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 1
+        outSlope: 1
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0.33333334
+      - serializedVersion: 3
+        time: 1
+        value: 1
+        inSlope: 1
+        outSlope: 1
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0.33333334
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    brakeTravel:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 1
+        outSlope: 1
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0.33333334
+      - serializedVersion: 3
+        time: 1
+        value: 1
+        inSlope: 1
+        outSlope: 1
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0.33333334
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    steeringTravel:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 1
+        outSlope: 1
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0.33333334
+      - serializedVersion: 3
+        time: 1
+        value: 1
+        inSlope: 1
+        outSlope: 1
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0.33333334
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    accelerationMultiplierBySpeed:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 1
+        inSlope: -1
+        outSlope: -1
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0.33333334
+      - serializedVersion: 3
+        time: 1
+        value: 0
+        inSlope: -1
+        outSlope: -1
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0.33333334
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    steeringDegreesBySpeed:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 160
+        inSlope: -55
+        outSlope: -55
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0.33333334
+      - serializedVersion: 3
+        time: 1
+        value: 105
+        inSlope: -55
+        outSlope: -55
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0.33333334
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    gripMultiplierBySpeed:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 1
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0.33333334
+      - serializedVersion: 3
+        time: 2
+        value: 1
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0.33333334
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    cameraFovBySpeed:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 65
+        inSlope: 2.5
+        outSlope: 2.5
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0.33333334
+      - serializedVersion: 3
+        time: 2
+        value: 70
+        inSlope: 2.5
+        outSlope: 2.5
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0.33333334
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    techniqueCargoGraceTime: 0.1

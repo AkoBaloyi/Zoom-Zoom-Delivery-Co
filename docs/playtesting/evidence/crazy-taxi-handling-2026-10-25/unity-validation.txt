@@ -1,0 +1,90 @@
+Drive re-selection from idle recognises dash
+Held gas cannot repeat a dash
+Limiter cut chains a live dash
+Simultaneous gear and gas do not dash
+Expired gear input does not dash
+Gear with gas already held cannot dash
+Ordered reverse-drive with steering recognises drift
+Drive-reverse with steering recognises back drift
+Reverse plus brake recognises stop
+Reverse after dash recognises back dash
+Airborne input cannot create a dash
+Held brake prevents dash
+Steering immediately after the gear flick can start a drift
+Modern quick spin deliberately selects Drive
+Automatic upshift changes forward ratio and briefly reduces actual thrust
+Minimum gear hold prevents racing through several ratios on a speed spike
+Downshift hysteresis prevents hunting around the upshift speed
+Slowing below hysteresis band downshifts
+Reverse remains independent of forward ratios
+Airborne speed cannot trigger an automatic shift
+Automatic gearbox can be disabled entirely
+Empty gear bands safely retain a single forward gear
+Engine load affects revs independently of road speed
+Upshift produces a clear RPM fall while torque progressively re-engages
+Engagement restores real thrust while retaining the selected ratio
+Loaded gear hold starts after clutch engagement, not at shift initiation
+Brake-held full engine demand reaches 9000 RPM without thrust or automatic shifts
+Rev limiter alternates engine audio cut and recovery
+Free-rev limiter never exceeds its authored ceiling
+Half engine demand produces proportional free revs rather than a full-rev switch
+Releasing engine demand returns revs to idle and clears free-rev state
+Held reverse pedal brakes forward travel without changing direction at speed
+Standstill dwell leaves time for a clean stop
+Holding half brake at rest engages proportional reverse
+Forward pedal brakes reverse travel before engaging Drive
+Forward pedal returns to Drive at rest
+Both pedals brake without selecting reverse or fighting the motor
+Sideways travel cannot be mistaken for a standstill
+Airborne car cannot engage automatic reverse
+Explicit R plus gas retains the original powered technique control
+Direction assistance can be disabled for original pedal behaviour
+Automatic direction changes cannot synthesize Dash, Drift or Limiter Cut gestures
+VehicleLab automatically exposes the controller meter
+Stationary brake-and-gas revs to 9000 without moving the Rigidbody or triggering tricks
+Five-speed normal launch retains over 21 km/h within half a second
+Normal acceleration reaches cruise speed without overshoot
+Held brake stops without reversing
+Reverse pedal uses reverse speed ceiling
+Crazy Dash accelerates beyond cruise speed
+Limiter cut adds speed above dash ceiling
+Drift rotates the chassis while retaining travel momentum
+Dash cancels drift into an exit launch
+Crazy Stop arrests forward travel quickly
+Back Dash creates a hasty retreat rather than merely braking forward motion
+Back Drift rotates while leaving Reverse selected
+Quick spin turns approximately 180 degrees and leaves forward driving selected
+Quick spin cooldown prevents repeated instant turnarounds
+Airborne car is ballistic: no rocket thrust or air steering
+Travel radius at 12 m/s is at least 15% tighter (5.47 m vs 8.15 m)
+Sharper corner at 12 m/s retains momentum and stays upright
+Travel radius at 20 m/s is at least 15% tighter (10.40 m vs 16.60 m)
+Sharper corner at 20 m/s retains momentum and stays upright
+Travel radius at 28 m/s is at least 15% tighter (16.67 m vs 29.87 m)
+Sharper corner at 28 m/s retains momentum and stays upright
+Balanced serialized profile uses the new steering, grip and launch settings
+Grippy serialized profile uses the new steering, grip and launch settings
+Loose serialized profile uses the new steering, grip and launch settings
+Before controlled run reaches 100 km/h without raising the cruise cap
+After controlled run reaches 100 km/h without raising the cruise cap
+Normal acceleration reaches all five gears with exactly four upshifts
+Fifth arrives after sustained gear pulls rather than a rapid counter sequence
+Default camera faces the road ahead
+Reversing keeps stable forward-facing framing
+Camera pulls in before an obstructing wall
+Camera follow agrees at 30 and 144 frames per second
+Teleport snaps the camera instead of dragging it across the map
+Speed camera smoothly widens FOV within the authored limit at unchanged cruise speed
+Speed camera cues can be disabled for a stable authored view
+Input asset has eight taxi actions and no Rocket League actions
+Fallback input layout has the same binding count as the asset
+Assets/Project/Scenes/Possible game scene.unity retains its vehicle controller reference
+Assets/Project/Scenes/VehicleLab.unity retains its vehicle controller reference
+Trigger deadzone prevents unrequested creep
+Quarter, half and full trigger travel produce distinct proportional outputs
+Authored pedal curve changes partial trigger response independently of full travel
+Custom brake curve retains full braking at full trigger travel
+Virtual native DualSense reads R2/L2 travel 0.00 (actual 0.000)
+Virtual native DualSense reads R2/L2 travel 0.25 (actual 0.251)
+Virtual native DualSense reads R2/L2 travel 0.50 (actual 0.502)
+Virtual native DualSense reads R2/L2 travel 1.00 (actual 1.000)

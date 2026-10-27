@@ -1,0 +1,7 @@
+configuration,speed_mps,heading_degrees,travel_radius_m,exit_speed_mps
+previous,12.0,70.20,8.15,9.91
+sharp_turns,12.0,100.23,5.47,9.82
+previous,20.0,57.99,16.60,17.90
+sharp_turns,20.0,89.92,10.40,17.75
+previous,28.0,45.02,29.87,25.91
+sharp_turns,28.0,79.30,16.67,25.73

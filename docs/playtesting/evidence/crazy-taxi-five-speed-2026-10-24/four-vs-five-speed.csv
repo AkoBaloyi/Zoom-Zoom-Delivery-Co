@@ -1,0 +1,3 @@
+configuration,cruise_kmh,time_to_40_s,time_to_60_s,time_to_80_s,time_to_100_s,shift_1_s,shift_2_s,shift_3_s,shift_4_s,max_kmh
+recorded_four_speed,100.80,0.408,0.667,0.883,1.792,0.442,0.900,1.358,-1.000,100.800
+five_speed,100.80,1.042,1.775,2.567,5.358,0.575,1.450,2.325,3.200,100.767

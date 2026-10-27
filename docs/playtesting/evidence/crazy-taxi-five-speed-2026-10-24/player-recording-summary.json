@@ -1,0 +1,10 @@
+{
+  "source": "VehicleLab_Measurements\\controller_20261024_175014_952.csv",
+  "sha256": "b77d0ae06823c0128f50bf123bf311b9b43048a2f7837009492955731134eac6",
+  "samples": 321,
+  "duration_seconds": 33.096,
+  "maximum_kmh": 100.798,
+  "first_observed_gear_2_seconds": 230.313,
+  "first_observed_gear_3_seconds": 230.726,
+  "first_observed_gear_4_seconds": 231.345
+}

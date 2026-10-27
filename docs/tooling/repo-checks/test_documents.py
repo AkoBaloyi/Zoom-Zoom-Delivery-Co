@@ -665,7 +665,11 @@ def test_readme_controls_have_required_actions_and_bindings(
         "a": "<keyboard>/a",
         "s": "<keyboard>/s",
         "d": "<keyboard>/d",
+        # F and R select the gear. Added when the single signed Throttle axis was split into an
+        # accelerator plus a discrete Drive/Reverse lever.
+        "f": "<keyboard>/f",
         "q": "<keyboard>/q",
+        "r": "<keyboard>/r",
         "space": "<keyboard>/space",
         "left ctrl": "<keyboard>/leftctrl",
         "left alt": "<keyboard>/leftalt",
