@@ -1807,9 +1807,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 454319637}
-        m_TargetAssemblyTypeName: ZoomZoom.Orders.UI.MainMenuManager, Assembly-CSharp
-        m_MethodName: OpenDifficultyPanel
+      - m_Target: {fileID: 454319636}
+        m_TargetAssemblyTypeName: ZoomZoom.Orders.UI.DifficultySceneLoader, Assembly-CSharp
+        m_MethodName: LoadMedium
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
