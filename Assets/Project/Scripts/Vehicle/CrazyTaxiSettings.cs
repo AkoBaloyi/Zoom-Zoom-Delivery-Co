@@ -90,6 +90,12 @@ namespace ZoomZoom.Vehicle
         [Range(0f, 0.05f)] public float minimumGap = 0.008f;
         [Range(0.5f, 1f)] public float pedalFloor = 0.9f;
         [Header("Crazy manoeuvres")]
+        [Header("Direct technique controls")]
+        public bool directTechniqueControls = true;
+        [Min(0.7f)] public float directDashCooldown = 2f;
+        [Range(0f, 8f)] public float dashFovAddition = 4f;
+        [Range(0f, 1f)] public float dashCueVolume = 0.35f;
+        public AudioClip dashCueClip;
         [Min(1f)] public float dashSpeed = 38f;
         [Min(1f)] public float dashAcceleration = 60f;
         [Min(0f)] public float dashMaximumEntrySpeed = 8f;

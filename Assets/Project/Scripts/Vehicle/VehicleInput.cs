@@ -11,7 +11,7 @@ namespace ZoomZoom.Vehicle
         [SerializeField] private VehicleController controller;
         private InputActionAsset _ownedAsset;
         private InputActionMap _map;
-        private InputAction _gas, _brake, _steer, _drive, _reverse, _lookBehind, _recover, _spin;
+        private InputAction _gas, _brake, _steer, _drive, _reverse, _lookBehind, _recover, _spin, _technique, _drift, _motion;
         private bool _floored, _braking, _suppress, _paused;
         private bool _hasFocus = true;
         private float _gasAmount, _brakeAmount;
@@ -25,6 +25,7 @@ namespace ZoomZoom.Vehicle
         public bool CameraLookIsMouse => false;
         public bool LookBehind => !_paused && _lookBehind != null && _lookBehind.IsPressed();
         public bool IsReady => _map != null;
+        public bool MotionEffectsEnabled { get; private set; } = true;
         public string AcceleratorSource => _gas?.activeControl?.path ?? "idle";
         public string BrakeSource => _brake?.activeControl?.path ?? "idle";
         public Gamepad ActiveGamepad => (_gas?.activeControl?.device as Gamepad)
@@ -35,7 +36,7 @@ namespace ZoomZoom.Vehicle
             if (controller == null) controller = GetComponent<VehicleController>();
             _ownedAsset = controlsAsset != null ? Instantiate(controlsAsset) : BuildFallbackControls();
             _map = _ownedAsset.FindActionMap("Vehicle", true);
-            if (_map.FindAction("Accelerator") == null || _map.FindAction("GearDrive") == null || _map.FindAction("QuickSpin") == null)
+            if (_map.FindAction("Accelerator") == null || _map.FindAction("GearDrive") == null || _map.FindAction("QuickSpin") == null || _map.FindAction("Technique") == null)
             {
                 Destroy(_ownedAsset);
                 _ownedAsset = BuildFallbackControls();
@@ -49,6 +50,12 @@ namespace ZoomZoom.Vehicle
             _lookBehind = _map.FindAction("LookBehind", true);
             _recover = _map.FindAction("Recover", true);
             _spin = _map.FindAction("QuickSpin", true);
+            _technique = _map.FindAction("Technique", true);
+            _drift = _map.FindAction("Drift", true);
+            _motion = _map.FindAction("ToggleMotion", true);
+            _technique.performed += Technique;
+            _drift.performed += DirectDrift;
+            _motion.performed += ToggleMotion;
             _gas.performed += GasChanged;
             _gas.canceled += GasChanged;
             _brake.performed += BrakeChanged;
@@ -73,7 +80,6 @@ namespace ZoomZoom.Vehicle
             var brake = map.AddAction("Brake", InputActionType.Value, expectedControlLayout: "Axis");
             brake.AddBinding("<Keyboard>/s");
             brake.AddBinding("<Keyboard>/downArrow");
-            brake.AddBinding("<Keyboard>/leftCtrl");
             brake.AddBinding("<Gamepad>/leftTrigger");
             var steer = map.AddAction("Steer", InputActionType.Value, expectedControlLayout: "Axis");
             steer.AddCompositeBinding("1DAxis").With("Negative", "<Keyboard>/a").With("Positive", "<Keyboard>/d");
@@ -89,6 +95,12 @@ namespace ZoomZoom.Vehicle
             map.FindAction("Recover").AddBinding("<Gamepad>/select");
             map.AddAction("QuickSpin", InputActionType.Button).AddBinding("<Keyboard>/space");
             map.FindAction("QuickSpin").AddBinding("<Gamepad>/leftShoulder");
+            map.AddAction("Technique", InputActionType.Button).AddBinding("<Keyboard>/leftShift");
+            map.FindAction("Technique").AddBinding("<Gamepad>/rightShoulder");
+            map.AddAction("Drift", InputActionType.Button).AddBinding("<Keyboard>/leftCtrl");
+            map.FindAction("Drift").AddBinding("<Gamepad>/buttonWest");
+            map.AddAction("ToggleMotion", InputActionType.Button).AddBinding("<Keyboard>/f8");
+            map.FindAction("ToggleMotion").AddBinding("<Gamepad>/dpad/up");
             return asset;
         }
 
@@ -116,13 +128,13 @@ namespace ZoomZoom.Vehicle
         }
         private void SelectDrive(InputAction.CallbackContext context)
         {
-            if (!AcceptInput) return;
+            if (!AcceptInput || controller.Taxi.directTechniqueControls) return;
             SelectedGear = TaxiGear.Drive;
             controller.QueueTaxiCommand(TaxiCommand.Drive, context.time);
         }
         private void SelectReverse(InputAction.CallbackContext context)
         {
-            if (!AcceptInput) return;
+            if (!AcceptInput || controller.Taxi.directTechniqueControls) return;
             SelectedGear = TaxiGear.Reverse;
             controller.QueueTaxiCommand(TaxiCommand.Reverse, context.time);
         }
@@ -144,6 +156,28 @@ namespace ZoomZoom.Vehicle
             if (Mathf.Abs(steer) < controller.Taxi.trickSteerThreshold) return;
             controller.Drive.steer = steer;
             controller.QueueTaxiCommand(TaxiCommand.QuickSpin, context.time);
+        }
+        // Read current hardware values here, not last frame's smoothed Drive state.
+        // A held pedal plus a fresh technique press works independently of gear rhythm.
+        private void Technique(InputAction.CallbackContext context)
+        {
+            if (!AcceptInput || !controller.Taxi.directTechniqueControls) return;
+            if (_brake.ReadValue<float>() > controller.Taxi.brakeTrickThreshold)
+                controller.QueueTaxiCommand(TaxiCommand.DirectStop, context.time);
+            else if (_gas.ReadValue<float>() >= controller.Taxi.pedalFloor)
+                controller.QueueTaxiCommand(TaxiCommand.DirectDash, context.time);
+        }
+        private void DirectDrift(InputAction.CallbackContext context)
+        {
+            if (!AcceptInput || !controller.Taxi.directTechniqueControls) return;
+            float raw = _steer.ReadValue<float>();
+            controller.Drive.steer = controller.Taxi.MapPedal(Mathf.Abs(raw), controller.Taxi.steeringDeadzone,
+                controller.Taxi.steeringTravel) * Mathf.Sign(raw);
+            controller.QueueTaxiCommand(TaxiCommand.DirectDrift, context.time);
+        }
+        private void ToggleMotion(InputAction.CallbackContext context)
+        {
+            if (AcceptInput) MotionEffectsEnabled = !MotionEffectsEnabled;
         }
         private void Update()
         {

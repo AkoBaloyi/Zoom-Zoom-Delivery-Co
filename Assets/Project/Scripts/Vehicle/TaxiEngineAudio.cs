@@ -7,11 +7,12 @@ namespace ZoomZoom.Vehicle
     public sealed class TaxiEngineAudio : MonoBehaviour
     {
         private VehicleController _car;
-        private AudioSource _engine, _road, _shift;
-        private AudioClip _engineClip, _roadClip, _shiftClip;
+        private AudioSource _engine, _road, _shift, _dash;
+        private AudioClip _engineClip, _roadClip, _shiftClip, _dashClip;
         private bool _shiftPending;
         private float _shiftWait;
         public int ShiftCueCount { get; private set; }
+        public int DashCueCount { get; private set; }
         private void Awake()
         {
             _car = GetComponent<VehicleController>();
@@ -24,10 +25,37 @@ namespace ZoomZoom.Vehicle
             _shift = CreateSource(_shiftClip);
             _shift.loop = false;
             _shift.volume = 1f;
+            _dashClip = CreateDashClip();
+            _dash = CreateSource(_dashClip);
+            _dash.loop = false;
+            _dash.volume = 1f;
         }
         private void OnEnable()
         {
-            if (_car != null) { _car.GearShifted += ConfirmShift; _car.Repositioned += StopAudio; }
+            if (_car != null) { _car.GearShifted += ConfirmShift; _car.TrickPerformed += ConfirmDash; _car.Repositioned += StopAudio; }
+        }
+        private void ConfirmDash(TaxiTrick trick)
+        {
+            if (_dash == null || !_car.Taxi.engineAudio || Time.timeScale <= 0f ||
+                (trick != TaxiTrick.Dash && trick != TaxiTrick.LimiterCut)) return;
+            _dash.PlayOneShot(_car.Taxi.dashCueClip != null ? _car.Taxi.dashCueClip : _dashClip, _car.Taxi.dashCueVolume);
+            DashCueCount++;
+        }
+        private static AudioClip CreateDashClip()
+        {
+            const int rate = 24000;
+            var samples = new float[8400];
+            var random = new System.Random(101);
+            float phase = 0f, noise = 0f;
+            for (int i = 0; i < samples.Length; i++)
+            {
+                float t = (float)i / samples.Length;
+                phase += 2f * Mathf.PI * Mathf.Lerp(180f, 650f, t) / rate;
+                noise = Mathf.Lerp(noise, (float)random.NextDouble() * 2f - 1f, 0.3f);
+                samples[i] = Mathf.Sin(Mathf.PI * t) * (1f - t) * (0.45f * Mathf.Sin(phase) + 0.45f * noise);
+            }
+            var clip = AudioClip.Create("Taxi dash launch", samples.Length, 1, rate, false);
+            clip.SetData(samples, 0); return clip;
         }
         private void ConfirmShift(int from, int to)
         {
@@ -87,7 +115,7 @@ namespace ZoomZoom.Vehicle
             var s = _car.Taxi;
             if (Time.timeScale <= 0f) { StopAudio(); return; }
             if (_car.IsFreeRevving) { _shiftPending = false; _shift.Stop(); }
-            if (!s.engineAudio) { _shiftPending = false; _shift.Stop(); }
+            if (!s.engineAudio) { _dash.Stop(); _shiftPending = false; _shift.Stop(); }
             if (_shiftPending)
             {
                 _shiftWait -= Time.deltaTime;
@@ -121,20 +149,22 @@ namespace ZoomZoom.Vehicle
             if (!source.isPlaying) source.Play();
         }
         private void StopAudio()
-        { _shiftPending = false; if (_engine != null) _engine.Stop(); if (_road != null) _road.Stop(); if (_shift != null) _shift.Stop(); }
+        { _shiftPending = false; if (_engine != null) _engine.Stop(); if (_road != null) _road.Stop(); if (_shift != null) _shift.Stop(); if (_dash != null) _dash.Stop(); }
         private void OnDisable()
         {
             StopAudio();
-            if (_car != null) { _car.GearShifted -= ConfirmShift; _car.Repositioned -= StopAudio; }
+            if (_car != null) { _car.GearShifted -= ConfirmShift; _car.TrickPerformed -= ConfirmDash; _car.Repositioned -= StopAudio; }
         }
         private void OnDestroy()
         {
             if (_engine != null) Destroy(_engine);
             if (_road != null) Destroy(_road);
             if (_shift != null) Destroy(_shift);
+            if (_dash != null) Destroy(_dash);
             if (_engineClip != null) Destroy(_engineClip);
             if (_roadClip != null) Destroy(_roadClip);
             if (_shiftClip != null) Destroy(_shiftClip);
+            if (_dashClip != null) Destroy(_dashClip);
         }
     }
 }

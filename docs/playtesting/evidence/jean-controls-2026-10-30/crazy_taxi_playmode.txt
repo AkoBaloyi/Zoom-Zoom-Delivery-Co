@@ -1,0 +1,25 @@
+Transient vehicle lab Play Mode: PASS
+Lab meter ready: True
+Frames: 19332
+Input ready: True
+Driving feedback: True
+Camera: True
+Retired mechanics inactive: True
+Recognised moves: 5
+Maximum displacement: 197.51 m
+Moves: Dash, Drift, Stop, Dash, QuickSpin
+Analog trigger travel: True
+Dash / Drift / Stop / steered Quick Turn via real input events: True
+R trick selector keeps W driving forward: True
+Automatic L2 reverse: True
+R2 returns to forward: True
+Both pedals brake: True
+Automatic direction changes create no tricks: True
+Dash sound cues dispatched: 2
+Five-speed feedback: True
+Engagement sound cues dispatched: 4
+Virtual pad engagement pulses dispatched: 4
+Brake + accelerator reaches 9000 RPM without wheel thrust: True
+Accelerator outputs at quarter/half/full travel: 0.220, 0.473, 1.000
+Brake outputs at quarter/half/full travel: 0.220, 0.481, 1.000
+Runtime errors: 0

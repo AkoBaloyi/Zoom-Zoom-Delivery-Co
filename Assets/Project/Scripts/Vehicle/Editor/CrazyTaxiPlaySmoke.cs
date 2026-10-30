@@ -35,10 +35,10 @@ namespace ZoomZoom.Vehicle.Editor
         private static readonly List<string> Errors = new List<string>();
         private static readonly double[] Times = { 1, 2, 2.1, 2.2, 3, 3.1, 4, 4.1, 4.2, 5, 6, 7, 7.1, 7.2, 8, 8.3, 8.6, 9, 10 };
         private static readonly Key[][] Keys = {
-            new[] { Key.W, Key.F }, new Key[0], new[] { Key.F }, new[] { Key.W },
-            new[] { Key.W, Key.D, Key.R }, new[] { Key.W, Key.D, Key.F },
-            new Key[0], new[] { Key.F }, new[] { Key.W }, new[] { Key.S, Key.R },
-            new[] { Key.W, Key.R }, new Key[0], new[] { Key.F }, new[] { Key.W },
+            new[] { Key.W }, new[] { Key.W, Key.LeftShift }, new[] { Key.W }, new[] { Key.W },
+            new[] { Key.W, Key.D, Key.LeftCtrl }, new[] { Key.W, Key.D },
+            new[] { Key.W, Key.LeftShift }, new[] { Key.W }, new[] { Key.W }, new[] { Key.S, Key.LeftShift },
+            new[] { Key.W, Key.R }, new Key[0], new[] { Key.W }, new[] { Key.W, Key.LeftShift },
             new[] { Key.W, Key.C }, new[] { Key.W, Key.A, Key.Space }, new[] { Key.W }, new[] { Key.W }, new Key[0]
         };
         static CrazyTaxiPlaySmoke()
@@ -57,8 +57,42 @@ namespace ZoomZoom.Vehicle.Editor
             SessionState.SetBool("CrazyTaxiSmoke.Lab", true);
             StartScene("Assets/Project/Scenes/VehicleLab.unity");
         }
+        // Unsaved, isolated lab: validates live input/audio without opening a team scene.
+        public static void RunTransient()
+        {
+            if (!Application.isBatchMode) throw new InvalidOperationException("Batch-only transient test.");
+            SessionState.SetBool("CrazyTaxiSmoke.Lab", true);
+            SessionState.SetBool("CrazyTaxiSmoke.Transient", true);
+            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            scene.name = "VehicleLab";
+            var floor = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            floor.transform.position = new Vector3(0, -0.5f, 0);
+            floor.transform.localScale = new Vector3(2000, 1, 2000);
+            var car = new GameObject("Direct controls test car", typeof(Rigidbody), typeof(BoxCollider));
+            car.transform.position = new Vector3(0, 0.55f, 0);
+            var originalBox = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Project/Prefabs/Car.prefab").GetComponent<BoxCollider>();
+            car.GetComponent<BoxCollider>().size = originalBox.size;
+            car.GetComponent<BoxCollider>().center = originalBox.center;
+            var controller = car.AddComponent<VehicleController>();
+            var settings = new SerializedObject(controller);
+            settings.FindProperty("tuning").objectReferenceValue = AssetDatabase.LoadAssetAtPath<VehicleTuning>(
+                "Assets/Project/Scripts/Vehicle/Tuning/Tuning_Balanced.asset");
+            settings.ApplyModifiedPropertiesWithoutUndo();
+            car.AddComponent<VehicleInput>();
+            car.AddComponent<VehicleLabInputMeter>();
+            var view = new GameObject("Test camera", typeof(Camera), typeof(AudioListener)).AddComponent<ChaseCamera>();
+            var cameraSettings = new SerializedObject(view);
+            cameraSettings.FindProperty("target").objectReferenceValue = controller;
+            cameraSettings.ApplyModifiedPropertiesWithoutUndo();
+            SessionState.SetBool(ActiveKey, true);
+            SessionState.SetString("CrazyTaxiSmoke.Errors", "");
+            Application.logMessageReceived -= Log;
+            Application.logMessageReceived += Log;
+            EditorApplication.isPlaying = true;
+        }
         private static void StartScene(string scene)
         {
+            SessionState.SetBool("CrazyTaxiSmoke.Transient", false);
             if (!Application.isBatchMode) throw new InvalidOperationException("Run this smoke test in an isolated batch-mode project copy.");
             SessionState.SetBool(ActiveKey, true);
             SessionState.SetString("CrazyTaxiSmoke.Errors", "");
@@ -170,15 +204,17 @@ namespace ZoomZoom.Vehicle.Editor
             int pulses = _car != null ? _car.GetComponent<TaxiGearHaptics>().PulseCount - _startingPulses : 0;
             bool fiveSpeedFeedback = !lab || (_car.ForwardGear == 5 && shiftCues >= 4 && pulses >= 4);
             bool allCoreMoves = Moves.Contains("Dash") && Moves.Contains("Drift") && Moves.Contains("Stop") && Moves.Contains("QuickSpin");
-            bool passed = Errors.Count == 0 && inputReady && feedbackReady && cameraReady && retired && analog && allCoreMoves && _selectorKeepsForward && _maximumDistance > 2f && meterReady && automaticPedals && fiveSpeedFeedback;
-            string report = $"Actual {(lab ? "VehicleLab" : "game")} scene Play Mode: {(passed ? "PASS" : "FAIL")}\n" +
+            int dashCues = _car != null ? _car.GetComponent<TaxiEngineAudio>().DashCueCount : 0;
+            bool passed = Errors.Count == 0 && inputReady && feedbackReady && cameraReady && retired && analog && allCoreMoves && _selectorKeepsForward && _maximumDistance > 2f && meterReady && automaticPedals && fiveSpeedFeedback && dashCues > 0;
+            string testScene = SessionState.GetBool("CrazyTaxiSmoke.Transient", false) ? "Transient vehicle lab" : $"Actual {(lab ? "VehicleLab" : "game")} scene";
+            string report = $"{testScene} Play Mode: {(passed ? "PASS" : "FAIL")}\n" +
                 $"Lab meter ready: {meterReady}\n" +
                 $"Frames: {_frames}\nInput ready: {inputReady}\nDriving feedback: {feedbackReady}\nCamera: {cameraReady}\n" +
                 $"Retired mechanics inactive: {retired}\nRecognised moves: {tricks}\nMaximum displacement: {_maximumDistance:0.00} m\n" +
                 $"Moves: {string.Join(", ", Moves)}\nAnalog trigger travel: {analog}\n" +
                 $"Dash / Drift / Stop / steered Quick Turn via real input events: {allCoreMoves}\nR trick selector keeps W driving forward: {_selectorKeepsForward}\n" +
                 $"Automatic L2 reverse: {_reversePedalWorked}\nR2 returns to forward: {_forwardPedalWorked}\nBoth pedals brake: {_bothPedalsStopped}\nAutomatic direction changes create no tricks: {tricks == _tricksBeforeAuto}\n" +
-                $"Five-speed feedback: {fiveSpeedFeedback}\nEngagement sound cues dispatched: {shiftCues}\nVirtual pad engagement pulses dispatched: {pulses}\n" +
+                $"Dash sound cues dispatched: {dashCues}\nFive-speed feedback: {fiveSpeedFeedback}\nEngagement sound cues dispatched: {shiftCues}\nVirtual pad engagement pulses dispatched: {pulses}\n" +
                 $"Brake + accelerator reaches 9000 RPM without wheel thrust: {_brakeRevWorked}\n" +
                 $"Accelerator outputs at quarter/half/full travel: {GasSamples[0]:0.000}, {GasSamples[1]:0.000}, {GasSamples[2]:0.000}\n" +
                 $"Brake outputs at quarter/half/full travel: {BrakeSamples[0]:0.000}, {BrakeSamples[1]:0.000}, {BrakeSamples[2]:0.000}\n" +

@@ -14,6 +14,8 @@ namespace ZoomZoom.Vehicle
         private Camera _camera;
         private SphereCollider _collisionProbe;
         private float _heading, _headingVelocity, _wallDistance;
+        private float _dashFov;
+        private bool MotionCues => Settings.speedCameraCues && (input == null || input.MotionEffectsEnabled);
         private float _fov, _fovVelocity, _surge, _surgeVelocity, _previousForwardSpeed;
         private Vector3 _position, _positionVelocity;
         private readonly RaycastHit[] _hits = new RaycastHit[64];
@@ -54,6 +56,7 @@ namespace ZoomZoom.Vehicle
             _positionVelocity = Vector3.zero;
             _wallDistance = float.PositiveInfinity;
             _fov = Settings.cameraFov;
+            _dashFov = 0f;
             _fovVelocity = _surge = _surgeVelocity = 0f;
             _previousForwardSpeed = target.ForwardSpeed;
             _position = DesiredPosition(_heading);
@@ -75,7 +78,7 @@ namespace ZoomZoom.Vehicle
             float speed01 = Mathf.Clamp01(target.Speed / Mathf.Max(0.1f, s.cruiseSpeed));
             float acceleration = dt > 0f ? (target.ForwardSpeed - _previousForwardSpeed) / dt : 0f;
             _previousForwardSpeed = target.ForwardSpeed;
-            float surgeTarget = s.speedCameraCues ? Mathf.Clamp01(acceleration / Mathf.Max(1f, s.acceleration)) * s.cameraAccelerationPullback : 0f;
+            float surgeTarget = MotionCues ? Mathf.Clamp01(acceleration / Mathf.Max(1f, s.acceleration)) * s.cameraAccelerationPullback : 0f;
             _surge = dt > 0f ? Mathf.SmoothDamp(_surge, surgeTarget, ref _surgeVelocity,
                 Mathf.Max(0.01f, s.cameraAccelerationResponseTime), Mathf.Infinity, dt) : 0f;
             float wantedYaw = NoseYaw();
@@ -122,7 +125,12 @@ namespace ZoomZoom.Vehicle
             transform.SetPositionAndRotation(candidate, rotation);
             float wantedFov = s.useCameraFovCurve
                 ? Mathf.Clamp(s.cameraFovBySpeed.Evaluate(target.Speed / Mathf.Max(0.1f, s.cruiseSpeed)), 20f, 120f)
-                : s.cameraFov + (s.speedCameraCues ? s.cameraSpeedFovAddition * speed01 * speed01 * (3f - 2f * speed01) : 0f);
+                : s.cameraFov + (MotionCues ? s.cameraSpeedFovAddition * speed01 * speed01 * (3f - 2f * speed01) : 0f);
+            bool dashing = target.ActiveTrick == TaxiTrick.Dash || target.ActiveTrick == TaxiTrick.LimiterCut;
+            float dashTarget = MotionCues && dashing ? s.dashFovAddition : 0f;
+            _dashFov = dt > 0f ? Mathf.MoveTowards(_dashFov, dashTarget, dt * (dashing ? 40f : 15f)) : 0f;
+            if (!MotionCues) { _dashFov = 0f; wantedFov = s.cameraFov; }
+            wantedFov += _dashFov;
             _fov = dt > 0f ? Mathf.SmoothDamp(_fov, wantedFov, ref _fovVelocity,
                 Mathf.Max(0.01f, s.cameraFovResponseTime), Mathf.Infinity, dt) : wantedFov;
             _camera.fieldOfView = Mathf.Clamp(_fov, 20f, 120f);
@@ -138,7 +146,7 @@ namespace ZoomZoom.Vehicle
             CrazyTaxiSettings s = Settings;
             Vector3 heading = Quaternion.Euler(0f, yaw, 0f) * Vector3.forward;
             float speed01 = Mathf.Clamp01(target.Speed / Mathf.Max(0.1f, s.cruiseSpeed));
-            float distance = s.cameraDistance + (s.speedCameraCues ? s.cameraSpeedDistanceAddition * speed01 + _surge : 0f);
+            float distance = s.cameraDistance + (MotionCues ? s.cameraSpeedDistanceAddition * speed01 + _surge : 0f);
             return target.transform.position - heading * distance + Vector3.up * s.cameraHeight;
         }
         private bool IsOwn(Collider collider) => collider == null ||
@@ -148,7 +156,7 @@ namespace ZoomZoom.Vehicle
         {
             CrazyTaxiSettings s = Settings;
             // Near-plane corners also need clearance, including wide aspect ratios and speed FOV.
-            float tangent = Mathf.Tan(Mathf.Max(_camera.fieldOfView, s.cameraFov + s.cameraSpeedFovAddition) * 0.5f * Mathf.Deg2Rad);
+            float tangent = Mathf.Tan(Mathf.Max(_camera.fieldOfView, s.cameraFov + s.cameraSpeedFovAddition + s.dashFovAddition) * 0.5f * Mathf.Deg2Rad);
             float radius = Mathf.Max(s.cameraCollisionRadius, s.cameraNearClip *
                 Mathf.Sqrt(1f + tangent * tangent * (1f + _camera.aspect * _camera.aspect)));
             // Sphere casts miss a wall that already contains their starting sphere.

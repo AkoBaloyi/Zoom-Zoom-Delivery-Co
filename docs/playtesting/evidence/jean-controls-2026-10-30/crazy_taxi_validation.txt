@@ -1,0 +1,184 @@
+Drive re-selection from idle recognises dash
+Held gas cannot repeat a dash
+Limiter cut chains a live dash
+Simultaneous Drive and gas recognise dash
+Simultaneous gas and Drive work in either event order
+Expired gear input does not dash
+Drive with gas held beyond the input window cannot dash
+Held gas cannot replay a dash
+Ordered reverse-drive with steering recognises drift
+Drive-reverse with steering recognises back drift
+Reverse plus brake recognises stop
+Simultaneous Reverse and brake recognise stop
+Simultaneous brake and Reverse work in either event order
+Reverse after dash recognises back dash
+Airborne input cannot create a dash
+Held brake prevents dash
+Steering immediately after the gear flick can start a drift
+Modern quick spin deliberately selects Drive
+Automatic upshift changes forward ratio and briefly reduces actual thrust
+Minimum gear hold prevents racing through several ratios on a speed spike
+Downshift hysteresis prevents hunting around the upshift speed
+Slowing below hysteresis band downshifts
+Reverse remains independent of forward ratios
+Airborne speed cannot trigger an automatic shift
+Automatic gearbox can be disabled entirely
+Empty gear bands safely retain a single forward gear
+Engine load affects revs independently of road speed
+Upshift produces a clear RPM fall while torque progressively re-engages
+Engagement restores real thrust while retaining the selected ratio
+Loaded gear hold starts after clutch engagement, not at shift initiation
+Brake-held full engine demand reaches 9000 RPM without thrust or automatic shifts
+Rev limiter alternates engine audio cut and recovery
+Free-rev limiter never exceeds its authored ceiling
+Half engine demand produces proportional free revs rather than a full-rev switch
+Releasing engine demand returns revs to idle and clears free-rev state
+Held reverse pedal brakes forward travel without changing direction at speed
+Standstill dwell leaves time for a clean stop
+Holding half brake at rest engages proportional reverse
+Forward pedal brakes reverse travel before engaging Drive
+Forward pedal returns to Drive at rest
+Both pedals brake without selecting reverse or fighting the motor
+Sideways travel cannot be mistaken for a standstill
+Airborne car cannot engage automatic reverse
+Gas always drives forward regardless of trick selector history
+Direction assistance can be disabled for original pedal behaviour
+Automatic direction changes cannot synthesize Dash, Drift or Limiter Cut gestures
+VehicleLab automatically exposes the controller meter
+Stationary brake-and-gas revs to 9000 without moving the Rigidbody or triggering tricks
+Five-speed normal launch retains over 21 km/h within half a second
+Normal acceleration reaches cruise speed without overshoot
+Held brake stops without reversing
+Reverse pedal uses reverse speed ceiling
+Crazy Dash accelerates beyond cruise speed
+Limiter cut adds speed above dash ceiling
+Drift rotates the chassis while retaining travel momentum
+Dash cancels drift into an exit launch
+Crazy Stop arrests forward travel quickly
+Back Dash creates a hasty retreat rather than merely braking forward motion
+Back Drift rotates while leaving Reverse selected
+Quick spin turns approximately 180 degrees and leaves forward driving selected
+Quick spin cooldown prevents repeated instant turnarounds
+Quick turn from 50 km/h retains at least 80% speed (steer -1, actual 44.8 km/h)
+Quick turn follows steering and stays flat throughout at 50 km/h (steer -1; peak tilt 0.0 degrees; minimum 4 wheels)
+Quick turn from 50 km/h retains at least 80% speed (steer 1, actual 44.8 km/h)
+Quick turn follows steering and stays flat throughout at 50 km/h (steer 1; peak tilt 0.0 degrees; minimum 4 wheels)
+Quick turn from 96 km/h retains at least 80% speed (steer -1, actual 86.2 km/h)
+Quick turn follows steering and stays flat throughout at 96 km/h (steer -1; peak tilt 0.0 degrees; minimum 4 wheels)
+Quick turn from 96 km/h retains at least 80% speed (steer 1, actual 86.2 km/h)
+Quick turn follows steering and stays flat throughout at 96 km/h (steer 1; peak tilt 0.0 degrees; minimum 4 wheels)
+Quick turn with neutral steering does nothing
+Airborne car is ballistic: no rocket thrust or air steering
+Direct dash works after sustained throttle at cruise speed and gains real speed
+Repeated or legacy requests cannot bypass direct dash cooldown
+Pause/focus input clearing cannot recharge dash
+A new direct dash is accepted after cooldown and return to cruise
+Direct drift accepts steering without gear flicks
+Direct dash exits a drift
+Brake/free-rev state rejects a direct dash
+Direct stop brakes even with both pedals held
+Direct drift needs deliberate steering
+Input reset clears pending direct techniques and feedback cooldown
+Direct techniques cannot supply airborne thrust or drift
+Overturned recovery waits three seconds
+Overturned car returns to its last clear supported road point
+Successful recovery deducts the configured five seconds from the active shift
+Parked upright car never auto-resets
+Upright car held against a wall for three seconds returns to clear road (resets 1, position (0.00, 0.55, 0.00), speed 0.00)
+Recovery clears drive input and charges once, not every frame
+Recovery time cost can end a shift without negative time
+Travel radius at 12 m/s is at least 15% tighter (5.47 m vs 8.15 m)
+Sharper corner at 12 m/s retains momentum and stays upright
+Travel radius at 20 m/s is at least 15% tighter (10.40 m vs 16.60 m)
+Sharper corner at 20 m/s retains momentum and stays upright
+Travel radius at 28 m/s is at least 15% tighter (16.67 m vs 29.87 m)
+Sharper corner at 28 m/s retains momentum and stays upright
+Balanced serialized profile uses the new steering, grip and launch settings
+Grippy serialized profile uses the new steering, grip and launch settings
+Loose serialized profile uses the new steering, grip and launch settings
+Before controlled run reaches 100 km/h without raising the cruise cap
+After controlled run reaches 100 km/h without raising the cruise cap
+Normal acceleration reaches all five gears with exactly four upshifts
+Fifth arrives after sustained gear pulls rather than a rapid counter sequence
+Level design straight-line measurements reach cruise and stop within two seconds
+Lab records a supported turning circle and a valid bounded 90-degree corner
+Default camera faces the road ahead
+Reversing keeps stable forward-facing framing
+Camera pulls in before an obstructing wall
+Camera stays outside both walls throughout an inside-corner turn
+Camera stays on the visible side when its aim pivot overlaps a close building (camera (0.00, 1.70, 0.51); car (0.00, 0.55, 0.00))
+Camera follow agrees at 30 and 144 frames per second
+Teleport snaps the camera instead of dragging it across the map
+Speed camera smoothly widens FOV within the authored limit at unchanged cruise speed
+Accepted dash has a distinct bounded FOV cue above ordinary cruise
+Speed camera cues can be disabled for a stable authored view
+Input asset contains direct techniques and motion toggle without retired actions
+Fallback input layout has the same binding count as the asset
+Saved and fallback input agree: Accelerator <Keyboard>/w
+Drift key cannot also apply ordinary brake: <Keyboard>/w
+Saved and fallback input agree: Accelerator <Keyboard>/upArrow
+Drift key cannot also apply ordinary brake: <Keyboard>/upArrow
+Saved and fallback input agree: Accelerator <Gamepad>/rightTrigger
+Drift key cannot also apply ordinary brake: <Gamepad>/rightTrigger
+Saved and fallback input agree: Brake <Keyboard>/s
+Drift key cannot also apply ordinary brake: <Keyboard>/s
+Saved and fallback input agree: Brake <Keyboard>/downArrow
+Drift key cannot also apply ordinary brake: <Keyboard>/downArrow
+Saved and fallback input agree: Brake <Gamepad>/leftTrigger
+Drift key cannot also apply ordinary brake: <Gamepad>/leftTrigger
+Saved and fallback input agree: Steer 1DAxis
+Drift key cannot also apply ordinary brake: 1DAxis
+Saved and fallback input agree: Steer <Keyboard>/a
+Drift key cannot also apply ordinary brake: <Keyboard>/a
+Saved and fallback input agree: Steer <Keyboard>/d
+Drift key cannot also apply ordinary brake: <Keyboard>/d
+Saved and fallback input agree: Steer 1DAxis
+Drift key cannot also apply ordinary brake: 1DAxis
+Saved and fallback input agree: Steer <Keyboard>/leftArrow
+Drift key cannot also apply ordinary brake: <Keyboard>/leftArrow
+Saved and fallback input agree: Steer <Keyboard>/rightArrow
+Drift key cannot also apply ordinary brake: <Keyboard>/rightArrow
+Saved and fallback input agree: Steer <Gamepad>/leftStick/x
+Drift key cannot also apply ordinary brake: <Gamepad>/leftStick/x
+Saved and fallback input agree: GearDrive <Keyboard>/f
+Drift key cannot also apply ordinary brake: <Keyboard>/f
+Saved and fallback input agree: GearDrive <Gamepad>/buttonEast
+Drift key cannot also apply ordinary brake: <Gamepad>/buttonEast
+Saved and fallback input agree: GearReverse <Keyboard>/r
+Drift key cannot also apply ordinary brake: <Keyboard>/r
+Saved and fallback input agree: GearReverse <Gamepad>/buttonSouth
+Drift key cannot also apply ordinary brake: <Gamepad>/buttonSouth
+Saved and fallback input agree: LookBehind <Keyboard>/c
+Drift key cannot also apply ordinary brake: <Keyboard>/c
+Saved and fallback input agree: LookBehind <Gamepad>/rightStickPress
+Drift key cannot also apply ordinary brake: <Gamepad>/rightStickPress
+Saved and fallback input agree: Recover <Keyboard>/backspace
+Drift key cannot also apply ordinary brake: <Keyboard>/backspace
+Saved and fallback input agree: Recover <Gamepad>/select
+Drift key cannot also apply ordinary brake: <Gamepad>/select
+Saved and fallback input agree: QuickSpin <Keyboard>/space
+Drift key cannot also apply ordinary brake: <Keyboard>/space
+Saved and fallback input agree: QuickSpin <Gamepad>/leftShoulder
+Drift key cannot also apply ordinary brake: <Gamepad>/leftShoulder
+Saved and fallback input agree: Technique <Keyboard>/leftShift
+Drift key cannot also apply ordinary brake: <Keyboard>/leftShift
+Saved and fallback input agree: Technique <Gamepad>/rightShoulder
+Drift key cannot also apply ordinary brake: <Gamepad>/rightShoulder
+Saved and fallback input agree: Drift <Keyboard>/leftCtrl
+Drift key cannot also apply ordinary brake: <Keyboard>/leftCtrl
+Saved and fallback input agree: Drift <Gamepad>/buttonWest
+Drift key cannot also apply ordinary brake: <Gamepad>/buttonWest
+Saved and fallback input agree: ToggleMotion <Keyboard>/f8
+Drift key cannot also apply ordinary brake: <Keyboard>/f8
+Saved and fallback input agree: ToggleMotion <Gamepad>/dpad/up
+Drift key cannot also apply ordinary brake: <Gamepad>/dpad/up
+Assets/Project/Scenes/Possible game scene.unity retains its vehicle controller reference
+Assets/Project/Scenes/VehicleLab.unity retains its vehicle controller reference
+Trigger deadzone prevents unrequested creep
+Quarter, half and full trigger travel produce distinct proportional outputs
+Authored pedal curve changes partial trigger response independently of full travel
+Custom brake curve retains full braking at full trigger travel
+Virtual native DualSense reads R2/L2 travel 0.00 (actual 0.000)
+Virtual native DualSense reads R2/L2 travel 0.25 (actual 0.251)
+Virtual native DualSense reads R2/L2 travel 0.50 (actual 0.502)
+Virtual native DualSense reads R2/L2 travel 1.00 (actual 1.000)

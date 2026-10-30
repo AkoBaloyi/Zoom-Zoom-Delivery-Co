@@ -311,6 +311,11 @@ MonoBehaviour:
     inputWindow: 0.3
     minimumGap: 0.008
     pedalFloor: 0.9
+    directTechniqueControls: 1
+    directDashCooldown: 2
+    dashFovAddition: 4
+    dashCueVolume: 0.35
+    dashCueClip: {fileID: 0}
     dashSpeed: 38
     dashAcceleration: 60
     dashMaximumEntrySpeed: 8
