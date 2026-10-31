@@ -51,17 +51,25 @@ namespace ZoomZoom.Orders.UI
 
         public static Color OrderColour(Order order) => OrderColour(order.ColourIndex);
 
-        /// <summary>The order's colour, flashing toward red once it is about to be lost, so the
-        /// marker shows both whose it is and how soon it expires.</summary>
-        public static Color OrderColourWithUrgency(Order order, float urgentBelowSeconds, float time)
+        /// <summary>The order's colour. Kept steady on purpose: markers used to flash toward red
+        /// near the end, which playtesters found hard on the eyes. Urgency is shown with
+        /// UrgencyPulse and a sound cue (OrderAudio) instead.</summary>
+        public static Color OrderColourWithUrgency(Order order, float urgentBelowSeconds, float time) =>
+            OrderColour(order);
+
+        /// <summary>
+        /// A size multiplier for markers: exactly 1 while the order has time, then a smooth
+        /// swell that grows and quickens as it runs out (up to 30% bigger, about twice a second at
+        /// the very end). A slow throb, never a flicker.
+        /// </summary>
+        public static float UrgencyPulse(Order order, float urgentBelowSeconds, float time)
         {
-            Color c = OrderColour(order);
             float left = order.SecondsUntilLost;
-            if (left >= urgentBelowSeconds) return c;
+            if (left >= urgentBelowSeconds) return 1f;
 
             float urgency = 1f - Mathf.Clamp01(left / Mathf.Max(0.01f, urgentBelowSeconds));
-            float flash = 0.5f + 0.5f * Mathf.Sin(time * Mathf.Lerp(6f, 16f, urgency));
-            return Color.Lerp(c, Urgent, flash * Mathf.Lerp(0.4f, 1f, urgency));
+            float wave = 0.5f + 0.5f * Mathf.Sin(time * Mathf.Lerp(4f, 12f, urgency));
+            return 1f + wave * Mathf.Lerp(0.1f, 0.3f, urgency);
         }
 
         /// <summary>"RRGGBB" for rich text colour tags.</summary>

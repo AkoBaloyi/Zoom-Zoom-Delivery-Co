@@ -13,6 +13,6 @@ MonoBehaviour:
   m_Name: Ingredient_Dough
   m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.IngredientType
   displayName: Dough
+  category: 0
   shortLabel: DOUGH
-  icon: {fileID: 0}
-  colour: {r: 0.78, g: 0.68, b: 0.45, a: 1}
+  icon: {fileID: 21300000, guid: 9eea999672b73814cab25be819bd126f, type: 3}

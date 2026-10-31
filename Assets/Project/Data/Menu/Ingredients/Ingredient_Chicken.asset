@@ -13,6 +13,6 @@ MonoBehaviour:
   m_Name: Ingredient_Chicken
   m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.IngredientType
   displayName: Chicken
+  category: 0
   shortLabel: CHKN
-  icon: {fileID: 0}
-  colour: {r: 0.85, g: 0.55, b: 0.3, a: 1}
+  icon: {fileID: 21300000, guid: 0002efe662cadb3409b3c4234c418f95, type: 3}

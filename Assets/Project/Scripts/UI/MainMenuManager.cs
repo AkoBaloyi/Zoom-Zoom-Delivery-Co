@@ -6,6 +6,7 @@ namespace ZoomZoom.Orders.UI
     /// Switches between the start screen's panels. Wire each button's OnClick to one method:
     ///   Play button          -> OpenDifficultyPanel
     ///   Controls button      -> OpenControlsPanel
+    ///   Settings button      -> OpenSettingsPanel
     ///   Exit button          -> ExitGame
     ///   Back button (any)    -> BackToMainMenu
     /// Only one panel is visible at a time, and the main menu panel is shown when the scene starts.
@@ -20,6 +21,8 @@ namespace ZoomZoom.Orders.UI
         [SerializeField] private GameObject difficultyPanel;
         [Tooltip("The panel that shows the controls, with a Back button.")]
         [SerializeField] private GameObject controlsPanel;
+        [Tooltip("Optional. The settings panel (with the Guidance button), with a Back button.")]
+        [SerializeField] private GameObject settingsPanel;
 
         private void Awake()
         {
@@ -34,6 +37,8 @@ namespace ZoomZoom.Orders.UI
         public void OpenDifficultyPanel() => ShowOnly(difficultyPanel);
 
         public void OpenControlsPanel() => ShowOnly(controlsPanel);
+
+        public void OpenSettingsPanel() => ShowOnly(settingsPanel);
 
         public void BackToMainMenu() => ShowOnly(mainMenuPanel);
 
@@ -61,6 +66,7 @@ namespace ZoomZoom.Orders.UI
             if (mainMenuPanel != null) mainMenuPanel.SetActive(panel == mainMenuPanel);
             if (difficultyPanel != null) difficultyPanel.SetActive(panel == difficultyPanel);
             if (controlsPanel != null) controlsPanel.SetActive(panel == controlsPanel);
+            if (settingsPanel != null) settingsPanel.SetActive(panel == settingsPanel);
         }
     }
 }

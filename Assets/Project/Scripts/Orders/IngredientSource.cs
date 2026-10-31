@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using ZoomZoom.Orders.UI;
 
 namespace ZoomZoom.Orders
 {
@@ -27,20 +28,32 @@ namespace ZoomZoom.Orders
         [Tooltip("The ingredients this place supplies.")]
         [SerializeField] private IngredientType[] supplies;
 
-        [Header("Label")]
-        [Tooltip("Floats the place name and what it sells above this point, so the greybox is " +
-                 "readable without art. Turn off once there is a real building here.")]
+        [Header("Sign")]
+        [Tooltip("Floats a sign above this point: the ingredient type's icon on a disc in the " +
+                 "type's colour, with the shop name and what it sells underneath. The icon and " +
+                 "colour match the chips on the order cards. Keep it on even with a real " +
+                 "building here, since it is how the player matches orders to shops.")]
         [SerializeField] private bool showLabel = true;
         [SerializeField] private float labelHeight = 6f;
         [SerializeField] private float labelCharacterSize = 0.18f;
-        [SerializeField] private Color labelColour = new Color(0.20f, 0.60f, 1.00f, 1f);
+        [SerializeField] private float iconSize = 3f;
 
         public string PlaceName => string.IsNullOrWhiteSpace(placeName) ? gameObject.name : placeName.Trim();
         public IReadOnlyList<IngredientType> Supplies => supplies ?? System.Array.Empty<IngredientType>();
         public Vector3 Position => transform.position;
 
         private TextMesh _label;
+        private Transform _icon;
         private Camera _camera;
+
+        /// <summary>How many enabled sources sell this ingredient.</summary>
+        public static int CountSelling(IngredientType ingredient)
+        {
+            int n = 0;
+            foreach (IngredientSource s in _all)
+                if (s.SuppliesIngredient(ingredient)) n++;
+            return n;
+        }
 
         public bool SuppliesIngredient(IngredientType ingredient)
         {
@@ -80,7 +93,9 @@ namespace ZoomZoom.Orders
         {
             if (_label == null) return;
             if (_camera == null) _camera = Camera.main;
-            if (_camera != null) _label.transform.rotation = _camera.transform.rotation;
+            if (_camera == null) return;
+            _label.transform.rotation = _camera.transform.rotation;
+            if (_icon != null) _icon.rotation = _camera.transform.rotation;
         }
 
         private void BuildLabel()
@@ -101,11 +116,41 @@ namespace ZoomZoom.Orders
             _label.anchor = TextAnchor.LowerCenter;
             _label.alignment = TextAlignment.Center;
             _label.fontStyle = FontStyle.Bold;
-            _label.color = labelColour;
+            IngredientType first = null;
+            if (supplies != null)
+                foreach (IngredientType s in supplies)
+                    if (s != null) { first = s; break; }
+            Color typeColour = first != null ? IngredientIcons.Colour(first) : OrderPalette.Pickup;
+            _label.color = typeColour;
 
             MeshRenderer r = go.GetComponent<MeshRenderer>();
             r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             r.receiveShadows = false;
+
+            Sprite iconSprite = IngredientIcons.Icon(first);
+            if (iconSprite == null) return;
+
+            // The ingredient's icon above the name, on a disc in the type colour.
+            var iconRoot = new GameObject("Shop icon");
+            iconRoot.transform.SetParent(transform, false);
+            iconRoot.transform.localPosition = Vector3.up * (labelHeight + 2.2f + iconSize * 0.5f);
+            iconRoot.transform.localScale = Vector3.one * iconSize;
+            _icon = iconRoot.transform;
+
+            var discGO = new GameObject("Disc");
+            discGO.transform.SetParent(iconRoot.transform, false);
+            SpriteRenderer disc = discGO.AddComponent<SpriteRenderer>();
+            disc.sprite = IngredientIcons.Disc();
+            disc.color = typeColour;
+
+            var iconGO = new GameObject("Icon");
+            iconGO.transform.SetParent(iconRoot.transform, false);
+            iconGO.transform.localPosition = new Vector3(0f, 0f, -0.02f);
+            // Sized from the image itself, so it fits the disc however the PNG was imported.
+            iconGO.transform.localScale = Vector3.one * (0.72f / Mathf.Max(0.01f, iconSprite.bounds.size.x));
+            SpriteRenderer icon = iconGO.AddComponent<SpriteRenderer>();
+            icon.sprite = iconSprite;
+            icon.sortingOrder = 1;
         }
 
         private void OnDrawGizmos()

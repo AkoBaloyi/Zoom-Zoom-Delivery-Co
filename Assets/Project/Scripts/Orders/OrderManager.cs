@@ -53,6 +53,13 @@ namespace ZoomZoom.Orders
 
         public event Action<Order> OrderSpawned;
 
+        /// <summary>Fires when the difficulty ramp changes how many orders can be open at once,
+        /// with the new limit.</summary>
+        public event Action<int> MaxOrdersChanged;
+
+        /// <summary>How many orders can be open at once right now, from the difficulty ramp.</summary>
+        public int CurrentMaxOrders => tuning != null ? tuning.MaxOrdersAt(_shiftSeconds) : OrderTuning.MaxOrders;
+
         /// <summary>Fires when an order ends, with what it paid in Rand. Negative for a
         /// cancelled or burned order, because of the penalty.</summary>
         public event Action<Order, float> OrderResolved;
@@ -75,6 +82,8 @@ namespace ZoomZoom.Orders
         private string[] _pickupNames;
         private string[] _dropOffNames;
         private float _timeUntilNextSpawn;
+        private float _shiftSeconds;
+        private int _currentMax = -1;
         private int _nextOrderId = 1; // orders read as #1, #2... not #0, #1, matching how a person actually counts
 
         private void Awake()
@@ -89,7 +98,7 @@ namespace ZoomZoom.Orders
             }
 
             ResolvePoints();
-            _timeUntilNextSpawn = 0f;
+            _timeUntilNextSpawn = tuning.firstOrderDelay;
         }
 
         private void Start()
@@ -195,7 +204,25 @@ namespace ZoomZoom.Orders
 
         private void TrySpawn(float dt)
         {
-            if (_activeOrders.Count >= Mathf.Min(tuning.maxActiveOrders, OrderTuning.MaxOrders)) return;
+            _shiftSeconds += dt;
+
+            int max = CurrentMaxOrders;
+            if (max != _currentMax)
+            {
+                bool rising = _currentMax >= 0 && max > _currentMax;
+                _currentMax = max;
+                MaxOrdersChanged?.Invoke(max);
+
+                // The ramp just allowed another order: bring it in soon rather than waiting out
+                // the rest of a long spawn interval.
+                if (rising) _timeUntilNextSpawn = Mathf.Min(_timeUntilNextSpawn, 2f);
+
+                if (logActivity)
+                    Debug.Log($"[OrderManager] Up to {max} order(s) at once from " +
+                              $"{_shiftSeconds / 60f:0.#} minutes into the shift.");
+            }
+
+            if (_activeOrders.Count >= max) return;
             if (_dropOffPositions.Length == 0) return;
 
             _timeUntilNextSpawn -= dt;
@@ -249,7 +276,7 @@ namespace ZoomZoom.Orders
                           (needsCooking ? $", cooks {order.CookSeconds:0.#} s" : "") +
                           $", to {order.DropOffName}. {tuning.orderTimeLimit:0} s patience, base pay " +
                           $"R{tuning.BasePayFor(order.Food, order.DesignedDistance):0}. " +
-                          $"{_activeOrders.Count}/{tuning.maxActiveOrders} active.");
+                          $"{_activeOrders.Count}/{CurrentMaxOrders} active.");
             }
 
             OrderSpawned?.Invoke(order);
@@ -444,7 +471,7 @@ namespace ZoomZoom.Orders
                 Debug.Log($"[OrderManager] Order {order.Id} ({order.FoodName}) {payout.Timing}: " +
                           $"base R{payout.BasePay:0}, time {payout.TimeAdjustment:+0;-0;0}, " +
                           $"damage {payout.ConditionLoss:0}, penalty {payout.Penalty:0}, " +
-                          $"total R{payout.Total:0}. {_activeOrders.Count}/{tuning.maxActiveOrders} active.");
+                          $"total R{payout.Total:0}. {_activeOrders.Count}/{CurrentMaxOrders} active.");
             }
 
             OrderResolved?.Invoke(order, payout.Total);

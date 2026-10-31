@@ -13,6 +13,6 @@ MonoBehaviour:
   m_Name: Ingredient_Milk
   m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.IngredientType
   displayName: Milk
+  category: 0
   shortLabel: MILK
-  icon: {fileID: 0}
-  colour: {r: 0.45, g: 0.65, b: 0.9, a: 1}
+  icon: {fileID: 21300000, guid: 4854de97a64d9dd428c6d5ef63ef4630, type: 3}

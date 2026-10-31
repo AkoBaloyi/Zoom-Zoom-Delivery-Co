@@ -13,6 +13,6 @@ MonoBehaviour:
   m_Name: Ingredient_Cheese
   m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.IngredientType
   displayName: Cheese
+  category: 0
   shortLabel: CHSE
-  icon: {fileID: 0}
-  colour: {r: 0.9, g: 0.75, b: 0.15, a: 1}
+  icon: {fileID: 21300000, guid: 24948eb07b1b3a44d927155a0ff98ffe, type: 3}

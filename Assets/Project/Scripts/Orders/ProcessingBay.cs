@@ -210,7 +210,6 @@ namespace ZoomZoom.Orders
             if (_camera == null) _camera = Camera.main;
 
             float pulse = 0.5f + 0.5f * Mathf.Sin(Time.time * 4f);
-            float fastPulse = 0.5f + 0.5f * Mathf.Sin(Time.time * 12f);
 
             Color zone;
             Color bar;
@@ -236,7 +235,7 @@ namespace ZoomZoom.Orders
             else
             {
                 bool warning = Order.BayTimeRemaining <= warnBelowSeconds;
-                zone = warning ? Color.Lerp(OrderPalette.Deliver, OrderPalette.Urgent, fastPulse) : OrderPalette.Deliver;
+                zone = warning ? OrderPalette.Urgent : OrderPalette.Deliver;
                 bar = OrderPalette.TimerBar(Order.BayFraction);
                 fill = Order.BayFraction;
                 label = warning

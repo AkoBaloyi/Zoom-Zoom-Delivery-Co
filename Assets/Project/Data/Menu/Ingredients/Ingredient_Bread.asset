@@ -13,6 +13,6 @@ MonoBehaviour:
   m_Name: Ingredient_Bread
   m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.IngredientType
   displayName: Bread
+  category: 0
   shortLabel: BREAD
-  icon: {fileID: 0}
-  colour: {r: 0.7, g: 0.5, b: 0.25, a: 1}
+  icon: {fileID: 21300000, guid: e59992e4b2f114248960a927258ca2d3, type: 3}

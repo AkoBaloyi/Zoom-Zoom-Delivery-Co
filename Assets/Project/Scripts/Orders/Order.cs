@@ -212,29 +212,73 @@ namespace ZoomZoom.Orders
             }
         }
 
-        /// <summary>Where the car should go for this order. While gathering, the nearest
-        /// ingredient still needed from the given position.</summary>
+        /// <summary>Where the car should go for this order. While gathering, the nearest place
+        /// that sells any ingredient still needed, from the given position.</summary>
         public Vector3 TargetFrom(Vector3 from)
         {
             switch (CurrentStep)
             {
                 case OrderStep.Gather:
-                    {
-                        IngredientStop best = null;
-                        float bestDistance = float.MaxValue;
-                        foreach (IngredientStop s in _stops)
-                        {
-                            if (s.Collected) continue;
-                            float d = (s.Point - from).sqrMagnitude;
-                            if (d < bestDistance) { bestDistance = d; best = s; }
-                        }
-                        return best != null ? best.Point : DropOffPoint;
-                    }
+                    IngredientStop stop = NearestStop(from, out Vector3 place);
+                    return stop != null ? place : DropOffPoint;
                 case OrderStep.Cook:
                     return BayPoint;
                 default:
                     return DropOffPoint;
             }
+        }
+
+        /// <summary>The ingredient still needed whose nearest shop is closest to the given
+        /// position, and where that shop is. Null when nothing is left to collect.</summary>
+        public IngredientStop NearestStop(Vector3 from, out Vector3 place)
+        {
+            IngredientStop best = null;
+            place = DropOffPoint;
+            float bestDistance = float.MaxValue;
+
+            foreach (IngredientStop s in _stops)
+            {
+                if (s.Collected) continue;
+                Vector3 p = NearestPlaceFor(s, from);
+                float d = (p - from).sqrMagnitude;
+                if (d < bestDistance) { bestDistance = d; best = s; place = p; }
+            }
+            return best;
+        }
+
+        /// <summary>The nearest place this ingredient can be collected: any Ingredient Source
+        /// that sells it, or the stop's own point if none does. Any shop that sells it counts,
+        /// which is what gives the player a choice of route.</summary>
+        public static Vector3 NearestPlaceFor(IngredientStop stop, Vector3 from)
+        {
+            Vector3 best = stop.Point;
+            float bestDistance = stop.Ingredient != null ? float.MaxValue : 0f;
+
+            if (stop.Ingredient != null)
+            {
+                bool any = false;
+                foreach (IngredientSource source in IngredientSource.All)
+                {
+                    if (!source.SuppliesIngredient(stop.Ingredient)) continue;
+                    any = true;
+                    float d = (source.Position - from).sqrMagnitude;
+                    if (d < bestDistance) { bestDistance = d; best = source.Position; }
+                }
+                if (!any) best = stop.Point;
+            }
+            return best;
+        }
+
+        /// <summary>Every place this ingredient can be collected, for the map beacons.</summary>
+        public static void PlacesFor(IngredientStop stop, List<Vector3> into)
+        {
+            into.Clear();
+            if (stop.Ingredient != null)
+            {
+                foreach (IngredientSource source in IngredientSource.All)
+                    if (source.SuppliesIngredient(stop.Ingredient)) into.Add(source.Position);
+            }
+            if (into.Count == 0) into.Add(stop.Point);
         }
 
         /// <summary>Kept for older callers. The first ingredient while gathering.</summary>

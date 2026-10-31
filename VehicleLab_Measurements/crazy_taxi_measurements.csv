@@ -1,0 +1,11 @@
+timestamp,profile,test,reading,value,unit,notes
+"2026-10-31 13:02:58","Balanced","Profile","Top speed",28.0000,"m/s","Balanced"
+"2026-10-31 13:02:58","Balanced","Profile","Brake deceleration",28.0000,"m/s^2","Balanced"
+"2026-10-31 13:02:58","Balanced","Profile","Sideways grip",65.0000,"m/s^2","Balanced"
+"2026-10-31 13:02:58","Balanced","Profile","Camera look ahead",7.0000,"m","Balanced"
+"2026-10-31 13:02:58","Balanced","Profile","Chosen setup",1.0000,"1=yes 0=no","Crazy Taxi arcade reconstruction. Independent pedals and Drive/Reverse gears, forgiving normal steering, momentum-preserving gear-flick drift and chained dash/limiter cuts. Active tuning is in taxi. Historical fields below are retained for old scene and measurement compatibility; they do not select the controller."
+"2026-10-31 13:05:15","Balanced","Profile","Top speed",28.0000,"m/s","Balanced"
+"2026-10-31 13:05:15","Balanced","Profile","Brake deceleration",28.0000,"m/s^2","Balanced"
+"2026-10-31 13:05:15","Balanced","Profile","Sideways grip",65.0000,"m/s^2","Balanced"
+"2026-10-31 13:05:15","Balanced","Profile","Camera look ahead",7.0000,"m","Balanced"
+"2026-10-31 13:05:15","Balanced","Profile","Chosen setup",1.0000,"1=yes 0=no","Crazy Taxi arcade reconstruction. Independent pedals and Drive/Reverse gears, forgiving normal steering, momentum-preserving gear-flick drift and chained dash/limiter cuts. Active tuning is in taxi. Historical fields below are retained for old scene and measurement compatibility; they do not select the controller."

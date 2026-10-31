@@ -7,13 +7,17 @@ using UnityEngine;
 namespace ZoomZoom.Orders.EditorTools
 {
     /// <summary>
-    /// Two Unity menu commands:
+    /// Three Unity menu commands:
     ///
     /// Zoom Zoom > Create Default Menu
     ///   Makes the ingredient assets and one Food Type per menu item in Assets/Project/Data/Menu,
     ///   fills in each food's recipe and cook time, and adds every food to the Menu of every
     ///   Order Tuning asset. Running it again only adds what is missing. A food you have already
     ///   given ingredients to is never overwritten.
+    ///
+    /// Zoom Zoom > Add Second Shop Of Each Type
+    ///   Copies every shop to the opposite side of the bay, so each ingredient is sold in two
+    ///   parts of the map and the player has a route to choose.
     ///
     /// Zoom Zoom > Add Default Kitchen To Scene
     ///   Adds the five shops (Butcher, Bakery, Market, Fish Market, Dairy) as Ingredient Sources
@@ -178,7 +182,7 @@ namespace ZoomZoom.Orders.EditorTools
                     ing = ScriptableObject.CreateInstance<IngredientType>();
                     ing.displayName = def.Name;
                     ing.shortLabel = def.Label;
-                    ing.colour = new Color(def.Colour.r, def.Colour.g, def.Colour.b, 1f);
+                    ing.category = CategoryForPlace(def.Place);
                     AssetDatabase.CreateAsset(ing, path);
                     createdCount++;
                 }
@@ -205,7 +209,7 @@ namespace ZoomZoom.Orders.EditorTools
                 existing.Add(s.PlaceName);
 
             Vector3 centre = SceneView.lastActiveSceneView != null ? SceneView.lastActiveSceneView.pivot : Vector3.zero;
-            const float ringRadius = 40f;
+            const float ringRadius = 70f;
 
             var root = new GameObject("Kitchen");
             root.transform.position = Ground(centre);
@@ -254,6 +258,74 @@ namespace ZoomZoom.Orders.EditorTools
             Debug.Log($"[DefaultMenuBuilder] Added {added} shop(s)" + (hasBay ? "" : " and Bay 1") +
                       " under 'Kitchen', in a ring around the middle of the Scene view. Drag them " +
                       "to where they belong on the map, then save the scene.");
+        }
+
+        // ---- second shops -----------------------------------------------------------------------
+
+        /// <summary>
+        /// Copies every shop in the scene to the opposite side of the bay, named "<shop> 2", so
+        /// each ingredient can be bought in two places in different parts of the map. Orders then
+        /// light up both, and the player decides which one fits their route: the choice the
+        /// tutor found missing when every trip was a fixed A to B.
+        /// </summary>
+        [MenuItem("Zoom Zoom/Add Second Shop Of Each Type")]
+        public static void AddSecondShops()
+        {
+            ProcessingBay[] bays = Object.FindObjectsByType<ProcessingBay>();
+            IngredientSource[] sources = Object.FindObjectsByType<IngredientSource>();
+
+            if (sources.Length == 0)
+            {
+                Debug.LogWarning("[DefaultMenuBuilder] No shops in the scene yet. Run Zoom Zoom > " +
+                                 "Add Default Kitchen To Scene first.");
+                return;
+            }
+
+            // Mirror through the bay (or the middle of the shops if there is no bay).
+            Vector3 centre = Vector3.zero;
+            if (bays.Length > 0) centre = bays[0].transform.position;
+            else
+            {
+                foreach (IngredientSource src in sources) centre += src.transform.position;
+                centre /= sources.Length;
+            }
+
+            var existing = new HashSet<string>();
+            foreach (IngredientSource src in sources) existing.Add(src.PlaceName);
+
+            int added = 0;
+            foreach (IngredientSource src in sources)
+            {
+                string name = src.PlaceName + " 2";
+                if (src.PlaceName.EndsWith(" 2") || existing.Contains(name)) continue;
+
+                Vector3 mirrored = centre + (centre - src.transform.position);
+                var go = new GameObject(name);
+                Undo.RegisterCreatedObjectUndo(go, "Add Second Shops");
+                go.transform.SetParent(src.transform.parent, true);
+                go.transform.position = Ground(mirrored);
+
+                var supplies = new List<IngredientType>(src.Supplies);
+                go.AddComponent<IngredientSource>().Configure(name, supplies.ToArray());
+                existing.Add(name);
+                added++;
+            }
+
+            if (added > 0) EditorSceneManager.MarkSceneDirty(sources[0].gameObject.scene);
+            Debug.Log($"[DefaultMenuBuilder] Added {added} second shop(s), mirrored to the other side " +
+                      "of the bay. Move them onto roads in a different part of the map, then save.");
+        }
+
+        private static IngredientCategory CategoryForPlace(string place)
+        {
+            switch (place)
+            {
+                case "Butcher": return IngredientCategory.Meat;
+                case "Bakery": return IngredientCategory.Bakery;
+                case "Fish Market": return IngredientCategory.Seafood;
+                case "Dairy": return IngredientCategory.Dairy;
+                default: return IngredientCategory.Produce;
+            }
         }
 
         /// <summary>Drops a point onto whatever collider is below it, so markers sit on the road.</summary>
