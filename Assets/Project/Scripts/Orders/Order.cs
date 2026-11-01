@@ -98,6 +98,11 @@ namespace ZoomZoom.Orders
     public class Order
     {
         public readonly int Id;
+
+        /// <summary>Which of the order colours this order uses. The card, its beacons, its arrow
+        /// and its GPS line all use this one colour, so the player can match them at a glance.</summary>
+        public readonly int ColourIndex;
+
         public readonly Vector3 DropOffPoint;
         public readonly string DropOffName;
 
@@ -123,13 +128,8 @@ namespace ZoomZoom.Orders
         /// including while the food cooks.</summary>
         public float TimeRemaining { get; private set; }
 
-        /// <summary>The seconds the patience bar is measured against. Starts at the order's time
-        /// limit, and becomes Patience After Bay if the bar is refilled at a bay.</summary>
-        public float TimeLimit { get; private set; }
-
-        /// <summary>Seconds the patience bar refills to when the ingredients go into a bay. 0 means
-        /// no refill.</summary>
-        public readonly float PatienceAfterBay;
+        /// <summary>The seconds the patience bar started with.</summary>
+        public float TimeLimit { get; }
 
         /// <summary>0 to 1, how much of the patience bar is left.</summary>
         public float PatienceFraction => TimeLimit > 0.01f ? Mathf.Clamp01(TimeRemaining / TimeLimit) : 0f;
@@ -149,6 +149,12 @@ namespace ZoomZoom.Orders
         public Vector3 BayPoint { get; private set; }
         public string BayName { get; private set; }
         public bool HasBay { get; private set; }
+
+        /// <summary>Seconds until this order is lost: its patience, or the burn timer if its food
+        /// is sitting ready in a bay and that runs out first. The lowest one is the most urgent.</summary>
+        public float SecondsUntilLost => State == OrderState.Ready
+            ? Mathf.Min(TimeRemaining, BayTimeRemaining)
+            : TimeRemaining;
 
         /// <summary>Set by OrderManager when the order resolves.</summary>
         public OrderPayout Payout { get; private set; }
@@ -240,9 +246,10 @@ namespace ZoomZoom.Orders
 
         public Order(int id, IList<IngredientStop> stops, Vector3 dropOffPoint, string dropOffName,
             float timeLimit, FoodType food, bool needsCooking, float cookSeconds, float burnSeconds,
-            float patienceAfterBay = 0f)
+            int colourIndex = 0)
         {
             Id = id;
+            ColourIndex = colourIndex;
             _stops = new List<IngredientStop>(stops);
             DropOffPoint = dropOffPoint;
             DropOffName = string.IsNullOrEmpty(dropOffName) ? "Drop off" : dropOffName;
@@ -253,7 +260,6 @@ namespace ZoomZoom.Orders
             DesignedDistance = _stops.Count > 0 ? Vector3.Distance(_stops[0].Point, dropOffPoint) : 0f;
             TimeLimit = timeLimit;
             TimeRemaining = timeLimit;
-            PatienceAfterBay = Mathf.Max(0f, patienceAfterBay);
             State = OrderState.Available;
         }
 
@@ -289,16 +295,6 @@ namespace ZoomZoom.Orders
             BayName = bayName;
             HasBay = true;
             BayTimeRemaining = CookSeconds;
-
-            // Dropping the ingredients off refills the patience bar to Patience After Bay, so
-            // the cooking and delivery get a fresh clock. It never takes time away: a player who
-            // gathered quickly and has more left than that keeps it.
-            if (PatienceAfterBay > 0f && TimeRemaining < PatienceAfterBay)
-            {
-                TimeLimit = PatienceAfterBay;
-                TimeRemaining = PatienceAfterBay;
-            }
-
             SetState(OrderState.Cooking);
             if (CookSeconds <= 0f) FinishCooking();
             return true;

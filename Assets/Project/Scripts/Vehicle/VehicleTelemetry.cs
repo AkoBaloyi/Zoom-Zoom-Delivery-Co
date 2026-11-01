@@ -112,14 +112,12 @@ namespace ZoomZoom.Vehicle
                 $"THROTTLE    {Bar(car.Drive.throttle)}  {car.Drive.throttle:+0.00;-0.00; 0.00}\n" +
                 $"STEER       {Bar(car.Drive.steer)}  {car.Drive.steer:+0.00;-0.00; 0.00}\n" +
                 $"BRAKE       {Bar(car.Drive.brake)}  {car.Drive.brake:0.00}\n" +
-                $"HANDBRAKE   {(car.Drive.handbrake ? "ON  rear locked" : "off")}\n" +
-                $"BOOST       {(car.IsBoosting ? "ON " : "off")} {car.BoostRemaining:0}%" +
-                $"{(car.IsSupersonic ? "   SUPERSONIC" : "")}\n" +
+                $"GEAR        {car.SelectedGear}    MOVE {car.ActiveTrick}\n" +
                 "\n" +
                 $"GRIP        asking {demand:0.0} / have {available:0.0} m/s2   " +
                 $"{(overGrip ? ">>> SLIDING <<<" : "within grip")}\n" +
                 $"  long dmd  {car.LongitudinalDemand:0.0} m/s2 " +
-                $"{(tuning != null && tuning.useFrictionCircle ? "(eating lateral grip)" : "(circle OFF)")}\n" +
+                $"(independent arcade corner grip)\n" +
                 $"BALANCE     front {car.FrontAxleGrip:0.0} / rear {car.RearAxleGrip:0.0} m/s2   " +
                 $"{BalanceText()}\n" +
                 $"SLIP ANGLE  {car.SlipAngle:0.0} deg   {(car.IsDrifting ? "DRIFTING" : "")}\n" +

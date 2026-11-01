@@ -159,6 +159,7 @@ namespace ZoomZoom.Vehicle
 
         private void Awake()
         {
+            if (csvFileName == "vehicle_measurements.csv") csvFileName = "crazy_taxi_measurements.csv";
             if (car == null)
             {
                 Debug.LogError("[VehicleLab] No car assigned to VehicleMeasurement. " +
@@ -220,17 +221,10 @@ namespace ZoomZoom.Vehicle
             // against the numbers in it.
             if (_running || Tuning == null) return;
 
-            // Shift+F1 is the boost test. F1 to F9 are all taken and F10 to F12 belong to the
-            // telemetry and order overlays, so the boost test shares F1 with a modifier rather
-            // than displacing something. Left Shift is also Jump, so the car hops as Shift goes
-            // down. Harmless: the test teleports the car and settles before measuring anything.
-            bool shift = keyboard.leftShiftKey.isPressed || keyboard.rightShiftKey.isPressed;
-
-            if (keyboard.f1Key.wasPressedThisFrame && shift) StartCoroutine(RunSingle(MeasureBoost()));
-            else if (keyboard.f1Key.wasPressedThisFrame) StartCoroutine(RunSingle(MeasureStoppingDistance()));
+            if (keyboard.f1Key.wasPressedThisFrame) StartCoroutine(RunSingle(MeasureStoppingDistance()));
             else if (keyboard.f2Key.wasPressedThisFrame) StartCoroutine(RunSingle(MeasureTurningCircle()));
             else if (keyboard.f3Key.wasPressedThisFrame) StartCoroutine(RunSingle(MeasureWallRecovery()));
-            else if (keyboard.f4Key.wasPressedThisFrame) StartCoroutine(RunSingle(MeasureFlipDistance()));
+            else if (keyboard.f4Key.wasPressedThisFrame) Debug.Log("[VehicleLab] Flip retired. Use Tools > Zoom Zoom > Validate Crazy Taxi Controller.");
             else if (keyboard.f5Key.wasPressedThisFrame) MeasureCameraRoadAhead();
             else if (keyboard.f6Key.wasPressedThisFrame) StartCoroutine(RunAll());
         }
@@ -278,15 +272,10 @@ namespace ZoomZoom.Vehicle
                 yield return MeasureWallRecovery();
                 yield return Settle(0.5f);
 
-                yield return MeasureFlipDistance();
-                yield return Settle(0.5f);
-
-                yield return MeasureBoost();
-                yield return Settle(0.5f);
 
                 // Camera reading is taken at speed, because the camera pulls back as the car speeds
                 // up. Measuring it parked would flatter it.
-                yield return HoldSpeed(Tuning.topSpeed * brakeTestSpeedFraction, 6f);
+                yield return HoldSpeed(Tuning.taxi.cruiseSpeed * brakeTestSpeedFraction, 6f);
                 MeasureCameraRoadAhead();
 
                 Debug.Log("[VehicleLab] ===== FULL RUN COMPLETE =====");
@@ -311,7 +300,7 @@ namespace ZoomZoom.Vehicle
             ResetCar(StartPose());
             yield return Settle(0.4f);
 
-            float targetSpeed = Tuning.topSpeed * brakeTestSpeedFraction;
+            float targetSpeed = Tuning.taxi.cruiseSpeed * brakeTestSpeedFraction;
 
             // Phase 1: get up to speed.
             float accelerationTime = 0f;
@@ -344,7 +333,7 @@ namespace ZoomZoom.Vehicle
             }
 
             float distance = FlatDistance(brakePoint, car.transform.position);
-            float predicted = (entrySpeed * entrySpeed) / (2f * Tuning.brakeDeceleration);
+            float predicted = (entrySpeed * entrySpeed) / (2f * Tuning.taxi.braking);
             float error = predicted > 0.01f ? (distance - predicted) / predicted * 100f : 0f;
 
             _measuredStoppingDistance = distance;
@@ -352,7 +341,7 @@ namespace ZoomZoom.Vehicle
             Report("Stopping distance", "Time to reach test speed", accelerationTime, "s",
                 $"0 to {entrySpeed:0.0} m/s on full throttle");
             Report("Stopping distance", "Entry speed", entrySpeed, "m/s",
-                $"{brakeTestSpeedFraction:P0} of the {Tuning.topSpeed:0.0} m/s top speed");
+                $"{brakeTestSpeedFraction:P0} of the {Tuning.taxi.cruiseSpeed:0.0} m/s top speed");
             Report("Stopping distance", "Braking distance", distance, "m",
                 $"full brake from {entrySpeed:0.0} m/s, textbook value {predicted:0.00} m, " +
                 $"difference {error:+0.0;-0.0}%");
@@ -770,7 +759,7 @@ namespace ZoomZoom.Vehicle
 
                 float v = car.ForwardSpeed;
                 if (v > peakSpeed) peakSpeed = v;
-                if (timeToThrottleTop < 0f && v >= Tuning.topSpeed * 0.98f) timeToThrottleTop = elapsed;
+                if (timeToThrottleTop < 0f && v >= Tuning.taxi.cruiseSpeed * 0.98f) timeToThrottleTop = elapsed;
                 if (timeToBoostTop < 0f && v >= Tuning.boostTopSpeed * 0.98f) timeToBoostTop = elapsed;
             }
 
@@ -779,13 +768,13 @@ namespace ZoomZoom.Vehicle
             float expectedDuration = Tuning.boostConsumptionRate > 0.01f
                 ? tankAtStart / Tuning.boostConsumptionRate
                 : 0f;
-            float stoppingFromPeak = (peakSpeed * peakSpeed) / (2f * Mathf.Max(0.01f, Tuning.brakeDeceleration));
-            float lookAheadAtCeiling = Tuning.cameraLookAhead + Tuning.cameraBoostExtraLookAhead;
+            float stoppingFromPeak = (peakSpeed * peakSpeed) / (2f * Mathf.Max(0.01f, Tuning.taxi.braking));
+            float lookAheadAtCeiling = Tuning.taxi.cameraLookAhead + Tuning.cameraBoostExtraLookAhead;
 
             Report("Boost", "Full tank duration", tankDuration, "s",
                 $"throttle and boost held from standstill, tooltip says {expectedDuration:0.0} s");
             Report("Boost", "Peak speed on boost", peakSpeed, "m/s",
-                $"ceiling is {Tuning.boostTopSpeed:0} m/s, throttle alone stops at {Tuning.topSpeed:0}");
+                $"ceiling is {Tuning.boostTopSpeed:0} m/s, throttle alone stops at {Tuning.taxi.cruiseSpeed:0}");
             Report("Boost", "Time to throttle top speed", timeToThrottleTop, "s",
                 timeToThrottleTop < 0f ? "never reached" : "with boost held from standstill");
             Report("Boost", "Time to boost ceiling", timeToBoostTop, "s",
@@ -903,7 +892,7 @@ namespace ZoomZoom.Vehicle
             }
 
             float currentSpeed = car.Speed;
-            float stoppingFromNow = (currentSpeed * currentSpeed) / (2f * Tuning.brakeDeceleration);
+            float stoppingFromNow = (currentSpeed * currentSpeed) / (2f * Tuning.taxi.braking);
             float stoppingFromTop = Tuning.PredictedStoppingDistanceFromTopSpeed();
             float reference = _measuredStoppingDistance > 0f ? _measuredStoppingDistance : stoppingFromTop;
 
@@ -956,20 +945,20 @@ namespace ZoomZoom.Vehicle
             sb.AppendLine($"  Profile          : {Tuning.profileName}" +
                           (Tuning.isChosenSetup ? "   <-- marked as the chosen setup" : ""));
             sb.AppendLine($"  Asset            : {Tuning.name}");
-            sb.AppendLine($"  Top speed        : {Tuning.topSpeed:0.0} m/s " +
-                          $"({Tuning.topSpeed * 3.6f:0} km/h)");
-            sb.AppendLine($"  Brake            : {Tuning.brakeDeceleration:0.0} m/s^2 " +
+            sb.AppendLine($"  Top speed        : {Tuning.taxi.cruiseSpeed:0.0} m/s " +
+                          $"({Tuning.taxi.cruiseSpeed * 3.6f:0} km/h)");
+            sb.AppendLine($"  Brake            : {Tuning.taxi.braking:0.0} m/s^2 " +
                           $"-> {Tuning.PredictedStoppingDistanceFromTopSpeed():0.0} m to stop");
-            sb.AppendLine($"  Sideways grip    : {Tuning.lateralGripAcceleration:0.0} m/s^2");
+            sb.AppendLine($"  Sideways grip    : {Tuning.taxi.cornerGrip:0.0} m/s^2");
             sb.AppendLine($"  Tightest corner  : {Tuning.PredictedTurnRadiusAt(turnTestSpeed):0.0} m " +
                           $"radius at {turnTestSpeed:0.0} m/s");
             sb.AppendLine($"  Flip             : force {Tuning.flipForce:0.0} m/s, " +
                           $"cooldown {Tuning.flipCooldown:0.00} s, " +
                           $"gain cap {Tuning.flipMaxSpeedGain:0.0} m/s");
-            sb.AppendLine($"  Camera           : {Tuning.cameraDistance:0.0} m back, " +
-                          $"{Tuning.cameraHeight:0.0} m up, " +
-                          $"{Tuning.cameraLookAhead:0.0} m look-ahead, " +
-                          $"{Tuning.cameraFollowSmoothTime:0.00} s smoothing");
+            sb.AppendLine($"  Camera           : {Tuning.taxi.cameraDistance:0.0} m back, " +
+                          $"{Tuning.taxi.cameraHeight:0.0} m up, " +
+                          $"{Tuning.taxi.cameraLookAhead:0.0} m look-ahead, " +
+                          $"{Tuning.taxi.cameraFollowTime:0.00} s smoothing");
             sb.AppendLine($"  Physics step     : {Tuning.physicsHz:0} Hz");
             sb.AppendLine($"  Why this setup   : " +
                           (string.IsNullOrWhiteSpace(Tuning.whyThisSetup)
@@ -978,10 +967,10 @@ namespace ZoomZoom.Vehicle
 
             Debug.Log(sb.ToString());
 
-            Report("Profile", "Top speed", Tuning.topSpeed, "m/s", Tuning.profileName);
-            Report("Profile", "Brake deceleration", Tuning.brakeDeceleration, "m/s^2", Tuning.profileName);
-            Report("Profile", "Sideways grip", Tuning.lateralGripAcceleration, "m/s^2", Tuning.profileName);
-            Report("Profile", "Camera look ahead", Tuning.cameraLookAhead, "m", Tuning.profileName);
+            Report("Profile", "Top speed", Tuning.taxi.cruiseSpeed, "m/s", Tuning.profileName);
+            Report("Profile", "Brake deceleration", Tuning.taxi.braking, "m/s^2", Tuning.profileName);
+            Report("Profile", "Sideways grip", Tuning.taxi.cornerGrip, "m/s^2", Tuning.profileName);
+            Report("Profile", "Camera look ahead", Tuning.taxi.cameraLookAhead, "m", Tuning.profileName);
             Report("Profile", "Chosen setup", Tuning.isChosenSetup ? 1 : 0, "1=yes 0=no",
                 Tuning.whyThisSetup);
         }
@@ -1252,17 +1241,13 @@ namespace ZoomZoom.Vehicle
             sb.AppendLine($"wheels   {car.WheelsOnGround} of 4 on the ground");
             sb.AppendLine($"upright  {car.Uprightness,6:0.00}");
 
-            if (jumpFlip != null)
-            {
-                sb.AppendLine($"flip     {(jumpFlip.CanFlipNow ? "ready" : $"cooling {jumpFlip.FlipCooldownRemaining:0.00}s")}" +
-                              $"   count {jumpFlip.FlipCount}");
-            }
+            sb.AppendLine($"gear     {car.SelectedGear}   move {car.ActiveTrick}");
 
             sb.AppendLine();
             sb.AppendLine($"test     {_currentTest}");
             sb.AppendLine($"last     {_lastResultSummary}");
             sb.AppendLine();
-            sb.AppendLine("F1 stop  F2 turn  F3 wall  F4 flip  F5 camera  Shift+F1 boost");
+            sb.AppendLine("F1 stop  F2 turn  F3 wall  F5 camera");
             sb.AppendLine("F6 all   F7 profile  F8 reset  F9 hide");
 
             var area = new Rect(10f, 10f, 470f, 320f);

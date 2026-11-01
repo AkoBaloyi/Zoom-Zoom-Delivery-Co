@@ -14,6 +14,9 @@ namespace ZoomZoom.Orders
         order = 1)]
     public class OrderTuning : ScriptableObject
     {
+        /// <summary>The phone list shows at most this many orders.</summary>
+        public const int MaxOrders = 4;
+
         [Header("Profile identity")]
         public string profileName = "Unnamed";
 
@@ -28,18 +31,15 @@ namespace ZoomZoom.Orders
                  "soon as the shift starts.")]
         public float spawnInterval = 12f;
 
-        [Tooltip("Most orders that can be active at once.")]
-        public int maxActiveOrders = 3;
+        [Tooltip("Most orders that can be active at once. Capped at 4: the order list is styled " +
+                 "like a delivery app on a phone, and four notifications is what fits on its screen.")]
+        [Range(1, 4)]
+        public int maxActiveOrders = 4;
 
         [Header("Patience")]
-        [Tooltip("Seconds each order has to collect its ingredients and drop them at a bay before " +
-                 "it is cancelled. This is the bar on each order card, separate from the shift clock.")]
-        public float orderTimeLimit = 60f;
-
-        [Tooltip("Seconds the patience bar refills to when the ingredients are dropped at a bay, " +
-                 "for cooking and delivery. It never takes time away: an order with more left " +
-                 "keeps it. 0 turns the refill off.")]
-        public float patienceAfterBay = 30f;
+        [Tooltip("Seconds each order waits before it is cancelled. This is the bar on each order " +
+                 "card, separate from the shift clock. It keeps running while the food cooks.")]
+        public float orderTimeLimit = 75f;
 
         [Header("Cooking (used only for orders with no food set)")]
         [Tooltip("Seconds a plain delivery cooks in a Processing Bay. Foods use their own Cook " +
@@ -120,9 +120,8 @@ namespace ZoomZoom.Orders
         private void OnValidate()
         {
             spawnInterval = Mathf.Max(0.5f, spawnInterval);
-            maxActiveOrders = Mathf.Max(1, maxActiveOrders);
+            maxActiveOrders = Mathf.Clamp(maxActiveOrders, 1, MaxOrders);
             orderTimeLimit = Mathf.Max(1f, orderTimeLimit);
-            patienceAfterBay = Mathf.Max(0f, patienceAfterBay);
             defaultCookSeconds = Mathf.Max(0f, defaultCookSeconds);
             defaultBurnSeconds = Mathf.Max(1f, defaultBurnSeconds);
             baseDeliveryValue = Mathf.Max(0f, baseDeliveryValue);

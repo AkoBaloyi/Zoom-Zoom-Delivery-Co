@@ -20,7 +20,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Project/Scenes/Medium.unity
     guid: e7827e5c95f19e1478dffb7655729e25
-  - enabled: 1
+  - enabled: 0
     path: Assets/Project/Scenes/Hard.unity
     guid: 5bb0ed30a38ab784b81e369088a29d6b
   m_configObjects:

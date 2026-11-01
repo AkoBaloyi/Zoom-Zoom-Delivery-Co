@@ -50,20 +50,34 @@ tested by `q_wanted_to_continue` and `q_best_moment`.
 
 ## 2. Status of data collection
 
-**No human participant sessions have been run.** The sheet contains five rows and all five are
-machine telemetry or AI-operated functional QA. A `session_type` column was added so this cannot
-be misread from a row count: filtering it for `human` returns zero rows.
+**One user test with a real participant has been run, plus one unstructured family session. Neither
+followed the question script, so the protocol minimum is still unmet.** A `session_type` column
+sits in column two so the composition of the sheet cannot be misread from a row count.
 
 | `session_type` | Rows | What it means |
 | --- | --- | --- |
 | `machine-log` | 1 | Telemetry imported from a shift log with no recorded observer or participant |
 | `mixed-ai-user` | 2 | Build verification with both AI and developer interaction; driving cannot be attributed to either |
 | `ai-qa` | 2 | AI-operated functional QA of UI, pause and order expiry; no sustained driving route |
-| `human` | **0** | — |
+| `human` | **2** | Session S01: one participant, two logged shifts, recorded, run in the editor |
 
-Every row also has an empty `build` column, so none of them can be tied to a commit. Under the
-protocol's own rule — "a row without this cannot be tied to a version and is worthless" — these
-rows are retained as engineering evidence only.
+The five machine and AI rows have an empty `build` column, so none can be tied to a commit. Under
+the protocol's own rule — "a row without this cannot be tied to a version and is worthless" — they
+are retained as engineering evidence only.
+
+Session S01 is the first row in this project that can be tied to a commit. It was run in the Unity
+editor from a working tree at `618f2be` with no modifications anywhere under `Assets/`, so the
+content played is exactly that commit's content and the `build` column is accurate rather than
+nominal.
+
+What S01 is **not**: no 1-to-5 scored question was administered, so all thirteen `q_` columns are
+blank and the five scored statements in `QUESTIONS.md` remain unanswered by anyone. Feedback was
+gathered as open conversation and recorded by the observer in paraphrase, not quoted. The earlier
+family session of three testers was explicitly unstructured, with no telemetry and no
+questionnaire; its findings appear below as directions to investigate, not as data.
+
+The protocol minimum — five testers, at least two inexperienced, same build, same variant, same
+questions in the same order — is therefore still not met. One participant is one participant.
 
 ---
 
@@ -156,17 +170,71 @@ Recorded in `docs/playtesting/QA-AI-20261014-01.md` with screenshots in
   is serialized configuration drifting from the current scripts and should be reconciled before
   any balance conclusion is drawn from a session.
 
+### 4.6 Session S01: the first participant, and the first positive result
+
+One participant, run in the editor from `618f2be`, recorded, two logged shifts. The participant
+played two versions: one described as a car-control test intended as a tutorial baseline, the other
+as the main game. They preferred the second clearly — "much more structured, much more easy to do" —
+citing clearer roads and visible surroundings making orientation easier.
+
+**Caveat on that comparison:** the versions were played in sequence, so a preference for the second
+cannot be separated from having already learned the controls during the first. It is a direction,
+not a measured result. There is also a discrepancy to resolve: the logger recorded scene
+`Possible game scene` for *both* shifts, so the two-version account and the telemetry do not agree
+and the scene attribution on both rows is unconfirmed.
+
+**The result that matters:** the participant rated the controls easy and **could identify their own
+mistakes when losing control.** That is the substance of `q_knew_why_lost_control` — "When I lost
+control, I could tell why" — and it is the first evidence in either direction on the *predictable*
+leg of the design question. It was not captured as a score, so it does not populate the column, but
+it is the first time anyone has reported the handling as legible rather than arbitrary.
+
+Read against §4.1 it also sharpens the boost problem. A participant who finds the car predictable
+and still never touches the handbrake is not being defeated by the handling; they simply have no
+reason to drift. That points at discoverability over generosity.
+
+Requests recorded: a tutorial or onboarding flow, since no instructions exist; a minimap or
+on-screen directional indicator for the next destination; a route line to the drop-off after pickup,
+Crazy Taxi style; more traffic and pedestrians, the city reading as empty with only the player's
+car; and a day/night cycle.
+
+### 4.7 Three sessions now converge on the same problem, and it is not the driving
+
+The strongest finding in this document is not from any single session but from the agreement between
+three independent ones:
+
+| Source | Evidence |
+| --- | --- |
+| Family session, three testers | Two of three could not tell where to go. None had trouble with tickets, timers or values |
+| Session S01, one participant | Requested a minimap, a directional indicator, and a post-pickup route line |
+| Telemetry, five runs | Two runs delivered **zero** orders with 10 and 12 late; S01's runs delivered 2 and 1 against 12 and 4 late |
+
+Order information is landing. Spatial information is not. The split is clean and falsifiable: the
+same testers who could read the HUD could not read the city. Wall hits across all seven logged runs
+are 7, 1, 0, 0, 0, 1, 2 — so players are not crashing, they are not arriving.
+
+This reframes the late-delivery rate in §4.3. A 44% to 83% late rate was read as a difficulty or
+timer-budget problem. Three sessions now suggest it is primarily a navigation problem, and the
+timer budget is a compounding factor rather than the cause.
+
+**Traffic and pedestrians have now been requested independently by two sessions.** The current plan
+rules out traffic. That makes it a decision that needs recording with a stated reason rather than an
+omission, and it belongs in the keep-change-cut record the pitch commits to in §4.4.
+
 ---
 
 ## 5. Limitations
 
 Stated plainly, because the value of this record depends on it:
 
-1. **No human participants.** Nothing here supports a claim about enjoyment, predictability,
-   perceived fairness, recovery satisfaction or difficulty balance. Those are precisely the
-   questions the instrument was built to answer and none of them has been asked of anyone.
-2. **No build hash on any row.** No row can be tied to a commit, so no two rows are strictly
-   comparable and none can be reproduced.
+1. **One participant, and no scored questions from anyone.** The protocol minimum is five testers
+   with at least two inexperienced, all on one build and one variant, all asked the same questions
+   in the same order. One participant does not support a claim about enjoyment, perceived fairness,
+   recovery satisfaction or difficulty balance. The single predictability observation in §4.6 is
+   one person's paraphrased comment, not a score, and `tester_racing_experience` was not asked.
+2. **Only two of seven rows carry a build hash.** Session S01 carries `618f2be`, verified against a
+   clean `Assets/` tree. The five machine and AI rows carry none, so they cannot be reproduced or
+   strictly compared with anything.
 3. **Mixed attribution on two rows.** The two `mixed-ai-user` records involved both AI and
    developer interaction; driving outcomes cannot be attributed to a single actor.
 4. **Single scene.** All runs used `Possible game scene`. The surface-traction model (84 tagged

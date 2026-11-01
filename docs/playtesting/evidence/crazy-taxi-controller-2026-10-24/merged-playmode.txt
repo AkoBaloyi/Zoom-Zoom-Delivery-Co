@@ -1,0 +1,13 @@
+Actual game scene Play Mode: PASS
+Frames: 24460
+Input ready: True
+Driving feedback: True
+Camera: True
+Retired mechanics inactive: True
+Recognised moves: 6
+Maximum displacement: 48.75 m
+Moves: Dash, BackDash, Dash, Stop, Dash, QuickSpin
+Analog trigger travel: True
+Accelerator outputs at quarter/half/full travel: 0.219, 0.479, 1.000
+Brake outputs at quarter/half/full travel: 0.219, 0.479, 1.000
+Runtime errors: 0

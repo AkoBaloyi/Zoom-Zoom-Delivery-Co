@@ -32,7 +32,7 @@ namespace ZoomZoom.Orders
                  "GameObject's name.")]
         [SerializeField] private string bayName = "";
 
-        [Header("Wiring")]
+        [Header("Wiring (found automatically if left empty)")]
         [SerializeField] private OrderManager orderManager;
         [Tooltip("Its Bay Radius sets the size of the ground disc, so the disc matches the real zone.")]
         [SerializeField] private ZoneDetection zoneDetection;
@@ -231,7 +231,7 @@ namespace ZoomZoom.Orders
                 zone = OrderPalette.Cook;
                 bar = OrderPalette.Cook;
                 fill = Order.BayFraction;
-                label = $"{BayName.ToUpper()}\n#{Order.Id} {Order.FoodName.ToUpper()}  {Mathf.CeilToInt(Order.BayTimeRemaining)}s";
+                label = $"{BayName.ToUpper()}\n{OrderTag(Order)} {Order.FoodName.ToUpper()}  {Mathf.CeilToInt(Order.BayTimeRemaining)}s";
             }
             else
             {
@@ -240,8 +240,8 @@ namespace ZoomZoom.Orders
                 bar = OrderPalette.TimerBar(Order.BayFraction);
                 fill = Order.BayFraction;
                 label = warning
-                    ? $"{BayName.ToUpper()}\nBURNING!  #{Order.Id}  {Mathf.CeilToInt(Order.BayTimeRemaining)}s"
-                    : $"{BayName.ToUpper()}\nREADY!  #{Order.Id}  {Mathf.CeilToInt(Order.BayTimeRemaining)}s";
+                    ? $"{BayName.ToUpper()}\nBURNING!  {OrderTag(Order)}  {Mathf.CeilToInt(Order.BayTimeRemaining)}s"
+                    : $"{BayName.ToUpper()}\nREADY!  {OrderTag(Order)}  {Mathf.CeilToInt(Order.BayTimeRemaining)}s";
             }
 
             float radius = zoneDetection != null ? zoneDetection.BayRadius : 6f;
@@ -280,6 +280,10 @@ namespace ZoomZoom.Orders
             }
         }
 
+        /// <summary>The order number in that order's own colour, matching its phone notification.</summary>
+        private static string OrderTag(Order order) =>
+            $"<color=#{OrderPalette.Hex(OrderPalette.OrderColour(order))}>#{order.Id}</color>";
+
         private void BuildVisual()
         {
             Material material = OrderWorldMaterial.Get();
@@ -317,6 +321,7 @@ namespace ZoomZoom.Orders
             _label.anchor = TextAnchor.LowerCenter;
             _label.alignment = TextAlignment.Center;
             _label.fontStyle = FontStyle.Bold;
+            _label.richText = true;
             MeshRenderer labelRenderer = labelGO.GetComponent<MeshRenderer>();
             labelRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             labelRenderer.receiveShadows = false;

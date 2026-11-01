@@ -1,0 +1,10 @@
+{
+  "source": "VehicleLab_Measurements\\controller_20261024_172706_067.csv",
+  "sha256": "d3ed25250f1467010430983219e3decb112afb8f9a7f0b481f451b90d4af5cde",
+  "samples": 235,
+  "seconds": 24.155,
+  "maximum_kmh": 100.781,
+  "fourth_gear_samples": 206,
+  "maximum_hardware_r2": 1.0,
+  "maximum_applied_gas": 1.0
+}

@@ -1,0 +1,14 @@
+Actual VehicleLab scene Play Mode: PASS
+Lab meter ready: True
+Frames: 29427
+Input ready: True
+Driving feedback: True
+Camera: True
+Retired mechanics inactive: True
+Recognised moves: 6
+Maximum displacement: 53.17 m
+Moves: Dash, BackDash, Dash, Stop, Dash, QuickSpin
+Analog trigger travel: True
+Accelerator outputs at quarter/half/full travel: 0.220, 0.481, 1.000
+Brake outputs at quarter/half/full travel: 0.220, 0.481, 1.000
+Runtime errors: 0
