@@ -239,3 +239,9 @@ docs/handouts/
 # 11.8 MB of exact duplicate, and .gitattributes does not route .unity through LFS.
 .agents/tasks/**/ref/
 .agents/tasks/**/tools/
+
+# Local addition: scratch working directory. Holds generator scripts and raw play-mode logs from
+# validation runs - jean-direct-playmode.log alone is 2.7 MB. The findings that matter are written
+# up in docs/ and the measurement CSVs under VehicleLab_Measurements/; these are the raw output
+# they were derived from, kept locally while a run is being investigated and not afterwards.
+tmp/

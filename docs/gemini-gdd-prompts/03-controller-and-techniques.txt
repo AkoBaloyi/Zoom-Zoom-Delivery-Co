@@ -1,0 +1,78 @@
+You are editing the open Google Doc for Zoom Zoom Delivery Co., specifically the GAME DESIGN DOCUMENT, not the project plan or individual reflection. All source text and facts required for this step are included below. You do not need access to local files, GitHub, Unity, earlier chat messages or attachments. Do not ask me to upload those sources or tell me to retrieve facts already supplied here.
+
+Apply only the changes specified in this prompt. The location clues refer to a 46-page PDF exported from this document; use exact headings and nearby text to locate sections, because page numbers change after editing. Search the BODY, not just its table of contents. If a named target cannot be found, do not guess or replace unrelated material: identify the missing target in your response. Complete other unambiguous edits. If you cannot edit the document directly, say so and return the exact formatted replacement for the named target; do not claim the document changed.
+
+Current baseline: the active car uses Crazy Taxi-inspired ground techniques. Rocket League jump/flip/boost-tank descriptions are historical. The player drives through pickup/drop-off zones; stopping is not mandatory for every delivery. Stunt tips, processing bays and R50 repair charges are proposals, not verified implemented features. Current collision cargo damage and successful stranded recovery are implemented and must remain distinct from those proposals. Do not invent tests, screenshots, lecturer quotations, team approvals or book quotations. Use South African English.
+
+The material between BEGIN REPLACEMENT and END REPLACEMENT is finished GDD prose, not instructions to be summarised. Insert it substantially verbatim: only adapt heading numbering, native table formatting and transitions necessary for placement. Keep the analysis, limitations, examples, values and source links. Convert Markdown tables into Google Docs tables. Do not insert this instruction block, placement notes or completion checklist into the GDD. Do not create an “editorial preamble” or a list of changes inside the submitted body. After editing, report the actual headings changed and any unresolved target, outside the document.
+
+EDIT 3: Controller and techniques
+
+EXACT PLACEMENT AND ACTIONS
+1. Locate “5. Character Controller Design Rationale” (original pp. 17–18).
+2. Replace the text after that heading and BEFORE “5.1. Difficulty Levels” with the content below. This removes the old current-tense paragraphs “Rear-axle handbrake”, “Grounded jump and short directional air flip” and “Boost with recharge”. It also removes duplicated no-manual-acceptance and cargo-capacity rationale from this controller subsection; those principles are handled in Section 4.
+3. Preserve “5.1. Difficulty Levels” and “5.2. Collision Response” at this step. Their limited consistency corrections are handled in the final prompt.
+4. Use nested headings under Section 5 without renumbering or deleting the two preserved sections. The temporary 5.0.x labels can be replaced with unnumbered nested headings if that better fits the document style.
+
+BEGIN REPLACEMENT
+
+## 5. Character Controller Design Rationale
+
+The car is the player's character: it determines how the player can act on the city and how confidently they can commit to a delivery route. The current controller combines accessible ordinary movement with techniques that change the timing and geometry of a journey. The following descriptions explain their intended use and the conditions under which each could fail to justify its place.
+
+### 5.0.1. Basic controls
+
+
+W/Up or the right trigger requests forward driving. S/Down or the left trigger brakes forward motion, then requests reverse after the car reaches a near-stop and the 0.18-second direction-change delay completes. Steering uses A/D, the arrow keys or the left stick. Pressing the forward pedal while reversing brakes before changing direction. Both pedals together give braking priority while allowing the engine to rev.
+
+F and R, or gamepad B and A respectively, are technique gestures. They do not force the ordinary forward pedal to become a reverse pedal. Five automatic forward ratios provide acceleration and engine feedback without requiring manual gear changes. Analogue triggers allow partial acceleration and braking; keyboard inputs request the full input amount.
+
+### 5.0.2. Actions and their design purpose
+
+Anthropy and Clark's framework draws attention to verbs, objects, rules, context and the player's dialogue with a game. [*A Game Design Vocabulary*, publisher description and contents](https://www.informit.com/store/game-design-vocabulary-exploring-the-foundational-principles-9780133155228). Our application is to judge a car action by the situation it changes. A verb earns its place when the level and task state give the player a reason to choose it.
+
+### Crazy Dash: committing to an exit
+
+Crazy Dash turns a short input sequence into a strong launch. Its design role is to reward preparation as well as timing. Before accelerating, the player must establish a useful heading and enough space to use the burst. A successful dash after a turn should convert that preparation into progress toward the next task.
+
+Its cost need not be a fuel meter. Speed reduces the time available to correct the line, read a new obstruction or reconsider the route. If dashing is always safe and always fastest, it becomes a repeated input tax rather than an interesting choice. The level must therefore include approaches where waiting to align is better than launching immediately. Testing should compare useful distance gained and subsequent correction, not only the number of dashes performed.
+
+### Crazy Drift: separating facing from travelling
+
+During a drift the chassis can rotate while travel momentum persists. The player is managing two things that ordinary driving largely aligns: where the car points and where it is going. That separation gives the move its expressive role. A corner can be prepared before the car has finished moving through it.
+
+The important moment is the exit. A drift that looks dramatic but leaves the car aimed across the next road has not necessarily helped the delivery. A dash out of a controlled drift can reconnect heading and travel into a purposeful departure. This makes the combination meaningful: the first action prepares a direction; the second commits to it.
+
+Drift should be compared with an ordinary steer-and-brake line on the same route. If ordinary steering completes every relevant corner faster and more safely, the problem may be the geometry or the lack of a useful drift outcome, rather than an insufficiently visible tutorial. Conversely, forcing every corner to require a trick would undermine the accessible basic-driving layer.
+
+### Crazy Stop: precision at the end of speed
+
+Crazy Stop offers stronger deceleration so the player can control where a fast approach ends. It creates a possible rhythm of acceleration, commitment and precise interruption. However, our current delivery zones activate on entry: stopping is not a universal requirement for completing a delivery.
+
+That rule limits the justification for the technique. It can still help before a sharp turn, obstacle or awkward next departure, but the GDD must not claim that every drop-off demands a precise stop. If playtesting shows the move has little useful context, the team should choose deliberately between designing approaches that need it, introducing a low-speed service requirement, or retaining it as a situational move. A low-speed requirement would be a new order-interaction rule and would need its own test.
+
+### Quick turn: choosing what to do after an error
+
+Quick turn provides a direct turnaround rather than an extended reverse manoeuvre. It allows a missed junction to lead to another decision while the player still has agency. It is not the same operation as emergency recovery: the player chooses and performs the turn on the road, while a stranded reset relocates the car to a safe pose.
+
+The current quick turn retains about 90% of entry momentum before other losses. That generosity has an important consequence: it could become a normal routing tool, not merely a rescue move. This is not automatically a defect. The question is whether it produces useful route choices or overwhelms drift, reverse and ordinary turning. Compare all four ways of changing direction where they can serve the same objective. A cooldown alone does not establish that the alternatives remain worthwhile.
+
+
+
+### 5.0.3. Technique input and effect table
+
+The table describes this project's current controls. Gamepad letters use the Xbox-style mapping. Recognised techniques require appropriate ground contact and an upright car. Repeatedly holding a button is not repeated trick activation.
+
+| Technique | Input and conditions | Effect | What it rewards |
+| --- | --- | --- | --- |
+| Crazy Dash | Release the pedals, then press F and W within the 0.30 s window; simultaneous input in either event order is accepted. Gamepad: B and right trigger. Ordinary launch requires speed at or below 8 m/s; a dash can also exit a drift. | A short, strong forward acceleration burst, using a higher speed ceiling than normal driving. A drift-exit dash redirects travel toward the new heading. | Timing a launch and aligning the car before committing to speed; recovering travel time after a pickup, stop or corner. |
+| Crazy Drift | At forward speed of at least 5 m/s, press R then F within 0.30 s while steering. Gamepad: A then B while steering. | Enters a low-grip slide with stronger yaw, allowing the chassis to rotate while travel momentum continues. A dash can end the slide with an exit launch. | Choosing an entry line, managing momentum and timing the exit. It is a deliberate manoeuvre rather than random rear-end loss. |
+| Crazy Stop | At forward speed of at least 5 m/s, combine S and R; release the accelerator for a clear execution. Gamepad: left trigger and A. | Applies stronger deceleration along the direction of travel, with a configured 85 m/s² stop deceleration. This setting is not a measured stopping time. | Judging a late braking point and making a controlled approach to a destination. |
+| Quick turn | Hold A or D and press Space; gamepad: steer and press left bumper. Requires ground contact, an upright car and an available cooldown. No steering means no turn. | Performs a controlled approximately 180-degree turnaround in the selected direction, retaining about 90% of entry momentum before other losses. Collision losses are not restored. | Recognising a wrong route or overshoot and committing to recovery promptly. It provides an accessible turnaround without replacing the drift's cornering role. |
+
+The implemented rewards here are movement advantages: time saved, positioning and recovery. The final submission proposes stunt tips and chained monetary rewards, but this inspection did not establish an implemented stunt-tip system. Do not describe each trick as awarding money until that connection is built and tested. Technique-related deceleration is protected from the ordinary hard-braking cargo penalty by default; real collisions remain damaging.
+
+END REPLACEMENT
+
+CHECK THIS STEP
+There must be full rationale AND a four-row technique table, with actual keyboard/controller inputs, entry conditions, effects and rewards. No monetary stunt rewards may be presented as already implemented.

@@ -1,0 +1,54 @@
+You are editing the open Google Doc for Zoom Zoom Delivery Co., specifically the GAME DESIGN DOCUMENT, not the project plan or individual reflection. All source text and facts required for this step are included below. You do not need access to local files, GitHub, Unity, earlier chat messages or attachments. Do not ask me to upload those sources or tell me to retrieve facts already supplied here.
+
+Apply only the changes specified in this prompt. The location clues refer to a 46-page PDF exported from this document; use exact headings and nearby text to locate sections, because page numbers change after editing. Search the BODY, not just its table of contents. If a named target cannot be found, do not guess or replace unrelated material: identify the missing target in your response. Complete other unambiguous edits. If you cannot edit the document directly, say so and return the exact formatted replacement for the named target; do not claim the document changed.
+
+Current baseline: the active car uses Crazy Taxi-inspired ground techniques. Rocket League jump/flip/boost-tank descriptions are historical. The player drives through pickup/drop-off zones; stopping is not mandatory for every delivery. Stunt tips, processing bays and R50 repair charges are proposals, not verified implemented features. Current collision cargo damage and successful stranded recovery are implemented and must remain distinct from those proposals. Do not invent tests, screenshots, lecturer quotations, team approvals or book quotations. Use South African English.
+
+The material between BEGIN REPLACEMENT and END REPLACEMENT is finished GDD prose, not instructions to be summarised. Insert it substantially verbatim: only adapt heading numbering, native table formatting and transitions necessary for placement. Keep the analysis, limitations, examples, values and source links. Convert Markdown tables into Google Docs tables. Do not insert this instruction block, placement notes or completion checklist into the GDD. Do not create an “editorial preamble” or a list of changes inside the submitted body. After editing, report the actual headings changed and any unresolved target, outside the document.
+
+EDIT 4: Vehicle measurements
+
+EXACT PLACEMENT AND ACTIONS
+1. Find the current “5. Character Controller Design Rationale”. Insert the complete subsection below immediately AFTER its technique input/effect table and supporting paragraph, and BEFORE “5.1. Difficulty Levels”.
+2. If this exact new subsection already exists, replace it rather than creating a duplicate.
+3. All data and conditions are included below. Do not request CSV files and do not say the numbers were measured by you. These are saved 26 October 2026 measurements provided by the project review.
+4. Keep the methods with the table. Do not reduce the corner result to “maximum corner speed” without the geometry and pass criteria.
+
+BEGIN REPLACEMENT
+
+### Vehicle lab: measurements and design implications
+
+**Evidence status:** the following are recorded results from **26 October 2026**, cross-checked against the saved CSV and test description. A new successful Unity run was not obtained during this documentation pass. They must not be relabelled as new measurements from 29 October or as final-build certification.
+
+The lab uses the production Car prefab's collider dimensions with the production controller and default taxi test settings, on flat, dry tarmac at 120 Hz. It constructs a test car rather than loading and driving an entire gameplay scene. The production collider measures 1.8 m across by 4.2 m long.
+
+| Required measurement | Recorded result | Definition and conditions |
+| --- | --- | --- |
+| Normal top speed | **100.800 km/h (28 m/s)** | Full throttle for 12 seconds, without tricks. This is the ordinary cruise ceiling, not the maximum boosted speed. |
+| Time from 0 to top speed | **2.842 s to 99% of the ceiling** | The acceleration curve approaches the ceiling asymptotically. Use this practical definition rather than claiming a time to mathematically exact top speed. 0–100 km/h was **2.950 s**. |
+| Time from top speed to 0 | **0.917 s** | Ordinary full braking; “stopped” means below 0.1 m/s. Excludes human reaction time. Stopping distance was **12.736 m**. |
+| Tightest turning circle | **5.827 m whole-car swept diameter** | Lowest result from full-lock tests targeting 1, 2, 3, 4, 5 and 8 m/s. The tightest result occurred at the 1 m/s target. Centre-path diameter was only **2.222 m** and must not be used as physical road clearance. |
+| Fastest tested 90-degree corner | **100.800 km/h entry; 91.405 km/h exit** | A 12 m-wide corner with 6 m inner radius and 18 m outer radius. Full lock then straighten; no dash, drift or brake. |
+
+The corner test required all four corners of the car's collider to remain within the approach, bend and exit corridor, an 85–100 degree final heading, at least 80% entry-speed retention and less than 10 degrees of roll. The sweep reached the ordinary speed cap: it demonstrates that this broad corner is negotiable at cruise speed, not the absolute cornering limit. Narrow streets and boosted approaches require separate tests.
+
+For level design, use the whole-car swept diameter and leave additional clearance for scenery and player error. Allow more than the lab's 12.736 m stopping distance when the player must notice a destination and react. A significant design finding is that this wide corner does not force ordinary-speed braking; sharper routes, delivery approaches or technique-dependent shortcuts are needed if cornering is intended to create meaningful decisions.
+
+**Repeatable lab procedure:** run Unity's Tools → Zoom Zoom → Validate Crazy Taxi Controller command with saved scenes. Record the build/revision, tuning profile, physics frequency, surface and collider dimensions. Repeat the straight acceleration and stopping tests, the settled full-lock speed sweep and the defined 90-degree corridor sweep. Archive the resulting CSV files with the actual run date. The existing script uses filenames containing `2026-10-26`, so the filename alone does not prove the date of a later run.
+
+#### What these results mean for the design
+
+The saved 26 October lab results give an ordinary top speed of 100.8 km/h, 2.842 seconds to 99% of that ceiling, 0.917 seconds for ordinary braking to the test's stopped threshold, and 12.736 m stopping distance. The tightest measured whole-car swept turning diameter is 5.827 m. These results describe a rapid, manoeuvrable vehicle; they do not support keeping every earlier claim about a difficult, traction-limited controller.
+
+The most revealing result is the tested 90-degree bend: on a 12 m-wide road with 6 m inner and 18 m outer radius, the car enters at 100.8 km/h and exits at 91.405 km/h without a trick. On that geometry, cruise-speed turning does not require the player to spend speed before entering. A design that expects every right-angle corner to force a brake-versus-speed decision is contradicted by this result.
+
+This is useful evidence rather than an embarrassment. It tells us where to look next. The challenge may need to come from tighter approaches, adjacent decisions, exit alignment or the consequences of boosted speed. It also means a drift demonstration must compare useful route outcomes rather than assume that a special move is inherently superior.
+
+The whole-car turning diameter gives a physical clearance baseline, not a recommended street width. A route also needs room for approach error, steering correction, props and an intelligible camera view. Likewise, stopping distance excludes noticing and deciding. The practical distance needed to make an informed stop includes distance travelled while the player recognises the situation.
+
+The following measurements are saved evidence from 26 October 2026; a new successful measurement session was not performed during this documentation review.
+
+END REPLACEMENT
+
+CHECK THIS STEP
+Confirm five required measurements, 99% definition, 12.736 m stopping distance, whole-car versus centre-path distinction, exact corner geometry and limits, and the finding that this wide corner works without a trick. No fresh-test claim.

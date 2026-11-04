@@ -1,0 +1,54 @@
+You are editing the open Google Doc for Zoom Zoom Delivery Co., specifically the GAME DESIGN DOCUMENT, not the project plan or individual reflection. All source text and facts required for this step are included below. You do not need access to local files, GitHub, Unity, earlier chat messages or attachments. Do not ask me to upload those sources or tell me to retrieve facts already supplied here.
+
+Apply only the changes specified in this prompt. The location clues refer to a 46-page PDF exported from this document; use exact headings and nearby text to locate sections, because page numbers change after editing. Search the BODY, not just its table of contents. If a named target cannot be found, do not guess or replace unrelated material: identify the missing target in your response. Complete other unambiguous edits. If you cannot edit the document directly, say so and return the exact formatted replacement for the named target; do not claim the document changed.
+
+Current baseline: the active car uses Crazy Taxi-inspired ground techniques. Rocket League jump/flip/boost-tank descriptions are historical. The player drives through pickup/drop-off zones; stopping is not mandatory for every delivery. Stunt tips, processing bays and R50 repair charges are proposals, not verified implemented features. Current collision cargo damage and successful stranded recovery are implemented and must remain distinct from those proposals. Do not invent tests, screenshots, lecturer quotations, team approvals or book quotations. Use South African English.
+
+The material between BEGIN REPLACEMENT and END REPLACEMENT is finished GDD prose, not instructions to be summarised. Insert it substantially verbatim: only adapt heading numbering, native table formatting and transitions necessary for placement. Keep the analysis, limitations, examples, values and source links. Convert Markdown tables into Google Docs tables. Do not insert this instruction block, placement notes or completion checklist into the GDD. Do not create an “editorial preamble” or a list of changes inside the submitted body. After editing, report the actual headings changed and any unresolved target, outside the document.
+
+EDIT 8: Production and final consistency
+
+EXACT PLACEMENT AND ACTIONS
+1. Under “Design Process thus far”, insert “Vehicle and camera: production responsibility and iteration evidence” immediately BEFORE the existing subsection “Vehicle” (original pp. 35–36). Rename the existing Vehicle subsection “Historical vehicle iteration: Rocket League-inspired prototype”. Preserve its genuine development history and images, but remove any unverified claim that specific test outcomes have been demonstrated in the new controller.
+2. Do not replace the group “Process and Collaboration” section or manufacture an individual reflection. The new production discussion belongs to the design record.
+3. Put the Source and evidence note before the bibliography. Add the supplied source entries without deleting existing game references or asset credits. Do not invent missing course-edition details.
+4. Remove the accidental “Appendix: Editorial Preamble & Evidence Index” introductory paragraph from the front matter and remove the final section “Inserted Headings & Contradictions Requiring Human Decisions”. Those are editing artefacts, not design content. Keep any genuinely useful evidence in a properly labelled appendix.
+5. In the vehicle glossary, mark Friction circle, Grip budget, old 13-grip/0.58–0.42 grip-balance figures, rear-handbrake, boost-tank, flip and supersonic references as HISTORICAL where applicable, or move them to the historical appendix. Add these definitions: Crazy Dash—timed acceleration technique; Crazy Drift—deliberate rotation while retaining travel momentum; Crazy Stop—strong technique deceleration; Quick turn—steering-directed grounded turnaround; Stranded reset—safe-pose relocation with a five-second shift deduction after success; Camera look-ahead—offset of the camera's aim point, not measured visible road length.
+6. In “5.1. Difficulty Levels”, replace the absolute claim that equal urgency creates no choice with: “Equal urgency does not eliminate choice: destination location, value, approach direction and expected travel time can still distinguish orders. The test should examine whether layout changes create different decisions rather than assuming that more density necessarily produces more meaningful reprioritisation.” Preserve the actual scene descriptions, but mark any claim that denser scenes definitely produce more interesting decisions as a hypothesis requiring testing.
+7. In “5.2. Collision Response”, retain the explanation of physical props but soften any claim that object displacement proves fairness to: “Object displacement provides a visible consequence of contact. Whether players can correctly read the cause and severity remains a playtest question.”
+8. Search CURRENT-DESIGN sections only for retired jump/flip/boost-tank claims, 32 m/s normal top speed, 28 m camera visibility, mouse swivel, rear-grip percentages, the R20 fee, steering stuns and compulsory crash delays. Correct them to the facts established in this prompt series. Preserve explicitly historical records with dates/status labels.
+9. Search for claims that cargo capacity equal to active orders eliminates all choice, that fixed timers guarantee fairness, or that every failed delivery can only be blamed on driving. Correct to the narrower arguments supplied earlier. If the earlier prompts have not been run, do not invent missing replacements: report that those sections still need their numbered edit.
+10. Regenerate the table of contents and normalise heading numbering after the edits. Do not type guessed page numbers. If you cannot update the contents field, report that limitation outside the document.
+11. Leave unresolved shift duration, active-order timing, progression status, economy stacking and final-build verification as explicit questions in your RESPONSE, not fabricated answers in the GDD.
+
+BEGIN REPLACEMENT
+
+### Vehicle and camera: production responsibility and iteration evidence
+
+The custom Unity controller combines body collisions and four-ray suspension with authored arcade acceleration, steering and technique states. This division lets the project retain interaction with roads and props while deciding what a dash, drift or stop should do. Unity is capable of such custom behaviour; ordinary physics settings simply do not supply the intended action grammar by themselves.
+
+The production value of that arrangement is iteration. A parameter change can be isolated, measured and compared before asking the level designer to adapt streets around it. But a controller change also invalidates dependent evidence. Retiring the aerial flip means old flip tests no longer demonstrate the current recovery design. Changing steering means old road-clearance assumptions need checking. A measurement is useful only when its controller version and conditions are known.
+
+Chandler's *The Game Production Handbook* organises production around planning, implementation, validation and learning from the project. [Third-edition overview and contents](https://www.oreilly.com/library/view/the-game-production/9781449688097/). Applied here, the contribution is not proved by the quantity of code or repository rules. It is shown through a traceable decision: what problem was identified, what changed, what evidence followed and what that evidence required from the rest of the team.
+
+For the vehicle lead, the handover therefore includes the active control rules, tuning version, lab method, measured clearances, camera constraints and remaining uncertainties. Level and order designers need those facts to make compatible decisions. Document only handovers and approvals that actually occurred; attach genuine records rather than writing a persuasive retrospective that the evidence cannot support.
+
+### Source and evidence note
+
+The course connections use Bogost's account of configurative units, Anthropy and Clark's vocabulary of actions and context, and Chandler's production-cycle framing. The specific analysis of this vehicle is the team's application of those ideas, not a quotation from the books. Formal book references should use the editions assigned by the course; no unverified page numbers or quotations are supplied here.
+
+Vehicle measurement values are attributed to the saved 26 October 2026 lab record. A fresh successful run was not obtained during the documentation review. The implementation description reflects the inspected current project; proposed economy extensions must be verified separately before being described as built.
+
+### Sources to add to the bibliography
+
+- Bogost, Ian. Unit Operations: An Approach to Videogame Criticism. Author overview: https://bogost.com/books/unit-operations/ . Add the publication details of the course edition once confirmed.
+- Anthropy, Anna, and Naomi Clark. A Game Design Vocabulary: Exploring the Foundational Principles Behind Good Game Design. Addison-Wesley Professional, 2014. Publisher description and contents: https://www.informit.com/store/game-design-vocabulary-exploring-the-foundational-principles-9780133155228 .
+- Chandler, Heather Maxwell. The Game Production Handbook. Edition to match the course copy. Third-edition overview and contents consulted: https://www.oreilly.com/library/view/the-game-production/9781449688097/ . The author's surname is Chandler, not Gardner.
+- Sega. Crazy Taxi. 1999. Video game; current controller reference, not a claim of source-code access.
+- 3DM. “TGS Interview with the Producer of Crazy Taxi: High-Speed Tour: Fun is Our Top Priority!” 23 September 2026. https://en.3dmgame.com/original/4658 . Used for the creator's account of authored driving action, not original physics constants.
+- Unity Technologies. Built-in 3D physics. https://docs.unity3d.com/6000.0/Documentation/Manual/PhysicsOverview.html . Used for the PhysX integration statement.
+
+END REPLACEMENT
+
+CHECK THIS STEP
+Verify the doc contains the two controller goals, all four named techniques with controls, all five lab measures with conditions, full design analysis and separate implemented/proposed damage. Report unresolved facts outside the body. Do not claim to have read the complete course books or run the game.
