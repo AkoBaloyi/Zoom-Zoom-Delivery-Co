@@ -92,15 +92,27 @@ This is deliberate and it is straight out of Koster. Introducing pressure and no
 how you produce panic rather than learning. They already know the route. Now they learn what the
 clock feels like.
 
-**Beat four. The gear, and one trick.**
+**Beat four. One trick, two ways in.**
 Here we teach the dash, and only the dash. A long straight with a wide opening at the end of it, so
 that performing the trick is rewarded with something unmistakable and failing it costs nothing.
 
-This beat is the reason the feedback work has to come first. A dash with no engine note and no
+I want to be specific about *how* we teach it, because I only confirmed this week that our car has
+two routes to every trick. There is the authentic one, where you flick the gear between Drive and
+Reverse in rhythm with the pedals, the way the original arcade game demanded. And there is a
+one-button layer: hold the accelerator and tap the technique button, and you dash. Hold the brake
+and tap it, and you stop. The same button reads what your feet are doing and does the right thing.
+
+The beat should teach the one-button version. It is learnable in a single attempt, which is what a
+tutorial beat needs to be, and it means the player leaves knowing a trick exists and what it sounds
+like when it lands. The gear rhythm stays in the game as the thing a curious player finds on their
+own. That is not a compromise. It is the shape Koster describes when he talks about a game being
+easy to learn and hard to master: a floor the player can stand on in one go, and a ceiling they can
+spend the rest of the game reaching for.
+
+This beat is also the reason the feedback work has to come first. A dash with no engine note and no
 on-screen confirmation is not a mechanic, it is a coincidence. We have eight tricks in the
-recogniser. The player should leave the tutorial knowing one of them exists and knowing what it
-sounds like when it works. The other seven are theirs to find, which is the pleasure of a game like
-this and is exactly the "grokking" Koster describes.
+recogniser. The player should leave the tutorial knowing one of them. The other seven are theirs to
+find, which is exactly the "grokking" Koster says is the actual pleasure of play.
 
 **Beat five. Collect and cook.**
 One ingredient, one bay, one delivery. The player picks something up, puts it on a bay, waits,
@@ -120,6 +132,23 @@ game as a sequence of errands, which is precisely what our testers did.
 I would like us to design this beat so that waiting at the bay is visibly the wrong choice. Not
 punished, just obviously wasteful, so the player works it out themselves rather than being told.
 
+I have checked that this is actually possible, because a beat that teaches you to leave the bay is
+cruel if there is nowhere you can get back from in time. Food cooks for eight seconds and burns
+twelve seconds after that, so the player has twenty seconds. From our one bay, the Bakery is a
+fifty-metre run and the Fish Market is seventy-seven. Both are round-trippable inside the window
+even if you crawl every corner. So the beat works, and it should use one of those two.
+
+The other three sources are not free. The Dairy and the Market need a decent average speed, and
+the Butcher is a genuine burn at anything short of a clean cruise. That is not a problem to fix, it
+is the risk economy we wrote into the hypothesis showing up in the geometry: which ingredient you
+fetch while the food cooks is a real decision, and a good driver has more options than a careful
+one. Kyuri, it does mean a Butcher-plus-cooking order is a hard-tier order and should come late in
+a shift rather than early.
+
+One constraint that shapes everything: the bay and the ingredient sources exist in the Medium scene
+only. The other scenes have none. So the tutorial is a Medium tutorial unless we place bays
+elsewhere, and I would rather we did not spend three days doing that.
+
 **Beat seven. Risk.**
 The tip and the repair bill, introduced together, because neither means anything alone. A near miss
 pays. A heavy crash costs. The player should see both numbers appear within about ten seconds of
@@ -132,9 +161,9 @@ each other so the trade-off is legible as a trade-off rather than as two unrelat
 **A text wall before the game starts.** If the player reads instead of drives, we have failed
 before they have touched the car.
 
-**Teaching everything.** We have ten input actions, eight tricks, four surface types, weather, boost,
-jump, flip and self-right. The tutorial should teach six verbs at most. Everything else is discovery,
-and discovery is the reward for having learned the six.
+**Teaching everything.** We have eleven input actions, eight tricks, seven surface types, weather,
+a quick-turn, a recovery reset and a look-behind. The tutorial should teach six verbs at most.
+Everything else is discovery, and discovery is the reward for having learned the six.
 
 **Blocking progress.** No beat should refuse to let the player continue. If they fail a beat, the
 beat should quietly repeat. The moment we gate a final-year prototype behind a tutorial step, we
@@ -154,10 +183,13 @@ before beat five works.
 
 ### Day one — make the game legible
 
-**Me.** Attach the engine audio and trick feedback to the car in every scene. This is two components
-and no configuration, and it is the single highest-value half hour available to any of us, because
-it turns four silent mechanics into four audible ones. Then finish the controls screen, which
-currently lists six of ten actions and omits the gear entirely.
+**Me.** Attach the engine audio and trick feedback to the car in every scene. I have built a menu
+item that does it in one click per scene and saves the result, so this is ten minutes rather than
+an afternoon, and it is still the single highest-value ten minutes available to any of us, because
+it turns eight silent mechanics into eight audible ones. Then finish the in-game controls screen.
+Our README now lists every one of the eleven bound actions; the screen in the build lists six, and
+until this week the README itself had one key wrong, which means a tester reading it would press
+Ctrl to brake and drift into a wall instead.
 
 **Kyuri.** The direction cue. Whatever form it takes, the minimum is that a player who cannot see
 their destination can tell which way to turn. Our existing markers show distance, which tells a lost
@@ -186,8 +218,9 @@ trusted, and trust is a visual-design problem more than a code problem.
 
 **Morning, together.** Beat six. I want all three of us on this one because it is the beat where our
 hypothesis either appears or does not. Kyuri owns the orders, Zah owns the space that makes waiting
-look wasteful, and I own whether the car can get between the two bays fast enough for the overlap to
-be possible at all. That last part is a measurement I can do quickly and should do before we build it.
+look wasteful, and I have already done the measurement that tells us the overlap is possible: the
+Bakery and Fish Market round trips both fit the twenty-second window with room to spare. So we
+build the beat around one of those two and we do not have to argue about whether it can work.
 
 **Afternoon.** Beat seven, and then we test. Five testers, the question script we already have in the
 playtesting folder, same build for everyone, at least two of whom do not play driving games. We have
