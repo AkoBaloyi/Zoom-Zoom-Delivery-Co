@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 900" font-family="Segoe UI, Arial, sans-serif">
+  <rect width="1400" height="900" fill="#2b2b2b"/>
+  <text x="40" y="52" font-size="30" font-weight="700" fill="#ffffff">One order, every state it passes through</text>
+  <text x="40" y="82" font-size="17" fill="#cccccc">The card is the same object throughout. Only the colour bar, the second line and the timer change. Colours are the game's OrderPalette.</text>
+
+  <!-- helper: a ticket -->
+  <g id="row1">
+    <!-- 1 PICK UP (blue) -->
+    <rect x="40" y="130" width="400" height="80" rx="6" fill="#faedc7"/>
+    <rect x="40" y="130" width="9" height="80" fill="#3399ff"/>
+    <text x="62" y="160" font-size="22" font-weight="700" fill="#40261a">#13  Steak Roll</text>
+    <text x="62" y="190" font-size="16" fill="#40261a">PICK UP · Butcher · needs Meat</text>
+    <text x="424" y="158" font-size="18" font-weight="700" fill="#40261a" text-anchor="end">01:04</text>
+    <text x="40" y="236" font-size="15" fill="#9fc8ff" font-weight="700">1  PICK UP — blue. Where to go and what you'll get. Arrow matches.</text>
+
+    <!-- 2 COOKING (orange) -->
+    <rect x="500" y="130" width="400" height="80" rx="6" fill="#faedc7"/>
+    <rect x="500" y="130" width="9" height="80" fill="#fa8c1e"/>
+    <text x="522" y="160" font-size="22" font-weight="700" fill="#40261a">#13  Steak Roll</text>
+    <text x="522" y="190" font-size="16" fill="#40261a">COOKING at Bay 1</text>
+    <rect x="700" y="182" width="170" height="10" rx="5" fill="#ccbfa5"/>
+    <rect x="700" y="182" width="95" height="10" rx="5" fill="#fa8c1e"/>
+    <text x="884" y="158" font-size="18" font-weight="700" fill="#40261a" text-anchor="end">00:49</text>
+    <text x="500" y="236" font-size="15" fill="#ffc37a" font-weight="700">2  COOKING — orange. Bar fills over 8 s. Player should LEAVE now.</text>
+
+    <!-- 3 READY (green) -->
+    <rect x="960" y="130" width="400" height="80" rx="6" fill="#faedc7"/>
+    <rect x="960" y="130" width="9" height="80" fill="#33d959"/>
+    <text x="982" y="160" font-size="22" font-weight="700" fill="#40261a">#13  Steak Roll</text>
+    <text x="982" y="190" font-size="16" fill="#40261a">READY at Bay 1 · collect it</text>
+    <rect x="1160" y="182" width="170" height="10" rx="5" fill="#ccbfa5"/>
+    <rect x="1160" y="182" width="110" height="10" rx="5" fill="#33d959"/>
+    <text x="1344" y="158" font-size="18" font-weight="700" fill="#40261a" text-anchor="end">00:41</text>
+    <text x="960" y="236" font-size="15" fill="#8cf0a3" font-weight="700">3  READY — green. Bar now DRAINS over 12 s toward burning.</text>
+  </g>
+
+  <g id="row2">
+    <!-- 4 BURN WARNING (yellow flashing) -->
+    <rect x="40" y="300" width="400" height="80" rx="6" fill="#faedc7"/>
+    <rect x="40" y="300" width="9" height="80" fill="#ffd91a"/>
+    <text x="62" y="330" font-size="22" font-weight="700" fill="#40261a">#13  Steak Roll</text>
+    <text x="62" y="360" font-size="16" font-weight="700" fill="#b35a00">BURNING IN 4s · Bay 1</text>
+    <rect x="240" y="352" width="170" height="10" rx="5" fill="#ccbfa5"/>
+    <rect x="240" y="352" width="36" height="10" rx="5" fill="#f2261f"/>
+    <text x="424" y="328" font-size="18" font-weight="700" fill="#40261a" text-anchor="end">00:33</text>
+    <text x="40" y="406" font-size="15" fill="#ffe680" font-weight="700">4  BURN WARNING — yellow, flashes. Last 4 s (burnWarningSeconds).</text>
+
+    <!-- 5 DROP OFF (green, carrying) -->
+    <rect x="500" y="300" width="400" height="80" rx="6" fill="#faedc7"/>
+    <rect x="500" y="300" width="9" height="80" fill="#33d959"/>
+    <text x="522" y="330" font-size="22" font-weight="700" fill="#40261a">#13  Steak Roll</text>
+    <text x="522" y="360" font-size="16" fill="#40261a">DROP OFF · East Midpoint · in car</text>
+    <text x="884" y="328" font-size="18" font-weight="700" fill="#40261a" text-anchor="end">00:29</text>
+    <text x="500" y="406" font-size="15" fill="#8cf0a3" font-weight="700">5  DROP OFF — green. Food in car. Arrow points at the customer.</text>
+
+    <!-- 6 URGENT (red) -->
+    <rect x="960" y="300" width="400" height="80" rx="6" fill="#faedc7"/>
+    <rect x="960" y="300" width="9" height="80" fill="#f2261f"/>
+    <text x="982" y="330" font-size="22" font-weight="700" fill="#40261a">#13  Steak Roll</text>
+    <text x="982" y="360" font-size="16" fill="#40261a">DROP OFF · East Midpoint · in car</text>
+    <text x="1344" y="328" font-size="20" font-weight="900" fill="#f2261f" text-anchor="end">00:07</text>
+    <text x="960" y="406" font-size="15" fill="#ff8a85" font-weight="700">6  URGENT — red bar, red timer, card pulses. Under 10 s.</text>
+  </g>
+
+  <!-- outcomes: popups -->
+  <text x="40" y="490" font-size="24" font-weight="700" fill="#ffffff">Outcomes — the popup at top-centre, 2.5 s, then the card leaves the strip</text>
+
+  <g font-size="21" font-weight="700" text-anchor="middle">
+    <rect x="40"  y="520" width="400" height="50" rx="25" fill="#33d959"/>
+    <text x="240" y="553" fill="#102a14">Order #13 early, +R 180</text>
+    <rect x="500" y="520" width="400" height="50" rx="25" fill="#faedc7"/>
+    <text x="700" y="553" fill="#40261a">Order #13 on time, +R 120</text>
+    <rect x="960" y="520" width="400" height="50" rx="25" fill="#ff9926"/>
+    <text x="1160" y="553" fill="#3a1f00">Order #13 late, +R 40</text>
+
+    <rect x="40"  y="600" width="400" height="50" rx="25" fill="#f2261f"/>
+    <text x="240" y="633" fill="#ffffff">Steak Roll #13 burned, minus R 50</text>
+    <rect x="500" y="600" width="400" height="50" rx="25" fill="#f2261f"/>
+    <text x="700" y="633" fill="#ffffff">Order #13 cancelled, minus R 50</text>
+    <rect x="960" y="600" width="400" height="50" rx="25" fill="#fa8c1e"/>
+    <text x="1160" y="633" fill="#2a1600">#13 Steak Roll cooking, 8s</text>
+  </g>
+  <g font-size="14" fill="#cccccc">
+    <text x="40" y="590">Deliver green</text>
+    <text x="500" y="590">Paper (neutral)</text>
+    <text x="960" y="590">Late orange — paid, but less</text>
+    <text x="40" y="670">Urgent red — money LOST</text>
+    <text x="500" y="670">Urgent red — money LOST</text>
+    <text x="960" y="670">Cook orange — informational</text>
+  </g>
+
+  <!-- rule -->
+  <rect x="40" y="720" width="1320" height="140" rx="8" fill="#1f140f"/>
+  <text x="60" y="756" font-size="20" font-weight="700" fill="#ffd12e">The one rule across all of it</text>
+  <text x="60" y="790" font-size="17" fill="#ffffff">Green means money is coming. Red means money is leaving. Orange means something is cooking and you should be elsewhere.</text>
+  <text x="60" y="818" font-size="17" fill="#ffffff">Blue means go and fetch. Yellow means hurry. A player who learns five colours has learned the whole order system.</text>
+  <text x="60" y="846" font-size="15" fill="#cccccc">Every one of these strings already exists in OrderTicketStrip and DestinationMarker. The job is making them read as one language.</text>
+</svg>

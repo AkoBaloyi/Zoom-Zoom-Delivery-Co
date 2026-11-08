@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2a3a52"/><stop offset="1" stop-color="#55657a"/>
+    </linearGradient>
+    <linearGradient id="road" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3a3a3a"/><stop offset="1" stop-color="#5a5a5a"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Gameplay backdrop: a stand-in so the overlay reads against real contrast -->
+  <rect width="1920" height="1080" fill="url(#sky)"/>
+  <polygon points="0,1080 1920,1080 1260,560 660,560" fill="url(#road)"/>
+  <polygon points="930,1080 990,1080 965,560 955,560" fill="#d8c86a" opacity="0.6"/>
+  <rect x="120" y="380" width="380" height="330" fill="#6d5a4a" opacity="0.9"/>
+  <rect x="1480" y="420" width="320" height="290" fill="#5a6a7a" opacity="0.9"/>
+  <!-- the car, bottom centre -->
+  <rect x="860" y="860" width="200" height="110" rx="18" fill="#f2c02a"/>
+  <rect x="885" y="820" width="150" height="55" rx="10" fill="#1e1e1e"/>
+
+  <!-- ===== ZONE 1 : top-left, ORDER TICKET STRIP (exists: OrderTicketStrip) ===== -->
+  <g id="ticket-strip">
+    <rect x="30" y="30" width="520" height="260" rx="8" fill="#1f140f" opacity="0.78"/>
+    <!-- ticket 1, focused -->
+    <rect x="46" y="46" width="488" height="72" rx="6" fill="#faedc7"/>
+    <rect x="46" y="46" width="8" height="72" fill="#33d959"/>
+    <text x="66" y="74" font-size="22" font-weight="700" fill="#40261a">#12  Fish Burger</text>
+    <text x="66" y="102" font-size="16" fill="#40261a">COOKING at Bay 1 · ready in 5s</text>
+    <rect x="320" y="92" width="200" height="12" rx="6" fill="#ccbfa5"/>
+    <rect x="320" y="92" width="130" height="12" rx="6" fill="#fa8c1e"/>
+    <text x="474" y="72" font-size="18" font-weight="700" fill="#40261a" text-anchor="end">00:38</text>
+    <!-- ticket 2 -->
+    <rect x="46" y="126" width="488" height="72" rx="6" fill="#faedc7" opacity="0.92"/>
+    <rect x="46" y="126" width="8" height="72" fill="#3399ff"/>
+    <text x="66" y="154" font-size="22" font-weight="700" fill="#40261a">#13  Steak Roll</text>
+    <text x="66" y="182" font-size="16" fill="#40261a">PICK UP · Butcher · needs Meat</text>
+    <text x="474" y="152" font-size="18" font-weight="700" fill="#40261a" text-anchor="end">01:04</text>
+    <!-- ticket 3, urgent -->
+    <rect x="46" y="206" width="488" height="72" rx="6" fill="#faedc7" opacity="0.92"/>
+    <rect x="46" y="206" width="8" height="72" fill="#f2261f"/>
+    <text x="66" y="234" font-size="22" font-weight="700" fill="#40261a">#11  Dairy Box</text>
+    <text x="66" y="262" font-size="16" fill="#40261a">DROP OFF · East Midpoint</text>
+    <text x="474" y="232" font-size="18" font-weight="700" fill="#f2261f" text-anchor="end">00:07</text>
+  </g>
+
+  <!-- ===== ZONE 2 : top-right, SHIFT PANEL (exists: OrderHUD) ===== -->
+  <g id="shift-panel">
+    <rect x="1490" y="30" width="400" height="150" rx="8" fill="#1f140f" opacity="0.78"/>
+    <text x="1870" y="78" font-size="40" font-weight="700" fill="#ffffff" text-anchor="end">02:41</text>
+    <text x="1870" y="112" font-size="20" fill="#ffffff" text-anchor="end">Ingredients 1/2 · Food #12</text>
+    <text x="1870" y="146" font-size="20" fill="#ffcc33" text-anchor="end">R 1 240  ·  Delivered 6  Failed 2</text>
+  </g>
+
+  <!-- ===== ZONE 3 : top-centre, EVENT POPUP (exists: OrderTicketStrip.PushPopup) ===== -->
+  <g id="popup">
+    <rect x="620" y="30" width="680" height="54" rx="27" fill="#33d959" opacity="0.92"/>
+    <text x="960" y="66" font-size="24" font-weight="700" fill="#102a14" text-anchor="middle">Order #10 early, +R 180</text>
+  </g>
+
+  <!-- ===== ZONE 4 : world-anchored DESTINATION ARROW + BEACON (exist: DestinationMarker, OrderBeacon) ===== -->
+  <g id="arrow-onscreen">
+    <polygon points="1530,330 1500,390 1560,390" fill="#f2261f"/>
+    <rect x="1455" y="392" width="150" height="46" rx="6" fill="#1f140f" opacity="0.85"/>
+    <text x="1530" y="412" font-size="15" font-weight="700" fill="#ffffff" text-anchor="middle">#11 DROP 7s</text>
+    <text x="1530" y="430" font-size="14" fill="#ffffff" text-anchor="middle">86m</text>
+  </g>
+  <!-- off-screen arrow pinned to the left edge -->
+  <g id="arrow-offscreen">
+    <polygon points="34,560 84,530 84,590" fill="#3399ff"/>
+    <rect x="90" y="536" width="150" height="46" rx="6" fill="#1f140f" opacity="0.85"/>
+    <text x="165" y="556" font-size="15" font-weight="700" fill="#ffffff" text-anchor="middle">#13 PICK UP 64s</text>
+    <text x="165" y="574" font-size="14" fill="#ffffff" text-anchor="middle">212m</text>
+  </g>
+
+  <!-- ===== ZONE 5 : bottom-left, GEAR + SPEED + TRICK (exists: CrazyTaxiFeedback) ===== -->
+  <g id="drive-readout">
+    <rect x="30" y="900" width="560" height="150" rx="8" fill="#1f140f" opacity="0.78"/>
+    <text x="50" y="952" font-size="44" font-weight="900" fill="#ffd12e">CRAZY DASH</text>
+    <text x="50" y="1000" font-size="30" font-weight="700" fill="#ffffff">D3  ·  27 m/s  ·  DASH ACTIVE</text>
+    <text x="50" y="1034" font-size="16" fill="#d9e6ff">W GAS · S BRAKE · SHIFT TRICK · CTRL DRIFT · SPACE TURN</text>
+  </g>
+
+  <!-- ===== ZONE 6 : bottom-right, PAUSE (exists: ButtonsUI, mouse-only today) ===== -->
+  <g id="pause">
+    <rect x="1760" y="980" width="130" height="60" rx="8" fill="#1f140f" opacity="0.78" stroke="#ffffff" stroke-opacity="0.5"/>
+    <text x="1825" y="1018" font-size="22" font-weight="700" fill="#ffffff" text-anchor="middle">PAUSE</text>
+    <text x="1825" y="968" font-size="14" fill="#ffffff" opacity="0.7" text-anchor="middle">Esc</text>
+  </g>
+
+  <!-- ===== annotations ===== -->
+  <g font-size="15" fill="#ffe28a" font-weight="700">
+    <text x="30" y="316">1  Ticket strip — one card per live order, sorted by time left. Colour bar = state.</text>
+    <text x="1490" y="206">2  Shift panel — clock largest, money gold.</text>
+    <text x="620" y="110">3  Event popup — one line, colour = outcome, 2.5 s.</text>
+    <text x="1300" y="470">4  Arrow + label — on target when visible,</text>
+    <text x="1300" y="490">    pinned to screen edge when not. Swells near expiry.</text>
+    <text x="620" y="1074">5  Drive readout — trick name is the biggest text on screen for 1 s.</text>
+    <text x="1540" y="950">6  Pause — needs Esc / Start binding.</text>
+  </g>
+</svg>
