@@ -15,6 +15,8 @@ namespace ZoomZoom.Vehicle
         private TaxiTrickRecognizer _tricks;
         private float _trickRemaining, _dashWindow, _dashCeiling, _driftSign, _exitGripRemaining;
         private float _rightingDelay;
+        private float _directDashCooldown;
+        public float DashCooldownRemaining => _directDashCooldown;
         private bool _taxiRecoveryRequested;
         private float _spinCooldownRemaining, _spinSpeed, _spinSign;
         private Vector3 _spinTargetForward;
@@ -86,6 +88,7 @@ namespace ZoomZoom.Vehicle
         private void ResetTaxi()
         {
             ClearTaxiInput();
+            _directDashCooldown = 0f;
             _dashCeiling = Taxi.dashSpeed;
             _rightingDelay = 0f;
             _taxiRecoveryRequested = false;
@@ -144,6 +147,7 @@ namespace ZoomZoom.Vehicle
             _exitGripRemaining = Mathf.Max(0f, _exitGripRemaining - dt);
             _spinCooldownRemaining = Mathf.Max(0f, _spinCooldownRemaining - dt);
             _cargoProtectionRemaining = Mathf.Max(0f, _cargoProtectionRemaining - dt);
+            _directDashCooldown = Mathf.Max(0f, _directDashCooldown - dt);
             if (_trickRemaining <= 0f) ActiveTrick = TaxiTrick.None;
             // Opposite-direction W/S can be a logical brake without both physical pedals being
             // pressed. Only the input adapter's two-pedal flag requests free revving.
@@ -154,6 +158,26 @@ namespace ZoomZoom.Vehicle
                 TimedCommand input = _taxiCommands.Dequeue();
                 if (input.command == TaxiCommand.QuickSpin && (!CanQuickSpinNow ||
                     Mathf.Abs(Drive.steer) < Taxi.trickSteerThreshold)) continue;
+                bool direct = input.command == TaxiCommand.DirectDash || input.command == TaxiCommand.DirectDrift || input.command == TaxiCommand.DirectStop;
+                if (direct)
+                {
+                    if (!Taxi.directTechniqueControls || !IsGrounded || !IsUpright || ActiveTrick == TaxiTrick.QuickSpin) continue;
+                    if (input.command == TaxiCommand.DirectDash && !freeRev && Drive.brake < 0.05f && Drive.throttle > 0f &&
+                        ForwardSpeed >= -Taxi.reverseEngageSpeed && (ForwardSpeed <= Taxi.cruiseSpeed + 0.1f || IsTaxiDrifting) &&
+                        _directDashCooldown <= 0f && ActiveTrick != TaxiTrick.Dash)
+                    {
+                        _directDashCooldown = Mathf.Max(Taxi.dashDuration, Taxi.directDashCooldown);
+                        BeginTaxiTrick(TaxiTrick.Dash);
+                    }
+                    else if (input.command == TaxiCommand.DirectDrift && !freeRev && ForwardSpeed >= Taxi.driftMinimumSpeed &&
+                        Mathf.Abs(Drive.steer) >= Taxi.trickSteerThreshold && !IsTaxiDrifting)
+                        BeginTaxiTrick(TaxiTrick.Drift);
+                    else if (input.command == TaxiCommand.DirectStop && ForwardSpeed >= Taxi.driftMinimumSpeed && ActiveTrick != TaxiTrick.Stop)
+                        BeginTaxiTrick(TaxiTrick.Stop);
+                    continue;
+                }
+                // Legacy gear gestures cannot bypass the modern dash cooldown.
+                if (Taxi.directTechniqueControls && input.command != TaxiCommand.QuickSpin) continue;
                 TaxiTrick trick = _tricks.Push(input.command, input.time, IsGrounded && IsUpright,
                     ForwardSpeed >= Taxi.driftMinimumSpeed, Mathf.Abs(Drive.steer) >= Taxi.trickSteerThreshold,
                     _dashWindow > 0f && ForwardSpeed > Taxi.cruiseSpeed * 0.8f);

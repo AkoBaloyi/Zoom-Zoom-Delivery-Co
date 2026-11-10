@@ -39,6 +39,9 @@ namespace ZoomZoom.Orders
 
         [Header("Look")]
         [SerializeField] private bool buildVisual = true;
+        [Tooltip("The floating name and countdown above the bay (\"BAY 1 EMPTY\"). Untick it if " +
+                 "the bay has a Shop Sign on its building; the order phone still shows the countdown.")]
+        [SerializeField] private bool showFloatingLabel = true;
         [SerializeField] private float stoveHeight = 2.5f;
         [SerializeField] private float stoveRadius = 1.4f;
         [SerializeField] private float barWidth = 5f;
@@ -210,7 +213,6 @@ namespace ZoomZoom.Orders
             if (_camera == null) _camera = Camera.main;
 
             float pulse = 0.5f + 0.5f * Mathf.Sin(Time.time * 4f);
-            float fastPulse = 0.5f + 0.5f * Mathf.Sin(Time.time * 12f);
 
             Color zone;
             Color bar;
@@ -236,7 +238,7 @@ namespace ZoomZoom.Orders
             else
             {
                 bool warning = Order.BayTimeRemaining <= warnBelowSeconds;
-                zone = warning ? Color.Lerp(OrderPalette.Deliver, OrderPalette.Urgent, fastPulse) : OrderPalette.Deliver;
+                zone = warning ? OrderPalette.Urgent : OrderPalette.Deliver;
                 bar = OrderPalette.TimerBar(Order.BayFraction);
                 fill = Order.BayFraction;
                 label = warning
@@ -269,6 +271,7 @@ namespace ZoomZoom.Orders
                 _barBgRenderer.SetPropertyBlock(_bgBlock);
             }
 
+            _label.gameObject.SetActive(showFloatingLabel);
             _label.text = label;
             _label.color = zone;
 

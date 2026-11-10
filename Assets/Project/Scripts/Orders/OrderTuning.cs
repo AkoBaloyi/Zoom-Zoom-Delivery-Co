@@ -36,6 +36,17 @@ namespace ZoomZoom.Orders
         [Range(1, 4)]
         public int maxActiveOrders = 4;
 
+        [Header("Difficulty ramp")]
+        [Tooltip("Most orders open at once in each minute of the shift: the first number is " +
+                 "minute 1, the second minute 2, and so on. After the list ends, the last number " +
+                 "holds. Keeps the start of a shift calm and builds up, since playtesters found " +
+                 "orders piling up too fast. Never above Max Active Orders.")]
+        public int[] maxOrdersByMinute = { 1, 2, 3, 4 };
+
+        [Tooltip("Seconds after the shift starts before the first order arrives, so the player " +
+                 "can get moving first.")]
+        public float firstOrderDelay = 3f;
+
         [Header("Patience")]
         [Tooltip("Seconds each order waits before it is cancelled. This is the bar on each order " +
                  "card, separate from the shift clock. It keeps running while the food cooks.")]
@@ -52,9 +63,6 @@ namespace ZoomZoom.Orders
         [Header("Pay")]
         [Tooltip("Rand paid for an order when no food is set on it.")]
         public float baseDeliveryValue = 250f;
-
-        [Tooltip("Optional extra Rand per metre of the order's planned distance. 0 turns it off.")]
-        public float valuePerMetre = 0f;
 
         [Header("Time bonus (share of patience left at delivery)")]
         [Range(0f, 1f)]
@@ -81,16 +89,20 @@ namespace ZoomZoom.Orders
                  "fails as well.")]
         public float burnPenalty = 50f;
 
-        /// <summary>Base pay for an order before the time bonus: the food's base pay (or Base
-        /// Delivery Value with no food) plus the optional distance extra.</summary>
-        public float BasePayFor(FoodType food, float designedDistance)
-        {
-            float basePay = food != null ? food.basePay : baseDeliveryValue;
-            return basePay + Mathf.Max(0f, designedDistance) * valuePerMetre;
-        }
+        /// <summary>Base pay for an order before the time bonus: the food's base pay, or Base
+        /// Delivery Value when no food is set.</summary>
+        public float BasePayFor(FoodType food) => food != null ? food.basePay : baseDeliveryValue;
 
-        /// <summary>Kept for older callers. Same as BasePayFor with no food.</summary>
-        public float DeliveryValueFor(float designedDistance) => BasePayFor(null, designedDistance);
+        /// <summary>The most orders allowed open at this point in the shift.</summary>
+        public int MaxOrdersAt(float shiftSeconds)
+        {
+            int cap = Mathf.Clamp(maxActiveOrders, 1, MaxOrders);
+            if (maxOrdersByMinute == null || maxOrdersByMinute.Length == 0) return cap;
+
+            int minute = Mathf.Max(0, Mathf.FloorToInt(shiftSeconds / 60f));
+            int index = Mathf.Min(minute, maxOrdersByMinute.Length - 1);
+            return Mathf.Clamp(maxOrdersByMinute[index], 1, cap);
+        }
 
         public float CookSecondsFor(FoodType food) => food != null ? food.cookSeconds : defaultCookSeconds;
         public float BurnSecondsFor(FoodType food) => food != null ? food.burnSeconds : defaultBurnSeconds;
@@ -121,11 +133,14 @@ namespace ZoomZoom.Orders
         {
             spawnInterval = Mathf.Max(0.5f, spawnInterval);
             maxActiveOrders = Mathf.Clamp(maxActiveOrders, 1, MaxOrders);
+            firstOrderDelay = Mathf.Max(0f, firstOrderDelay);
+            if (maxOrdersByMinute != null)
+                for (int i = 0; i < maxOrdersByMinute.Length; i++)
+                    maxOrdersByMinute[i] = Mathf.Clamp(maxOrdersByMinute[i], 1, MaxOrders);
             orderTimeLimit = Mathf.Max(1f, orderTimeLimit);
             defaultCookSeconds = Mathf.Max(0f, defaultCookSeconds);
             defaultBurnSeconds = Mathf.Max(1f, defaultBurnSeconds);
             baseDeliveryValue = Mathf.Max(0f, baseDeliveryValue);
-            valuePerMetre = Mathf.Max(0f, valuePerMetre);
             cancelPenalty = Mathf.Max(0f, cancelPenalty);
             burnPenalty = Mathf.Max(0f, burnPenalty);
             lateBelowPatienceLeft = Mathf.Min(lateBelowPatienceLeft, earlyAbovePatienceLeft);

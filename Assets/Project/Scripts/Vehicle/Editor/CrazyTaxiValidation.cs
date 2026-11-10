@@ -70,7 +70,11 @@ namespace ZoomZoom.Vehicle.Editor
                 serialized.ApplyModifiedPropertiesWithoutUndo();
                 Call(_car, "Awake");
                 Check(_car.GetComponent<VehicleLabInputMeter>() != null, "VehicleLab automatically exposes the controller meter");
+                // Retain legacy rhythm coverage, then exercise the default direct controls.
+                _car.Taxi.directTechniqueControls = false;
                 TestPhysics();
+                _car.Taxi.directTechniqueControls = true;
+                TestDirectTechniques();
                 TestRoadRecovery();
                 TestSharperHandling();
                 RecordFeelComparison();
@@ -437,6 +441,74 @@ namespace ZoomZoom.Vehicle.Editor
             ResetCar();
         }
 
+        private static void TestDirectTechniques()
+        {
+            ResetCar();
+            _car.Drive = new DriveInput { throttle = 1f };
+            Tick(5f);
+            _car.QueueTaxiCommand(TaxiCommand.DirectDash, 100);
+            int count = _car.TrickCount;
+            Tick(0.3f);
+            Check(_car.ActiveTrick == TaxiTrick.Dash && _car.Speed > 32f && _car.TrickCount == count + 1,
+                "Direct dash works after sustained throttle at cruise speed and gains real speed");
+            _car.QueueTaxiCommand(TaxiCommand.DirectDash, 100.3);
+            _car.QueueTaxiCommand(TaxiCommand.Reverse, 100.31);
+            _car.QueueTaxiCommand(TaxiCommand.Drive, 100.32);
+            _car.QueueTaxiCommand(TaxiCommand.GasDown, 100.33);
+            Tick(0.1f);
+            Check(_car.TrickCount == count + 1, "Repeated or legacy requests cannot bypass direct dash cooldown");
+            float cooldownBeforePause = _car.DashCooldownRemaining;
+            _car.ClearTaxiInput();
+            Check(_car.DashCooldownRemaining == cooldownBeforePause,
+                "Pause/focus input clearing cannot recharge dash");
+            _car.Drive = new DriveInput { throttle = 1f };
+            Tick(2.5f);
+            _car.QueueTaxiCommand(TaxiCommand.DirectDash, 103);
+            Tick(0.1f);
+            Check(_car.TrickCount == count + 2, "A new direct dash is accepted after cooldown and return to cruise");
+
+            ResetCar();
+            _car.Body.linearVelocity = Vector3.forward * 15f;
+            _car.Drive = new DriveInput { steer = 1f, throttle = 1f };
+            _car.QueueTaxiCommand(TaxiCommand.DirectDrift, 110);
+            Tick(0.1f);
+            Check(_car.IsTaxiDrifting, "Direct drift accepts steering without gear flicks");
+            _car.QueueTaxiCommand(TaxiCommand.DirectDash, 110.1);
+            Tick(0.1f);
+            Check(_car.ActiveTrick == TaxiTrick.Dash, "Direct dash exits a drift");
+
+            ResetCar();
+            _car.Body.linearVelocity = Vector3.forward * 20f;
+            _car.Drive = new DriveInput { brake = 1f, engineThrottle = 1f, freeRev = true };
+            count = _car.TrickCount;
+            _car.QueueTaxiCommand(TaxiCommand.DirectDash, 120);
+            Tick(Dt);
+            Check(_car.TrickCount == count, "Brake/free-rev state rejects a direct dash");
+            _car.QueueTaxiCommand(TaxiCommand.DirectStop, 120.1);
+            Tick(0.3f);
+            Check(_car.Speed < 0.3f && _car.TrickCount == count + 1, "Direct stop brakes even with both pedals held");
+
+            ResetCar();
+            _car.Body.linearVelocity = Vector3.forward * 15f;
+            _car.Drive = new DriveInput { throttle = 1f };
+            count = _car.TrickCount;
+            _car.QueueTaxiCommand(TaxiCommand.DirectDrift, 130);
+            Tick(Dt);
+            Check(_car.TrickCount == count, "Direct drift needs deliberate steering");
+            _car.QueueTaxiCommand(TaxiCommand.DirectDash, 131);
+            _car.ClearTaxiInput();
+            Tick(Dt);
+            Check(_car.TrickCount == count && _car.DashCooldownRemaining == 0f,
+                "Input reset clears pending direct techniques and feedback cooldown");
+            _car.Teleport(new Vector3(0, 20, 0), Quaternion.identity);
+            _car.Drive = new DriveInput { throttle = 1f, steer = 1f };
+            _car.QueueTaxiCommand(TaxiCommand.DirectDash, 132);
+            _car.QueueTaxiCommand(TaxiCommand.DirectDrift, 132.1);
+            Tick(0.1f);
+            Check(_car.TrickCount == count, "Direct techniques cannot supply airborne thrust or drift");
+            ResetCar();
+        }
+
         private static void TestSharperHandling()
         {
             CrazyTaxiSettings original = _car.Tuning.taxi;
@@ -611,6 +683,12 @@ namespace ZoomZoom.Vehicle.Editor
             for (int frame = 0; frame < 120; frame++) camera.RenderCamera(Dt);
             Check(camera.Camera.fieldOfView > restFov + 7f && camera.Camera.fieldOfView <= restFov + 9.1f,
                 "Speed camera smoothly widens FOV within the authored limit at unchanged cruise speed");
+            _car.Drive = new DriveInput { throttle = 1f };
+            _car.QueueTaxiCommand(TaxiCommand.DirectDash, 200);
+            Tick(Dt);
+            for (int frame = 0; frame < 60; frame++) camera.RenderCamera(Dt);
+            Check(camera.Camera.fieldOfView > restFov + 11f && camera.Camera.fieldOfView <= restFov + 13.1f,
+                "Accepted dash has a distinct bounded FOV cue above ordinary cruise");
             _car.Taxi.speedCameraCues = false;
             camera.SnapToTarget();
             Check(Mathf.Abs(camera.Camera.fieldOfView - _car.Taxi.cameraFov) < 0.01f,
@@ -623,10 +701,23 @@ namespace ZoomZoom.Vehicle.Editor
                 "Assets/Project/Scripts/Vehicle/VehicleControls.inputactions");
             var map = asset.FindActionMap("Vehicle", true);
             var fallback = VehicleInput.BuildFallbackControls();
-            Check(map.actions.Count == 8 && map.FindAction("Boost") == null && map.FindAction("Jump") == null &&
-                map.FindAction("Flip") == null, "Input asset has eight taxi actions and no Rocket League actions");
+            Check(map.actions.Count == 11 && map.FindAction("Technique") != null && map.FindAction("Drift") != null &&
+                map.FindAction("ToggleMotion") != null && map.FindAction("Jump") == null && map.FindAction("Flip") == null,
+                "Input asset contains direct techniques and motion toggle without retired actions");
             Check(map.bindings.Count == fallback.FindActionMap("Vehicle").bindings.Count,
                 "Fallback input layout has the same binding count as the asset");
+            foreach (var binding in map.bindings)
+            {
+                bool found = false;
+                foreach (var other in fallback.FindActionMap("Vehicle").bindings)
+                    if (binding.action == other.action && binding.path == other.path &&
+                        (!binding.isPartOfComposite || string.Equals(binding.name ?? "", other.name ?? "", StringComparison.OrdinalIgnoreCase)) &&
+                        binding.isComposite == other.isComposite && binding.isPartOfComposite == other.isPartOfComposite)
+                        found = true;
+                Check(found, "Saved and fallback input agree: " + binding.action + " " + binding.path);
+                Check(!(binding.action == "Brake" && binding.path == "<Keyboard>/leftCtrl"),
+                    "Drift key cannot also apply ordinary brake: " + binding.path);
+            }
             UnityEngine.Object.DestroyImmediate(fallback);
             foreach (var path in new[] { "Assets/Project/Scenes/Possible game scene.unity", "Assets/Project/Scenes/VehicleLab.unity" })
             {

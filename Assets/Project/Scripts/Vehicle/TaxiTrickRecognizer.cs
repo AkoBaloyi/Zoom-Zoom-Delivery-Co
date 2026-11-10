@@ -3,7 +3,7 @@ using System;
 namespace ZoomZoom.Vehicle
 {
     public enum TaxiGear { Drive, Reverse }
-    public enum TaxiCommand { Drive, Reverse, GasDown, GasUp, BrakeDown, BrakeUp, Steer, QuickSpin, AutoDrive, AutoReverse }
+    public enum TaxiCommand { Drive, Reverse, GasDown, GasUp, BrakeDown, BrakeUp, Steer, QuickSpin, AutoDrive, AutoReverse, DirectDash, DirectDrift, DirectStop }
     public enum TaxiTrick { None, Dash, Drift, Stop, LimiterCut, BackDash, BackDrift, QuickSpin }
 
     /// <summary>Consumes ordered input events, including taps between two physics steps.</summary>

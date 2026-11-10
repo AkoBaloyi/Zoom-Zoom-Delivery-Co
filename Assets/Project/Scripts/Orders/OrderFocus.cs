@@ -17,8 +17,8 @@ namespace ZoomZoom.Orders
     ///
     /// THE PLAYER CAN OVERRIDE IT
     /// Tab (or D-pad right) cycles through the orders, oldest first. A chosen order stays
-    /// selected until it ends, then selection goes back to automatic. G (or D-pad up) turns the
-    /// GPS route line on and off.
+    /// selected until it ends, then selection goes back to automatic. G (or D-pad up) cycles the
+    /// guidance setting: Markers, GPS route, or both (see GameSettings).
     ///
     /// The selected order gets the highlighted card, the full size arrow and the GPS line.
     /// Nothing here changes an order. Added automatically next to the OrderManager if no scene
@@ -37,10 +37,6 @@ namespace ZoomZoom.Orders
         [Tooltip("D-pad right cycles orders, D-pad up toggles the GPS line.")]
         [SerializeField] private bool useGamepad = true;
 
-        [Header("GPS")]
-        [Tooltip("Whether the GPS route line starts switched on.")]
-        [SerializeField] private bool gpsOnAtStart = true;
-
         [Header("Debug")]
         [SerializeField] private bool logActivity = false;
 
@@ -53,10 +49,10 @@ namespace ZoomZoom.Orders
         /// <summary>True while the player has picked an order with the cycle button.</summary>
         public bool IsManual => _manualId >= 0;
 
-        public bool GpsOn { get; private set; }
+        /// <summary>True when the guidance setting includes the GPS line.</summary>
+        public bool GpsOn => GameSettings.ShowGps;
 
         public event Action<Order> SelectionChanged;
-        public event Action<bool> GpsToggled;
 
         private int _manualId = -1;
 
@@ -72,7 +68,6 @@ namespace ZoomZoom.Orders
         {
             if (orderManager == null) orderManager = GetComponent<OrderManager>();
             if (orderManager == null) orderManager = FindAnyObjectByType<OrderManager>();
-            GpsOn = gpsOnAtStart;
 
             if (orderManager == null)
             {
@@ -81,8 +76,9 @@ namespace ZoomZoom.Orders
                 return;
             }
 
-            // The GPS line reads the selection, so make sure there is one.
+            // The GPS line and the sound cues read the selection, so make sure both exist.
             if (FindAnyObjectByType<GpsRoute>() == null) gameObject.AddComponent<GpsRoute>();
+            if (FindAnyObjectByType<OrderAudio>() == null) gameObject.AddComponent<OrderAudio>();
         }
 
         private void Update()
@@ -110,7 +106,7 @@ namespace ZoomZoom.Orders
             }
 
             if (cycle) Cycle();
-            if (toggle) SetGps(!GpsOn);
+            if (toggle) GameSettings.CycleGuidance();
         }
 
         /// <summary>Selects the next live order after the current one, oldest first, wrapping.</summary>
@@ -136,13 +132,6 @@ namespace ZoomZoom.Orders
                 Debug.Log($"[OrderFocus] Player selected order {Selected.Id} ({Selected.FoodName}).");
         }
 
-        public void SetGps(bool on)
-        {
-            if (GpsOn == on) return;
-            GpsOn = on;
-            GpsToggled?.Invoke(on);
-            if (logActivity) Debug.Log($"[OrderFocus] GPS {(on ? "on" : "off")}.");
-        }
 
         private void Recalculate()
         {

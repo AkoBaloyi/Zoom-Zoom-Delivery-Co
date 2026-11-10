@@ -57,14 +57,10 @@ namespace ZoomZoom.Orders
         /// <summary>Early bonus (positive) or late deduction (negative).</summary>
         public float TimeAdjustment;
 
-        /// <summary>Pay lost to damaged cargo, when cargo condition is switched on. Zero or
-        /// negative.</summary>
-        public float ConditionLoss;
-
         /// <summary>The fixed cost of a cancelled or burned order. Zero or negative.</summary>
         public float Penalty;
 
-        public float Total => BasePay + TimeAdjustment + ConditionLoss + Penalty;
+        public float Total => BasePay + TimeAdjustment + Penalty;
     }
 
     /// <summary>One ingredient an order needs, and where the order suggests getting it.</summary>
@@ -117,10 +113,6 @@ namespace ZoomZoom.Orders
         public readonly bool NeedsCooking;
         public readonly float CookSeconds;
         public readonly float BurnSeconds;
-
-        /// <summary>Straight line distance from the first ingredient to the drop off, fixed at
-        /// spawn time. Only used by the optional pay per metre.</summary>
-        public readonly float DesignedDistance;
 
         public OrderState State { get; private set; }
 
@@ -212,24 +204,15 @@ namespace ZoomZoom.Orders
             }
         }
 
-        /// <summary>Where the car should go for this order. While gathering, the nearest
-        /// ingredient still needed from the given position.</summary>
+        /// <summary>Where the car should go for this order. While gathering, the nearest place
+        /// that sells any ingredient still needed, from the given position.</summary>
         public Vector3 TargetFrom(Vector3 from)
         {
             switch (CurrentStep)
             {
                 case OrderStep.Gather:
-                    {
-                        IngredientStop best = null;
-                        float bestDistance = float.MaxValue;
-                        foreach (IngredientStop s in _stops)
-                        {
-                            if (s.Collected) continue;
-                            float d = (s.Point - from).sqrMagnitude;
-                            if (d < bestDistance) { bestDistance = d; best = s; }
-                        }
-                        return best != null ? best.Point : DropOffPoint;
-                    }
+                    IngredientStop stop = NearestStop(from, out Vector3 place);
+                    return stop != null ? place : DropOffPoint;
                 case OrderStep.Cook:
                     return BayPoint;
                 default:
@@ -237,8 +220,58 @@ namespace ZoomZoom.Orders
             }
         }
 
-        /// <summary>Kept for older callers. The first ingredient while gathering.</summary>
-        public Vector3 CurrentTarget => TargetFrom(_stops.Count > 0 ? _stops[0].Point : DropOffPoint);
+        /// <summary>The ingredient still needed whose nearest shop is closest to the given
+        /// position, and where that shop is. Null when nothing is left to collect.</summary>
+        public IngredientStop NearestStop(Vector3 from, out Vector3 place)
+        {
+            IngredientStop best = null;
+            place = DropOffPoint;
+            float bestDistance = float.MaxValue;
+
+            foreach (IngredientStop s in _stops)
+            {
+                if (s.Collected) continue;
+                Vector3 p = NearestPlaceFor(s, from);
+                float d = (p - from).sqrMagnitude;
+                if (d < bestDistance) { bestDistance = d; best = s; place = p; }
+            }
+            return best;
+        }
+
+        /// <summary>The nearest place this ingredient can be collected: any Ingredient Source
+        /// that sells it, or the stop's own point if none does. Any shop that sells it counts,
+        /// which is what gives the player a choice of route.</summary>
+        public static Vector3 NearestPlaceFor(IngredientStop stop, Vector3 from)
+        {
+            Vector3 best = stop.Point;
+            float bestDistance = stop.Ingredient != null ? float.MaxValue : 0f;
+
+            if (stop.Ingredient != null)
+            {
+                bool any = false;
+                foreach (IngredientSource source in IngredientSource.All)
+                {
+                    if (!source.SuppliesIngredient(stop.Ingredient)) continue;
+                    any = true;
+                    float d = (source.Position - from).sqrMagnitude;
+                    if (d < bestDistance) { bestDistance = d; best = source.Position; }
+                }
+                if (!any) best = stop.Point;
+            }
+            return best;
+        }
+
+        /// <summary>Every place this ingredient can be collected, for the map beacons.</summary>
+        public static void PlacesFor(IngredientStop stop, List<Vector3> into)
+        {
+            into.Clear();
+            if (stop.Ingredient != null)
+            {
+                foreach (IngredientSource source in IngredientSource.All)
+                    if (source.SuppliesIngredient(stop.Ingredient)) into.Add(source.Position);
+            }
+            if (into.Count == 0) into.Add(stop.Point);
+        }
 
         public event Action<Order, OrderState> StateChanged;
 
@@ -257,7 +290,6 @@ namespace ZoomZoom.Orders
             NeedsCooking = needsCooking;
             CookSeconds = Mathf.Max(0f, cookSeconds);
             BurnSeconds = Mathf.Max(1f, burnSeconds);
-            DesignedDistance = _stops.Count > 0 ? Vector3.Distance(_stops[0].Point, dropOffPoint) : 0f;
             TimeLimit = timeLimit;
             TimeRemaining = timeLimit;
             State = OrderState.Available;

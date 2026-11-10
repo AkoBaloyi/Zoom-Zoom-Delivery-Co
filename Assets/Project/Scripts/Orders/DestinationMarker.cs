@@ -12,7 +12,10 @@ namespace ZoomZoom.Orders.UI
     /// WHAT AN ARROW TELLS YOU AT A GLANCE
     ///   Whose it is: it is drawn in the order's own colour, the same as its notification on the
     ///   phone and its beacon in the world, and labelled with the order number.
-    ///   When it expires: the label shows the seconds left, and the arrow flashes red near the end.
+    ///   What to get: while gathering, the ingredient type's icon sits above the label, matching
+    ///   the chip on the order card and the sign on the shop.
+    ///   When it expires: the label shows the seconds left, and near the end the arrow swells and
+    ///   pulses faster (it never flashes; OrderAudio adds a ticking sound).
     ///   How far: closer targets get bigger arrows and further ones smaller, like the markers in
     ///   a racing game, on a scale that stays readable out to several hundred metres. The exact
     ///   distance is written underneath.
@@ -59,7 +62,7 @@ namespace ZoomZoom.Orders.UI
         [SerializeField] private float unselectedScale = 0.75f;
         [Tooltip("Opacity of arrows for orders that are not selected.")]
         [SerializeField] private float unselectedAlpha = 0.6f;
-        [Tooltip("Seconds left below which an arrow flashes red.")]
+        [Tooltip("Seconds left below which an arrow starts to pulse.")]
         [SerializeField] private float urgentBelowSeconds = 8f;
 
         [Header("Pulse")]
@@ -72,6 +75,7 @@ namespace ZoomZoom.Orders.UI
             public Image Arrow;
             public Text Distance;
             public Text Label;
+            public Image Icon;
         }
 
         private readonly List<MarkerSlot> _slots = new List<MarkerSlot>();
@@ -109,7 +113,13 @@ namespace ZoomZoom.Orders.UI
         private void Update()
         {
             if (orderManager == null || targetCamera == null) return;
-            if (targetCamera == null) targetCamera = Camera.main;
+
+            // The Guidance setting can turn the arrows off (GPS route only).
+            if (!GameSettings.ShowArrows)
+            {
+                foreach (MarkerSlot s in _slots) s.Root.gameObject.SetActive(false);
+                return;
+            }
 
             IReadOnlyList<Order> active = orderManager.ActiveOrders;
             Order selected = focus != null ? focus.Selected : null;
@@ -128,13 +138,16 @@ namespace ZoomZoom.Orders.UI
                 float distance = Vector3.Distance(DistanceOrigin, target);
                 bool isSelected = order == selected;
 
-                Color colour = OrderPalette.OrderColourWithUrgency(order, urgentBelowSeconds, Time.time);
+                Color colour = OrderPalette.OrderColour(order);
                 if (!isSelected) colour.a = unselectedAlpha;
 
-                float scale = ScaleForDistance(distance) * (isSelected ? 1f : unselectedScale);
-                string label = $"#{order.Id} {StepWord(order)}  {Mathf.CeilToInt(order.SecondsUntilLost)}s";
+                // Near the end the arrow swells and pulses faster. It never flashes.
+                float scale = ScaleForDistance(distance) * (isSelected ? 1f : unselectedScale)
+                              * OrderPalette.UrgencyPulse(order, urgentBelowSeconds, Time.time);
+                string label = $"#{order.Id} {StepWord(order, out IngredientType ingredient)}  {Mathf.CeilToInt(order.SecondsUntilLost)}s";
 
                 PlaceMarker(_slots[used], target, colour, label, distance, scale);
+                SetIcon(_slots[used], ingredient, colour.a);
                 if (isSelected) selectedSlot = used;
                 used++;
             }
@@ -150,13 +163,16 @@ namespace ZoomZoom.Orders.UI
             distanceFrom != null ? distanceFrom.position : targetCamera.transform.position;
 
         /// <summary>The word after the order number: the ingredient to get, COOK, READY or DROP.</summary>
-        private string StepWord(Order order)
+        private string StepWord(Order order, out IngredientType ingredient)
         {
+            ingredient = null;
             switch (order.CurrentStep)
             {
                 case OrderStep.Gather:
-                    IngredientStop next = NearestStop(order);
-                    return next != null ? next.Name.ToUpper() : "";
+                    IngredientStop next = order.NearestStop(DistanceOrigin, out _);
+                    if (next == null) return "";
+                    ingredient = next.Ingredient;
+                    return next.Name.ToUpper();
                 case OrderStep.Cook:
                     return order.State == OrderState.Ready ? "READY" : "COOK";
                 default:
@@ -164,18 +180,17 @@ namespace ZoomZoom.Orders.UI
             }
         }
 
-        private IngredientStop NearestStop(Order order)
+        /// <summary>Shows the ingredient's type icon above the label while gathering.</summary>
+        private static void SetIcon(MarkerSlot slot, IngredientType ingredient, float alpha)
         {
-            IngredientStop best = null;
-            float bestDistance = float.MaxValue;
-            Vector3 from = DistanceOrigin;
-            foreach (IngredientStop s in order.Stops)
-            {
-                if (s.Collected) continue;
-                float d = (s.Point - from).sqrMagnitude;
-                if (d < bestDistance) { bestDistance = d; best = s; }
-            }
-            return best;
+            Sprite sprite = IngredientIcons.Icon(ingredient);
+            bool show = sprite != null;
+            slot.Icon.gameObject.SetActive(show);
+            if (!show) return;
+
+            slot.Icon.sprite = sprite;
+            Color c = IngredientIcons.Colour(ingredient);
+            slot.Icon.color = new Color(c.r, c.g, c.b, Mathf.Max(0.7f, alpha));
         }
 
         /// <summary>
@@ -318,8 +333,24 @@ namespace ZoomZoom.Orders.UI
             Text label = MakeLabel(rootGO.transform, "Order", labelFontSize, TextAnchor.LowerCenter,
                 new Vector2(0.5f, 0f), new Vector2(0f, markerSize * 0.5f + 4f));
 
+            // Ingredient icon above the label, in the ingredient type's colour.
+            var iconGO = new GameObject("Ingredient icon");
+            iconGO.transform.SetParent(rootGO.transform, false);
+            Image icon = iconGO.AddComponent<Image>();
+            icon.raycastTarget = false;
+            icon.preserveAspect = true;
+            RectTransform iconRect = icon.rectTransform;
+            iconRect.anchorMin = iconRect.anchorMax = new Vector2(0.5f, 0.5f);
+            iconRect.pivot = new Vector2(0.5f, 0f);
+            iconRect.sizeDelta = new Vector2(40f, 40f);
+            iconRect.anchoredPosition = new Vector2(0f, markerSize * 0.5f + 4f + labelFontSize + 8f);
+            var iconShadow = iconGO.AddComponent<Shadow>();
+            iconShadow.effectColor = new Color(0f, 0f, 0f, 0.8f);
+            iconShadow.effectDistance = new Vector2(2f, -2f);
+            iconGO.SetActive(false);
+
             rootGO.SetActive(false);
-            return new MarkerSlot { Root = root, Arrow = arrow, Distance = distance, Label = label };
+            return new MarkerSlot { Root = root, Arrow = arrow, Distance = distance, Label = label, Icon = icon };
         }
 
         private static Text MakeLabel(Transform parent, string name, int size, TextAnchor alignment,

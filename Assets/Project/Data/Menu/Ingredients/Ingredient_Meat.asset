@@ -13,6 +13,6 @@ MonoBehaviour:
   m_Name: Ingredient_Meat
   m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.IngredientType
   displayName: Meat
+  category: 0
   shortLabel: MEAT
-  icon: {fileID: 0}
-  colour: {r: 0.75, g: 0.22, b: 0.2, a: 1}
+  icon: {fileID: 21300000, guid: c9eca3aecd6a33d45ae9a48b3445ee4a, type: 3}
