@@ -39,6 +39,9 @@ namespace ZoomZoom.Orders
 
         [Header("Look")]
         [SerializeField] private bool buildVisual = true;
+        [Tooltip("The floating name and countdown above the bay (\"BAY 1 EMPTY\"). Untick it if " +
+                 "the bay has a Shop Sign on its building; the order phone still shows the countdown.")]
+        [SerializeField] private bool showFloatingLabel = true;
         [SerializeField] private float stoveHeight = 2.5f;
         [SerializeField] private float stoveRadius = 1.4f;
         [SerializeField] private float barWidth = 5f;
@@ -268,6 +271,7 @@ namespace ZoomZoom.Orders
                 _barBgRenderer.SetPropertyBlock(_bgBlock);
             }
 
+            _label.gameObject.SetActive(showFloatingLabel);
             _label.text = label;
             _label.color = zone;
 

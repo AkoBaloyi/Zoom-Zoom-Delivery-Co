@@ -3,16 +3,14 @@ using UnityEngine;
 namespace ZoomZoom.Orders.UI
 {
     /// <summary>
-    /// The one place every order colour is defined, so a step has the same colour on the order
-    /// card, the map beacons, the screen arrows and the bays by construction.
+    /// Every order colour in one place, so the same thing has the same colour on the phone, the
+    /// beacons, the arrows, the bays and the HUD.
     ///   Blue    gather ingredients
-    ///   Orange  cook at a Processing Bay
-    ///   Green   deliver to the customer (and food ready to collect)
-    ///   Red     urgent, burning, cancelled
-    ///
-    /// The ticket styling (cream paper, brown ink, coloured headers) follows the project plan's
-    /// Concept section: orders appear on screen "with a countdown attached exactly like an
-    /// Overcooked ticket".
+    ///   Orange  cooking at a bay
+    ///   Green   ready, delivered, money in
+    ///   Red     urgent, burned, cancelled, money out
+    /// Each live order also has its own colour (blue, yellow, magenta or cyan) shared by its card,
+    /// beacons, arrow and GPS line, so the player can tell which marker belongs to which order.
     /// </summary>
     public static class OrderPalette
     {
@@ -23,19 +21,15 @@ namespace ZoomZoom.Orders.UI
         public static readonly Color Warning = new Color(1.00f, 0.85f, 0.10f, 1f);  // yellow
         public static readonly Color Urgent = new Color(0.95f, 0.15f, 0.12f, 1f);   // red
 
-        // Ticket and panel styling
+        // Card and HUD styling
         public static readonly Color Paper = new Color(0.98f, 0.93f, 0.78f, 1f);
         public static readonly Color Ink = new Color(0.25f, 0.15f, 0.08f, 1f);
-        public static readonly Color PanelDark = new Color(0.12f, 0.08f, 0.06f, 0.78f);
         public static readonly Color BadgeOff = new Color(0.80f, 0.74f, 0.60f, 1f);
         public static readonly Color Money = new Color(1.00f, 0.80f, 0.20f, 1f);
         public static readonly Color Neutral = Color.white;
 
-        /// <summary>
-        /// One colour per live order, shared by its card, beacons, arrow and GPS line. Four, to
-        /// match the four order cap. Chosen to stay clear of the colours that mean something else:
-        /// red (urgent), green (ready) and orange (cooking).
-        /// </summary>
+        /// <summary>One colour per live order. Four, to match the four order limit, and chosen to
+        /// stay clear of red (urgent), green (ready) and orange (cooking).</summary>
         private static readonly Color[] OrderColours =
         {
             new Color(0.20f, 0.55f, 1.00f, 1f), // blue
@@ -51,16 +45,10 @@ namespace ZoomZoom.Orders.UI
 
         public static Color OrderColour(Order order) => OrderColour(order.ColourIndex);
 
-        /// <summary>The order's colour. Kept steady on purpose: markers used to flash toward red
-        /// near the end, which playtesters found hard on the eyes. Urgency is shown with
-        /// UrgencyPulse and a sound cue (OrderAudio) instead.</summary>
-        public static Color OrderColourWithUrgency(Order order, float urgentBelowSeconds, float time) =>
-            OrderColour(order);
-
         /// <summary>
-        /// A size multiplier for markers: exactly 1 while the order has time, then a smooth
-        /// swell that grows and quickens as it runs out (up to 30% bigger, about twice a second at
-        /// the very end). A slow throb, never a flicker.
+        /// A size multiplier for markers: exactly 1 while the order has time, then a smooth swell
+        /// that grows and quickens as it runs out (up to 30% bigger). A slow pulse, never a
+        /// flicker; the ticking sound (OrderAudio) does the rest.
         /// </summary>
         public static float UrgencyPulse(Order order, float urgentBelowSeconds, float time)
         {
@@ -79,48 +67,6 @@ namespace ZoomZoom.Orders.UI
             int g = Mathf.RoundToInt(Mathf.Clamp01(c.g) * 255f);
             int b = Mathf.RoundToInt(Mathf.Clamp01(c.b) * 255f);
             return $"{r:X2}{g:X2}{b:X2}";
-        }
-
-        /// <summary>Header colours cycled by order id, for orders with no food set.</summary>
-        private static readonly Color[] TicketHeaders =
-        {
-            new Color(0.93f, 0.36f, 0.27f, 1f),
-            new Color(0.25f, 0.62f, 0.90f, 1f),
-            new Color(0.38f, 0.74f, 0.35f, 1f),
-            new Color(0.95f, 0.70f, 0.18f, 1f),
-            new Color(0.70f, 0.42f, 0.85f, 1f),
-            new Color(0.95f, 0.48f, 0.65f, 1f),
-        };
-
-        public static Color TicketHeader(int orderId)
-        {
-            int index = ((orderId - 1) % TicketHeaders.Length + TicketHeaders.Length) % TicketHeaders.Length;
-            return TicketHeaders[index];
-        }
-
-        public static Color ForStep(OrderStep step)
-        {
-            switch (step)
-            {
-                case OrderStep.Gather: return Pickup;
-                case OrderStep.Cook: return Cook;
-                default: return Deliver;
-            }
-        }
-
-        /// <summary>The colour of wherever this order wants the car to go right now. Food
-        /// waiting in a bay is green, because it is ready to collect.</summary>
-        public static Color ForOrder(Order order)
-        {
-            if (order.State == OrderState.Ready) return Deliver;
-            return ForStep(order.CurrentStep);
-        }
-
-        /// <summary>Blends toward red as the order runs out of time.</summary>
-        public static Color WithUrgency(Color baseColour, float timeRemaining, float urgentBelowSeconds)
-        {
-            float urgency = 1f - Mathf.Clamp01(timeRemaining / Mathf.Max(0.01f, urgentBelowSeconds));
-            return Color.Lerp(baseColour, Urgent, urgency);
         }
 
         /// <summary>Green, then yellow, then red, for a draining timer bar.</summary>

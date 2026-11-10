@@ -57,14 +57,10 @@ namespace ZoomZoom.Orders
         /// <summary>Early bonus (positive) or late deduction (negative).</summary>
         public float TimeAdjustment;
 
-        /// <summary>Pay lost to damaged cargo, when cargo condition is switched on. Zero or
-        /// negative.</summary>
-        public float ConditionLoss;
-
         /// <summary>The fixed cost of a cancelled or burned order. Zero or negative.</summary>
         public float Penalty;
 
-        public float Total => BasePay + TimeAdjustment + ConditionLoss + Penalty;
+        public float Total => BasePay + TimeAdjustment + Penalty;
     }
 
     /// <summary>One ingredient an order needs, and where the order suggests getting it.</summary>
@@ -117,10 +113,6 @@ namespace ZoomZoom.Orders
         public readonly bool NeedsCooking;
         public readonly float CookSeconds;
         public readonly float BurnSeconds;
-
-        /// <summary>Straight line distance from the first ingredient to the drop off, fixed at
-        /// spawn time. Only used by the optional pay per metre.</summary>
-        public readonly float DesignedDistance;
 
         public OrderState State { get; private set; }
 
@@ -281,9 +273,6 @@ namespace ZoomZoom.Orders
             if (into.Count == 0) into.Add(stop.Point);
         }
 
-        /// <summary>Kept for older callers. The first ingredient while gathering.</summary>
-        public Vector3 CurrentTarget => TargetFrom(_stops.Count > 0 ? _stops[0].Point : DropOffPoint);
-
         public event Action<Order, OrderState> StateChanged;
 
         private readonly List<IngredientStop> _stops;
@@ -301,7 +290,6 @@ namespace ZoomZoom.Orders
             NeedsCooking = needsCooking;
             CookSeconds = Mathf.Max(0f, cookSeconds);
             BurnSeconds = Mathf.Max(1f, burnSeconds);
-            DesignedDistance = _stops.Count > 0 ? Vector3.Distance(_stops[0].Point, dropOffPoint) : 0f;
             TimeLimit = timeLimit;
             TimeRemaining = timeLimit;
             State = OrderState.Available;

@@ -275,7 +275,7 @@ namespace ZoomZoom.Orders
                           $"{string.Join(", ", parts)}" +
                           (needsCooking ? $", cooks {order.CookSeconds:0.#} s" : "") +
                           $", to {order.DropOffName}. {tuning.orderTimeLimit:0} s patience, base pay " +
-                          $"R{tuning.BasePayFor(order.Food, order.DesignedDistance):0}. " +
+                          $"R{tuning.BasePayFor(order.Food):0}. " +
                           $"{_activeOrders.Count}/{CurrentMaxOrders} active.");
             }
 
@@ -420,9 +420,7 @@ namespace ZoomZoom.Orders
 
         /// <summary>Call from zone detection once the vehicle has driven into a Carried order's
         /// drop off zone. The only entry point that can turn an order into Delivered.</summary>
-        /// <param name="conditionMultiplier">0 to 1 from CargoCondition when it is switched on,
-        /// otherwise 1 (full pay).</param>
-        public void ResolveDelivery(Order order, float conditionMultiplier = 1f)
+        public void ResolveDelivery(Order order)
         {
             if (order == null || order.State != OrderState.Carried)
             {
@@ -435,7 +433,7 @@ namespace ZoomZoom.Orders
             float patienceLeft = order.PatienceFraction;
             order.MarkDelivered();
 
-            var payout = new OrderPayout { BasePay = tuning.BasePayFor(order.Food, order.DesignedDistance) };
+            var payout = new OrderPayout { BasePay = tuning.BasePayFor(order.Food) };
 
             // Time bonus from the patience bar: early pays extra, late pays less.
             if (patienceLeft > tuning.earlyAbovePatienceLeft)
@@ -453,10 +451,6 @@ namespace ZoomZoom.Orders
                 payout.Timing = DeliveryTiming.OnTime;
             }
 
-            // Damaged cargo, only when CargoCondition is switched on.
-            float beforeCondition = payout.BasePay + payout.TimeAdjustment;
-            payout.ConditionLoss = -beforeCondition * (1f - Mathf.Clamp01(conditionMultiplier));
-
             Resolve(order, payout);
         }
 
@@ -470,7 +464,7 @@ namespace ZoomZoom.Orders
             {
                 Debug.Log($"[OrderManager] Order {order.Id} ({order.FoodName}) {payout.Timing}: " +
                           $"base R{payout.BasePay:0}, time {payout.TimeAdjustment:+0;-0;0}, " +
-                          $"damage {payout.ConditionLoss:0}, penalty {payout.Penalty:0}, " +
+                          $"penalty {payout.Penalty:0}, " +
                           $"total R{payout.Total:0}. {_activeOrders.Count}/{CurrentMaxOrders} active.");
             }
 

@@ -1,294 +1,245 @@
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace ZoomZoom.Orders.UI
 {
     /// <summary>
-    /// The player-facing stats panel, top-right: shift clock, cargo hold, delivered and late counts, and money.
-    /// The list of active orders is not here any more, it moved to OrderTicketStrip, which shows
-    /// each order as an Overcooked style ticket, as the project plan's Concept section describes. This panel is deliberately small so the tickets
-    /// are what the eye goes to. Real Canvas + UI.Text, builds itself in code.
+    /// The main HUD, built in code with nothing to wire:
+    ///
+    ///   Top centre   the shift timer, big and easy to read. In the last 30 seconds it turns red
+    ///                and gently pulses.
+    ///   Top right    the wallet, showing your money. When you are paid or lose money, the number
+    ///                counts up or down and a green "+R336" or red "-R50" floats beside it.
+    ///                Under it, how many orders you have delivered and failed, and what is in
+    ///                the car (ingredients and cooked food).
+    ///
+    /// The order list itself is on the phone (OrderTicketStrip).
     /// </summary>
     [DisallowMultipleComponent]
     public class OrderHUD : MonoBehaviour
     {
-        [Header("Wiring (found automatically if left empty)")]
+       
         [SerializeField] private OrderManager orderManager;
         [SerializeField] private CargoSystem cargoSystem;
         [SerializeField] private ShiftTimer shiftTimer;
-        [Tooltip("Optional. When its own toggle is on, the cargo line shows condition.")]
-        [SerializeField] private CargoCondition cargoCondition;
-        [Tooltip("Optional. When assigned, the money line shows the balance it holds.")]
-        [SerializeField] private PlayerProgression playerProgression;
+        [SerializeField] private PlayerProgression wallet;
 
-        [Header("Art (optional)")]
-        [Tooltip("Same HudSkin asset as OrderTicketStrip. Uses its stats panel and " +
-                 "cargo slot sprites. Leave empty for the flat dark panel.")]
-        [SerializeField] private HudSkin skin;
+        [SerializeField] private float timerWarningSeconds = 30f;
 
-        [Header("Layout")]
-        [SerializeField] private Vector2 panelPosition = new Vector2(-24f, -24f); // offset from the top-right corner
-        [SerializeField] private Vector2 panelSize = new Vector2(420f, 150f);
-        [SerializeField] private int fontSize = 24;
-        [SerializeField] private float urgentShiftSeconds = 30f;
+        // Colours
+        private static readonly Color PanelColour = new Color(0.08f, 0.08f, 0.10f, 0.85f);
+        private static readonly Color Faded = new Color(1f, 1f, 1f, 0.6f);
+        private static readonly Color Gain = new Color(0.35f, 0.95f, 0.45f, 1f);
+        private static readonly Color Loss = new Color(1f, 0.35f, 0.30f, 1f);
 
-        private Text _timerLine;
-        private Text _cargoLine;
-        private Text _scoreLine;
-        private Text _moneyLine;
-        private readonly List<Image> _cargoSlots = new List<Image>();
-        private float _pad = 14f;
+        // The pieces of the HUD
+        private RectTransform _timerPanel;
+        private Text _timerText;
+        private Text _moneyText;
+        private Text _moneyChangeText;
+        private Text _deliveredText;
+        private Text _failedText;
+        private Text _ingredientsText;
+        private Text _foodText;
+        private Font _font;
 
-        private int _deliveredCount;
-        private int _lateCount;
-        private float _totalValueEarned;
+        // Counters
+        private int _delivered;
+        private int _failed;
+
+        // The wallet number counts smoothly toward the real balance.
+        private float _shownMoney;
+        private float _lastBalance;
+        private float _moneyChangeTimer;
 
         private void Awake()
         {
             if (orderManager == null) orderManager = FindAnyObjectByType<OrderManager>();
             if (cargoSystem == null) cargoSystem = FindAnyObjectByType<CargoSystem>();
             if (shiftTimer == null) shiftTimer = FindAnyObjectByType<ShiftTimer>();
-            if (cargoCondition == null) cargoCondition = FindAnyObjectByType<CargoCondition>();
-            if (playerProgression == null) playerProgression = FindAnyObjectByType<PlayerProgression>();
+            if (wallet == null) wallet = FindAnyObjectByType<PlayerProgression>();
 
-            if (orderManager == null)
-            {
-                Debug.LogError(
-                    "[OrderHUD] No OrderManager found in the scene. The HUD has nothing to read " +
-                    "from and has switched itself off.", this);
-                enabled = false;
-                return;
-            }
+            _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            BuildHud();
 
-            HudSkin.LogStatus(skin, "OrderHUD", this);
-            BuildCanvas();
-            orderManager.OrderResolved += HandleOrderResolved;
+            if (orderManager != null) orderManager.OrderResolved += HandleOrderResolved;
+            if (wallet != null) wallet.MoneyChanged += HandleMoneyChanged;
         }
 
         private void OnDestroy()
         {
             if (orderManager != null) orderManager.OrderResolved -= HandleOrderResolved;
+            if (wallet != null) wallet.MoneyChanged -= HandleMoneyChanged;
         }
+
+        // ---- events ---------------------------------------------------------------------------
 
         private void HandleOrderResolved(Order order, float value)
         {
-            if (order.State == OrderState.Delivered)
-            {
-                _deliveredCount++;
-                _totalValueEarned += value;
-            }
-            else
-            {
-                _lateCount++;
-            }
+            if (order.State == OrderState.Delivered) _delivered++;
+            else _failed++;
         }
+
+        private void HandleMoneyChanged(float newBalance)
+        {
+            float change = newBalance - _lastBalance;
+            _lastBalance = newBalance;
+            if (Mathf.Abs(change) < 0.5f) return;
+
+            // Show the change beside the wallet, green for money in, red for money out.
+            _moneyChangeText.text = change > 0f ? $"+R{change:0}" : $"-R{-change:0}";
+            _moneyChangeText.color = change > 0f ? Gain : Loss;
+            _moneyChangeTimer = 2f;
+        }
+
+        // ---- every frame ----------------------------------------------------------------------
 
         private void Update()
         {
-            if (orderManager == null) return;
-
-            RefreshTimerLine();
-            RefreshCargoLine();
-            RefreshScoreLine();
-            RefreshMoneyLine();
+            UpdateTimer();
+            UpdateWallet();
+            UpdateCounts();
         }
 
-        private void RefreshCargoLine()
+        private void UpdateTimer()
         {
-            if (_cargoLine == null) return;
+            if (shiftTimer == null) return;
 
-            if (cargoSystem == null)
+            float left = Mathf.Max(0f, shiftTimer.TimeRemaining);
+            int seconds = Mathf.CeilToInt(left);
+            _timerText.text = $"{seconds / 60}:{seconds % 60:00}";
+
+            // Red and pulsing in the last stretch of the shift.
+            bool warning = left <= timerWarningSeconds && left > 0f;
+            _timerText.color = warning ? Loss : Color.white;
+            float pulse = warning ? 1f + 0.06f * (0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 6f)) : 1f;
+            _timerPanel.localScale = Vector3.one * pulse;
+        }
+
+        private void UpdateWallet()
+        {
+            float target = wallet != null ? wallet.Money : 0f;
+
+            // Count toward the real balance over about half a second.
+            _shownMoney = Mathf.Lerp(_shownMoney, target, 1f - Mathf.Exp(-8f * Time.unscaledDeltaTime));
+            if (Mathf.Abs(target - _shownMoney) < 1f) _shownMoney = target;
+
+            _moneyText.text = _shownMoney < 0f ? $"-R{-_shownMoney:N0}" : $"R{_shownMoney:N0}";
+            _moneyText.color = target < 0f ? Loss : OrderPalette.Money;
+
+            // Fade the "+R336" out over its last half second.
+            if (_moneyChangeTimer > 0f)
             {
-                _cargoLine.text = "Cargo: (no cargo system found)";
-                return;
+                _moneyChangeTimer -= Time.unscaledDeltaTime;
+                Color c = _moneyChangeText.color;
+                c.a = Mathf.Clamp01(_moneyChangeTimer / 0.5f);
+                _moneyChangeText.color = c;
             }
+        }
 
-            RefreshCargoSlots();
-            bool slotArt = _cargoSlots.Count > 0;
+        private void UpdateCounts()
+        {
+            _deliveredText.text = $"Delivered  {_delivered}";
+            _failedText.text = $"Failed  {_failed}";
+            _failedText.color = _failed > 0 ? Loss : Faded;
 
-            // Ingredients first, then cooked food. With slot art the food slots are the icons
-            // on the right of this line.
+            if (cargoSystem == null) return;
+
             int held = cargoSystem.IngredientsHeld;
-            string ingredients = $"Ingredients {held}/{cargoSystem.IngredientCapacity}";
-            bool ingredientsFull = held >= cargoSystem.IngredientCapacity;
+            _ingredientsText.text = $"Ingredients  {held}/{cargoSystem.IngredientCapacity}";
+            _ingredientsText.color = held >= cargoSystem.IngredientCapacity ? OrderPalette.Warning : Color.white;
 
-            if (cargoSystem.SlotsUsed == 0)
-            {
-                _cargoLine.text = slotArt ? $"{ingredients}   Food" : $"{ingredients}   Food 0/{cargoSystem.Capacity}";
-                _cargoLine.color = ingredientsFull ? OrderPalette.Warning : OrderPalette.Neutral;
-                return;
-            }
-
-            var ids = new List<string>(cargoSystem.SlotsUsed);
-            bool showCondition = cargoCondition != null && cargoCondition.ConditionEnabled;
-
-            foreach (Order o in cargoSystem.CarriedOrders)
-            {
-                ids.Add(showCondition
-                    ? $"#{o.Id} @ {cargoCondition.GetConditionPercent(o):0}%"
-                    : $"#{o.Id}");
-            }
-
-            _cargoLine.text = $"{ingredients}   Food {string.Join(", ", ids)}";
-
-            if (showCondition)
-            {
-                float worst = 100f;
-                foreach (Order o in cargoSystem.CarriedOrders)
-                    worst = Mathf.Min(worst, cargoCondition.GetConditionPercent(o));
-
-                _cargoLine.color = Color.Lerp(OrderPalette.Urgent, OrderPalette.Deliver, worst / 100f);
-            }
-            else
-            {
-                _cargoLine.color = OrderPalette.Deliver;
-            }
+            _foodText.text = $"Food  {cargoSystem.SlotsUsed}/{cargoSystem.Capacity}";
+            _foodText.color = cargoSystem.SlotsUsed >= cargoSystem.Capacity ? OrderPalette.Warning : Color.white;
         }
 
-        /// <summary>One slot icon per unit of capacity, filled for each carried order. Only
-        /// exists when the skin has both cargo slot sprites.</summary>
-        private void RefreshCargoSlots()
+        // ---- building -------------------------------------------------------------------------
+
+        private void BuildHud()
         {
-            for (int i = 0; i < _cargoSlots.Count; i++)
-            {
-                bool exists = i < cargoSystem.Capacity;
-                _cargoSlots[i].enabled = exists;
-                if (!exists) continue;
+            var canvasObject = new GameObject("HUD Canvas");
+            canvasObject.transform.SetParent(transform, false);
 
-                _cargoSlots[i].sprite = i < cargoSystem.SlotsUsed ? skin.cargoSlotFilled : skin.cargoSlotEmpty;
-            }
-        }
-
-        private void RefreshScoreLine()
-        {
-            if (_scoreLine == null) return;
-            _scoreLine.text = $"Delivered {_deliveredCount}   Failed {_lateCount}";
-        }
-
-        private void RefreshMoneyLine()
-        {
-            if (_moneyLine == null) return;
-
-            // Money comes from PlayerProgression (Task 20) when present, since that is the
-            // balance the upgrade screen will spend from. Without it, the shift's earned value.
-            float money = playerProgression != null ? playerProgression.Money : _totalValueEarned;
-            _moneyLine.text = money < 0f
-                ? $"Money  -R{-money:0}"
-                : $"Money  R{money:0}";
-        }
-
-        private void RefreshTimerLine()
-        {
-            if (_timerLine == null || shiftTimer == null) return;
-
-            _timerLine.text = $"Shift  {shiftTimer.FormattedTimeRemaining}";
-            _timerLine.color = shiftTimer.TimeRemaining <= urgentShiftSeconds
-                ? OrderPalette.Urgent
-                : OrderPalette.Neutral;
-        }
-
-        private void BuildCanvas()
-        {
-            var canvasGO = new GameObject("OrderHUD Canvas");
-            canvasGO.transform.SetParent(transform, false);
-
-            Canvas canvas = canvasGO.AddComponent<Canvas>();
+            Canvas canvas = canvasObject.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 9;
 
-            CanvasScaler scaler = canvasGO.AddComponent<CanvasScaler>();
+            CanvasScaler scaler = canvasObject.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1920f, 1080f);
             scaler.matchWidthOrHeight = 0.5f;
 
-            canvasGO.AddComponent<GraphicRaycaster>();
+            Transform root = canvasObject.transform;
 
-            var panelGO = new GameObject("Panel");
-            panelGO.transform.SetParent(canvasGO.transform, false);
+            // Timer, top centre.
+            _timerPanel = MakePanel(root, "Timer", new Vector2(0.5f, 1f), new Vector2(0f, -20f), new Vector2(200f, 86f));
+            Text timerLabel = MakeText(_timerPanel, "Label", new Vector2(0f, -8f), new Vector2(200f, 20f), 16, Faded, TextAnchor.MiddleCenter);
+            timerLabel.text = "SHIFT";
+            _timerText = MakeText(_timerPanel, "Time", new Vector2(0f, -28f), new Vector2(200f, 50f), 46, Color.white, TextAnchor.MiddleCenter);
 
-            Image panelImage = panelGO.AddComponent<Image>();
-            panelImage.color = OrderPalette.PanelDark;
-            panelImage.raycastTarget = false;
+            // Wallet, top right.
+            RectTransform walletPanel = MakePanel(root, "Wallet", new Vector2(1f, 1f), new Vector2(-24f, -20f), new Vector2(300f, 78f));
+            Text walletLabel = MakeText(walletPanel, "Label", new Vector2(18f, -8f), new Vector2(200f, 20f), 16, Faded, TextAnchor.MiddleLeft);
+            walletLabel.text = "WALLET";
+            _moneyText = MakeText(walletPanel, "Money", new Vector2(18f, -28f), new Vector2(264f, 44f), 40, OrderPalette.Money, TextAnchor.MiddleLeft);
 
-            // The wood frame art is thicker than the flat panel's margin, so with art the
-            // contents move in and the panel grows by the same amount to keep the same room inside.
-            bool framed = skin != null && skin.statsPanel != null;
-            _pad = framed ? 32f : 14f;
-            Vector2 size = panelSize + Vector2.one * (2f * (_pad - 14f));
+            // "+R336" floats just to the left of the wallet.
+            _moneyChangeText = MakeText(walletPanel, "Change", new Vector2(-170f, -26f), new Vector2(160f, 40f), 32, Gain, TextAnchor.MiddleRight);
+            _moneyChangeText.text = "";
 
-            if (framed && skin.ApplyFrame(panelImage, skin.statsPanel, size.y)) panelImage.color = Color.white;
+            // Delivered and failed.
+            RectTransform scorePanel = MakePanel(root, "Score", new Vector2(1f, 1f), new Vector2(-24f, -106f), new Vector2(300f, 50f));
+            _deliveredText = MakeText(scorePanel, "Delivered", new Vector2(18f, -6f), new Vector2(160f, 38f), 24, Color.white, TextAnchor.MiddleLeft);
+            _failedText = MakeText(scorePanel, "Failed", new Vector2(170f, -6f), new Vector2(112f, 38f), 20, Faded, TextAnchor.MiddleRight);
 
-            RectTransform panelRect = panelGO.GetComponent<RectTransform>();
-            panelRect.anchorMin = new Vector2(1f, 1f);
-            panelRect.anchorMax = new Vector2(1f, 1f);
-            panelRect.pivot = new Vector2(1f, 1f);
-            panelRect.anchoredPosition = panelPosition;
-            panelRect.sizeDelta = size;
-
-            float y = 2f - _pad;
-            const float lineHeight = 32f;
-
-            _timerLine = CreateLine(panelRect, "Timer", ref y, lineHeight, fontSize + 6, OrderPalette.Neutral);
-            _timerLine.fontStyle = FontStyle.Bold;
-            _cargoLine = CreateLine(panelRect, "Cargo", ref y, lineHeight, fontSize - 2, OrderPalette.Neutral);
-            _scoreLine = CreateLine(panelRect, "Score", ref y, lineHeight, fontSize - 4, OrderPalette.Neutral);
-            _moneyLine = CreateLine(panelRect, "Money", ref y, lineHeight, fontSize, OrderPalette.Money);
-            _moneyLine.fontStyle = FontStyle.Bold;
-
-            BuildCargoSlots(panelRect, _cargoLine.rectTransform.anchoredPosition.y);
+            // What is in the car.
+            RectTransform cargoPanel = MakePanel(root, "Cargo", new Vector2(1f, 1f), new Vector2(-24f, -164f), new Vector2(300f, 50f));
+            _ingredientsText = MakeText(cargoPanel, "Ingredients", new Vector2(18f, -6f), new Vector2(170f, 38f), 20, Color.white, TextAnchor.MiddleLeft);
+            _foodText = MakeText(cargoPanel, "Food", new Vector2(190f, -6f), new Vector2(92f, 38f), 20, Color.white, TextAnchor.MiddleRight);
         }
 
-        /// <summary>Three slot icons right aligned on the cargo line (the most capacity the
-        /// plan's upgrades reach). Unused ones are hidden by RefreshCargoSlots.</summary>
-        private void BuildCargoSlots(RectTransform panelRect, float lineY)
+        /// <summary>A dark rounded panel. anchor is the screen corner or edge it sticks to.</summary>
+        private RectTransform MakePanel(Transform parent, string name, Vector2 anchor, Vector2 position, Vector2 size)
         {
-            if (skin == null || skin.cargoSlotEmpty == null || skin.cargoSlotFilled == null) return;
+            var panelObject = new GameObject(name);
+            panelObject.transform.SetParent(parent, false);
 
-            const int maxSlots = 3;
-            const float slotSize = 30f, gap = 4f;
-            float right = panelRect.sizeDelta.x - _pad;
+            RectTransform rect = panelObject.AddComponent<RectTransform>();
+            rect.anchorMin = anchor;
+            rect.anchorMax = anchor;
+            rect.pivot = anchor;
+            rect.anchoredPosition = position;
+            rect.sizeDelta = size;
 
-            for (int i = 0; i < maxSlots; i++)
-            {
-                var go = new GameObject($"Cargo slot {i}");
-                go.transform.SetParent(panelRect, false);
-                Image slot = go.AddComponent<Image>();
-                slot.raycastTarget = false;
-                HudSkin.ApplyIcon(slot, skin.cargoSlotEmpty);
-
-                RectTransform rect = slot.rectTransform;
-                rect.anchorMin = rect.anchorMax = new Vector2(0f, 1f);
-                rect.pivot = new Vector2(0f, 1f);
-                rect.anchoredPosition = new Vector2(right - (i + 1) * slotSize - i * gap, lineY + 1f);
-                rect.sizeDelta = new Vector2(slotSize, slotSize);
-
-                _cargoSlots.Add(slot);
-            }
+            Image image = panelObject.AddComponent<Image>();
+            image.raycastTarget = false;
+            OrderTicketStrip.ApplyRounded(image, 16f);
+            image.color = PanelColour;
+            return rect;
         }
 
-        private Text CreateLine(RectTransform parent, string name, ref float y,
-            float advance, int size, Color colour)
+        /// <summary>Text placed from the panel's top left corner.</summary>
+        private Text MakeText(Transform parent, string name, Vector2 position, Vector2 size, int fontSize, Color colour, TextAnchor alignment)
         {
-            var go = new GameObject(name);
-            go.transform.SetParent(parent, false);
+            var textObject = new GameObject(name);
+            textObject.transform.SetParent(parent, false);
 
-            Text text = go.AddComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            text.fontSize = size;
-            text.color = colour;
-            text.alignment = TextAnchor.UpperLeft;
-            text.horizontalOverflow = HorizontalWrapMode.Overflow;
-            text.verticalOverflow = VerticalWrapMode.Overflow;
-            text.raycastTarget = false;
-
-            RectTransform rect = go.GetComponent<RectTransform>();
+            RectTransform rect = textObject.AddComponent<RectTransform>();
             rect.anchorMin = new Vector2(0f, 1f);
             rect.anchorMax = new Vector2(0f, 1f);
             rect.pivot = new Vector2(0f, 1f);
-            rect.anchoredPosition = new Vector2(_pad, y);
-            rect.sizeDelta = new Vector2(parent.sizeDelta.x - 2f * _pad, advance);
+            rect.anchoredPosition = position;
+            rect.sizeDelta = size;
 
-            y -= advance;
+            Text text = textObject.AddComponent<Text>();
+            text.font = _font;
+            text.fontSize = fontSize;
+            text.fontStyle = FontStyle.Bold;
+            text.color = colour;
+            text.alignment = alignment;
+            text.horizontalOverflow = HorizontalWrapMode.Overflow;
+            text.verticalOverflow = VerticalWrapMode.Overflow;
+            text.raycastTarget = false;
             return text;
         }
     }
