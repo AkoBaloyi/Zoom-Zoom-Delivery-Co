@@ -71,7 +71,7 @@ namespace ZoomZoom.Vehicle.EditorTools
             int hittableUnderRoads = 0;
             foreach (Transform roads in roadsRoots)
                 foreach (Collider c in roads.GetComponentsInChildren<Collider>(true))
-                    if (IsHittableGround(c)) hittableUnderRoads++;
+                    if (IsHittableGround(c) && IsStandable(c)) hittableUnderRoads++;
 
             if (roadsRoots.Count == 0 || hittableUnderRoads == 0)
             {
@@ -101,7 +101,7 @@ namespace ZoomZoom.Vehicle.EditorTools
                 tagged.Add((roads, SurfaceKind.Tarmac));
             }
 
-            int grassSkippedUnderRoads = 0, grassSkippedNeverGround = 0, grassSkippedProp = 0;
+            int grassSkippedUnderRoads = 0, grassSkippedNeverGround = 0, grassSkippedProp = 0, grassSkippedNotFlat = 0;
             foreach (GameObject root in scene.GetRootGameObjects())
             {
                 foreach (Collider c in root.GetComponentsInChildren<Collider>(true))
@@ -114,6 +114,7 @@ namespace ZoomZoom.Vehicle.EditorTools
                         continue;
                     }
                     if (IsNeverGround(t)) { grassSkippedNeverGround++; continue; }
+                    if (!IsStandable(c)) { grassSkippedNotFlat++; continue; }
 
                     // Grass goes on the collider OWNER. A parent tag would also catch any road
                     // piece that happens to sit under it, so we tag at the leaf and never above.
@@ -162,7 +163,7 @@ namespace ZoomZoom.Vehicle.EditorTools
             var sb = new StringBuilder($"[SurfaceTagger] {scene.name}\n");
             sb.Append($"   TARMAC  {roadsRoots.Count} \"Roads\" parent(s) tagged, covering {hittableUnderRoads} drivable colliders; {tarmacVerified}/{roadsRoots.Count} verified by the car's ray\n");
             sb.Append($"   GRASS   {grassTagged} colliders tagged; {grassVerified}/{grassTagged} verified by the car's ray\n");
-            sb.Append($"   skipped {grassSkippedUnderRoads} colliders under Roads (inherit tarmac), {grassSkippedProp} props with a Rigidbody, {grassSkippedNeverGround} non-ground objects\n");
+            sb.Append($"   skipped {grassSkippedUnderRoads} under Roads (inherit tarmac), {grassSkippedNotFlat} too tall or narrow to stand on (lamps, trees, fences), {grassSkippedProp} Rigidbody props, {grassSkippedNeverGround} non-ground\n");
             sb.Append(addedWeather ? "   Weather object added, Dry.\n" : "   WeatherState already present.\n");
             sb.Append(saved ? "   Scene saved." : "   SCENE NOT SAVED: press Ctrl+S or the change is lost on Play.");
             if (failed.Count > 0)
@@ -183,12 +184,29 @@ namespace ZoomZoom.Vehicle.EditorTools
             s.ApplyDefaultsForKind();
         }
 
-        /// <summary>A collider the car's wheel ray can land on and treat as ground.</summary>
+        /// <summary>A collider the car's wheel ray can hit at all.</summary>
         private static bool IsHittableGround(Collider c)
         {
             if (c == null || !c.enabled || c.isTrigger) return false;
             if (c.attachedRigidbody != null) return false;             // props, the car
             if (c is MeshCollider mc && mc.sharedMesh == null) return false; // Roads_Parent's empty collider
+            return true;
+        }
+
+        // A collider is only GROUND if the car could stand on it. Reading Medium's scene: of the
+        // 3,043 static colliders outside Roads, 616 are streetlamps, 136 traffic lights, 400-odd
+        // trees, plus mailboxes, bus stops and fences. None of those is something a wheel ray lands
+        // on, and stamping Grass on every lamp post would make the report say "3,043 grass" when the
+        // truth is a couple of hundred slabs. So: wide and flat, not tall and thin.
+        private const float MinimumFootprintMetres = 3f;   // each horizontal side at least this
+        private const float MaximumAspect = 1.0f;          // height no greater than the smaller side
+
+        private static bool IsStandable(Collider c)
+        {
+            Bounds b = c.bounds;
+            float w = b.size.x, h = b.size.y, d = b.size.z;
+            if (w < MinimumFootprintMetres || d < MinimumFootprintMetres) return false; // a post
+            if (h > Mathf.Min(w, d) * MaximumAspect) return false;                       // a wall or a tree
             return true;
         }
 
