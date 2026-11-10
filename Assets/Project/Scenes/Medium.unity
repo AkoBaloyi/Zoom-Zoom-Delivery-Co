@@ -152775,7 +152775,7 @@ MonoBehaviour:
   showLabel: 1
   labelHeight: 6
   labelCharacterSize: 0.18
-  labelColour: {r: 0.2, g: 0.6, b: 1, a: 1}
+  iconSize: 3
 --- !u!1 &378221504
 GameObject:
   m_ObjectHideFlags: 0
@@ -154011,7 +154011,7 @@ MonoBehaviour:
   showLabel: 1
   labelHeight: 6
   labelCharacterSize: 0.18
-  labelColour: {r: 0.2, g: 0.6, b: 1, a: 1}
+  iconSize: 3
 --- !u!1 &382877547
 GameObject:
   m_ObjectHideFlags: 0
@@ -659722,7 +659722,7 @@ MonoBehaviour:
   showLabel: 1
   labelHeight: 6
   labelCharacterSize: 0.18
-  labelColour: {r: 0.2, g: 0.6, b: 1, a: 1}
+  iconSize: 3
 --- !u!1 &1611509759
 GameObject:
   m_ObjectHideFlags: 0
@@ -763045,7 +763045,7 @@ MonoBehaviour:
   showLabel: 1
   labelHeight: 6
   labelCharacterSize: 0.18
-  labelColour: {r: 0.2, g: 0.6, b: 1, a: 1}
+  iconSize: 3
 --- !u!1 &1872060960
 GameObject:
   m_ObjectHideFlags: 0
@@ -765221,7 +765221,7 @@ MonoBehaviour:
   showLabel: 1
   labelHeight: 6
   labelCharacterSize: 0.18
-  labelColour: {r: 0.2, g: 0.6, b: 1, a: 1}
+  iconSize: 3
 --- !u!1 &1876112362
 GameObject:
   m_ObjectHideFlags: 0
@@ -908587,6 +908587,8 @@ GameObject:
   - component: {fileID: 5461632097591621156}
   - component: {fileID: 5531202167826380732}
   - component: {fileID: 7231405031179160358}
+  - component: {fileID: 7729447008075997701}
+  - component: {fileID: 7729447008075997700}
   m_Layer: 0
   m_Name: Car
   m_TagString: Player
@@ -911104,6 +911106,30 @@ Rigidbody:
   m_Interpolate: 1
   m_Constraints: 0
   m_CollisionDetection: 2
+--- !u!114 &7729447008075997700
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7092618432352137436}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a59d821c9af644008ded7b3919da36a1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.CrazyTaxiFeedback
+--- !u!114 &7729447008075997701
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7092618432352137436}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5a6c49ebe0c461f8aa8a80c501651d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.TaxiEngineAudio
 --- !u!33 &7732154835896037243
 MeshFilter:
   m_ObjectHideFlags: 0
