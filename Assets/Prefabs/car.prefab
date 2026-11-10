@@ -13,6 +13,8 @@ GameObject:
   - component: {fileID: 7608346512036315610}
   - component: {fileID: 3740289612440611364}
   - component: {fileID: -3542417837202935544}
+  - component: {fileID: 4130517798107159702}
+  - component: {fileID: 2735695696162078949}
   m_Layer: 0
   m_Name: car
   m_TagString: Untagged
@@ -32,8 +34,7 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 7913944153924580379}
+  m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!54 &1557204085233681662
@@ -83,7 +84,7 @@ SphereCollider:
   m_Enabled: 1
   serializedVersion: 3
   m_Radius: 0.043891896
-  m_Center: {x: 0, y: 0.04, z: 0}
+  m_Center: {x: 0, y: 0.03, z: 0}
 --- !u!65 &3740289612440611364
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -99,7 +100,7 @@ BoxCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
@@ -117,66 +118,58 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 40f795e3978a1664d8d74e86be352590, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CarSpawner
-  carPrefabs: []
---- !u!1001 &7701977209585039884
-PrefabInstance:
+  carPrefabs:
+  - {fileID: 1022944502496512919, guid: dcd528f3c0b2bf042babb9d110962ab7, type: 3}
+  - {fileID: 2111139849357107323, guid: e6633464e12a6e04dbdb79960f6de693, type: 3}
+  - {fileID: 3224105099788658157, guid: 25c83d295f789394da1342229c25d951, type: 3}
+  - {fileID: 1101577590284328575, guid: 5d2ce4f2e805b5c4092a09a0930cf37d, type: 3}
+  - {fileID: 7954715419065063505, guid: 10f4671cf44100d409a99458809783f8, type: 3}
+  - {fileID: 771982215564958993, guid: 855cd82b21977fe458e741a8f5352a56, type: 3}
+--- !u!114 &4130517798107159702
+MonoBehaviour:
   m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 6226517500361107025}
-    m_Modifications:
-    - target: {fileID: 518214330778144279, guid: f939653fea539134c908bf914ff23571, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 518214330778144279, guid: f939653fea539134c908bf914ff23571, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 518214330778144279, guid: f939653fea539134c908bf914ff23571, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 518214330778144279, guid: f939653fea539134c908bf914ff23571, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 518214330778144279, guid: f939653fea539134c908bf914ff23571, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 518214330778144279, guid: f939653fea539134c908bf914ff23571, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 518214330778144279, guid: f939653fea539134c908bf914ff23571, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 518214330778144279, guid: f939653fea539134c908bf914ff23571, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 518214330778144279, guid: f939653fea539134c908bf914ff23571, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 518214330778144279, guid: f939653fea539134c908bf914ff23571, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 899243954413507757, guid: f939653fea539134c908bf914ff23571, type: 3}
-      propertyPath: m_Name
-      value: Cop
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: f939653fea539134c908bf914ff23571, type: 3}
---- !u!4 &7913944153924580379 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 518214330778144279, guid: f939653fea539134c908bf914ff23571, type: 3}
-  m_PrefabInstance: {fileID: 7701977209585039884}
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6017445921638219920}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4a43143d2c772d1498d885f49a592056, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CarrController
+  power: 10
+  torque: 0.01
+  maxSpeed: 3
+  movementVector: {x: 0, y: 1}
+--- !u!114 &2735695696162078949
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6017445921638219920}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bae8be640bac95d4992a3d467f92d103, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CarrAI
+  path: []
+  arriveDistance: 3
+  lastpointArriveDistance: 0.1
+  turningAngleOffset: 5
+  currentTargetPosition: {x: 0, y: 0, z: 0}
+  <onDerieve>k__BackingField:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 4130517798107159702}
+        m_TargetAssemblyTypeName: CarrController, Assembly-CSharp
+        m_MethodName: Move
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
