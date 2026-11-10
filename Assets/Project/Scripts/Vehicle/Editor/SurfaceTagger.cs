@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text;
 using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -9,80 +10,117 @@ namespace ZoomZoom.Vehicle.EditorTools
     /// <summary>
     /// Labels the city's ground so the car knows what it is driving on.
     ///
-    /// WHAT THE CAR ACTUALLY HITS
-    /// The wheel rays return a collider, and ResolveSurface walks UP from that collider with
-    /// GetComponentInParent looking for a SurfaceType. So the label has to sit on, or above, the
-    /// object that OWNS the collider the ray lands on, and that is not always the object whose
-    /// name you would tag. Reading the scene file settled it for this city:
-    ///   - 581 of 582 road_base pieces have NO collider. The car drives on Roads_Parent, which
-    ///     carries one merged MeshCollider for every road in the city. One SurfaceType on
-    ///     Roads_Parent covers all of them; tagging the 582 children would do nothing.
-    ///   - commercial_base and parkbase pieces each carry their own MeshCollider, so each one is
-    ///     tagged individually.
-    /// The tagger does not assume any of this. It tags by the rule above, then VERIFIES: it casts
-    /// the car's own ground ray down onto every object it touched and reports which SurfaceKind
-    /// came back. If the number verified is lower than the number tagged, the log says so and
-    /// names the first few, because a tag the ray cannot see is not a tag.
+    /// THE RULE
+    /// Everything under the object named "Roads" is tarmac. Every other static collider the car can
+    /// land on is grass. That is the whole rule, and it replaced a name-pattern table because the
+    /// table kept being wrong: it tagged Roads_Parent, whose MeshCollider has no mesh and cannot be
+    /// hit, and it left the Floor the car actually drives on untagged. Tagging by parentage instead
+    /// of by name means a road piece is tarmac because it is a road, not because someone spelt its
+    /// name the way the regex expected.
     ///
-    /// WEATHER
-    /// Also drops a WeatherState into the scene if there is none, set to Dry, so the switch exists
-    /// and changes nothing until someone flips it.
+    /// WHAT THE CAR ACTUALLY HITS
+    /// The wheel rays return a collider, and the car walks UP from that collider with
+    /// GetComponentInParent looking for a SurfaceType. So one SurfaceType on "Roads" covers every
+    /// road piece beneath it that owns a collider, and grass only has to be put on colliders that
+    /// are NOT beneath "Roads". Children with no collider of their own are skipped: they inherit
+    /// from above anyway, and tagging them would be a false count.
+    ///
+    /// THE SAFETY CHECK
+    /// "Everything else is grass" is only safe when "Roads" exists and its children are what the car
+    /// drives on. In a scene with no collidable Roads parent, the car drives on a Floor, and the rule
+    /// would make that Floor grass - the whole city becomes grass and no dash fires anywhere. So the
+    /// tagger counts hittable colliders under Roads first and refuses to run if there are none,
+    /// saying exactly what is missing. A tool that quietly turns the city into a lawn is worse than
+    /// one that stops and explains.
+    ///
+    /// EXCLUDED FROM GRASS
+    /// Props with a Rigidbody (knockables), triggers, the car itself, and anything under the
+    /// VehicleLab scaffolding. Those are not ground.
+    ///
+    /// VERIFY
+    /// After tagging, the car's own ground ray is fired at every tagged object and the kind that
+    /// comes back is compared with the kind that was set. A tag the ray cannot see is not a tag.
     ///
     /// Tools > Zoom Zoom > Tag City Surfaces
     /// </summary>
     public static class SurfaceTagger
     {
-        private struct Rule
-        {
-            public Regex Name;
-            public SurfaceKind Kind;
-            public string Label;
-        }
+        private static readonly Regex RoadsParentName = new Regex(@"^Roads$", RegexOptions.IgnoreCase);
 
-        private static readonly Rule[] Rules =
-        {
-            new Rule { Name = new Regex(@"^Roads_Parent$"),              Kind = SurfaceKind.Tarmac,   Label = "roads (merged collider on Roads_Parent)" },
-            new Rule { Name = new Regex(@"^road_base(\.\d+)?$"),         Kind = SurfaceKind.Tarmac,   Label = "road_base pieces with their own collider" },
-            new Rule { Name = new Regex(@"^commercial_base(\.\d+)?$"),   Kind = SurfaceKind.Concrete, Label = "commercial bases" },
-            new Rule { Name = new Regex(@"^parkbase\d*(_sample)?(\.\d+)?$"), Kind = SurfaceKind.Grass, Label = "park bases" },
-        };
+        // Objects that are never ground, whatever they collide with.
+        private static readonly Regex NeverGround = new Regex(
+            @"^(Car|Chase Camera|Measurement|VehicleLab|Generated .*|Skid marks|OrderBeacon|Delivery Points|EventSystem)$",
+            RegexOptions.IgnoreCase);
 
         [MenuItem("Tools/Zoom Zoom/Tag City Surfaces", priority = 62)]
         public static void Tag()
         {
             var scene = EditorSceneManager.GetActiveScene();
+            if (!scene.IsValid() || string.IsNullOrEmpty(scene.path))
+            {
+                Debug.LogError("[SurfaceTagger] No saved scene is open.");
+                return;
+            }
+
+            // ---- 1. Find "Roads" and prove the car can land on something beneath it. -------------
+            var roadsRoots = new List<Transform>();
+            foreach (GameObject root in scene.GetRootGameObjects())
+                foreach (Transform t in root.GetComponentsInChildren<Transform>(true))
+                    if (RoadsParentName.IsMatch(t.name)) roadsRoots.Add(t);
+
+            int hittableUnderRoads = 0;
+            foreach (Transform roads in roadsRoots)
+                foreach (Collider c in roads.GetComponentsInChildren<Collider>(true))
+                    if (IsHittableGround(c)) hittableUnderRoads++;
+
+            if (roadsRoots.Count == 0 || hittableUnderRoads == 0)
+            {
+                string why = roadsRoots.Count == 0
+                    ? "there is no object named \"Roads\" in this scene"
+                    : $"\"Roads\" exists but none of its {roadsRoots[0].GetComponentsInChildren<Collider>(true).Length} colliders can be driven on";
+                Debug.LogError(
+                    $"[SurfaceTagger] REFUSED to tag '{scene.name}': {why}.\n" +
+                    "The rule is 'Roads is tarmac, everything else is grass'. Without a collidable Roads " +
+                    "parent, 'everything else' is the ground the car drives on, and the whole city would " +
+                    "become grass with no dash anywhere. Nothing was changed.\n" +
+                    "Fix: give this scene a parent named \"Roads\" whose children carry the road colliders " +
+                    "(Medium has one; Hard has only Roads_Parent, whose collider has no mesh), then run again.");
+                return;
+            }
+
+            // ---- 2. Tag. --------------------------------------------------------------------------
             Undo.SetCurrentGroupName("Tag City Surfaces");
             int group = Undo.GetCurrentGroup();
 
-            var tagged = new List<(Transform t, Rule r)>();
-            var skippedNoCollider = new Dictionary<string, int>();
+            var tagged = new List<(Transform t, SurfaceKind kind)>();
+            var roadsSet = new HashSet<Transform>(roadsRoots);
 
+            foreach (Transform roads in roadsRoots)
+            {
+                SetKind(roads, SurfaceKind.Tarmac);
+                tagged.Add((roads, SurfaceKind.Tarmac));
+            }
+
+            int grassSkippedUnderRoads = 0, grassSkippedNeverGround = 0, grassSkippedProp = 0;
             foreach (GameObject root in scene.GetRootGameObjects())
-                foreach (Transform t in root.GetComponentsInChildren<Transform>(true))
+            {
+                foreach (Collider c in root.GetComponentsInChildren<Collider>(true))
                 {
-                    Rule? rule = Match(t.name);
-                    if (rule == null) continue;
-
-                    // Only objects that OWN an enabled collider can be hit, so only they get a tag.
-                    // Children without colliders inherit the parent's tag through
-                    // GetComponentInParent anyway, and tagging them would be a false count.
-                    bool hasCollider = false;
-                    foreach (Collider c in t.GetComponents<Collider>())
-                        if (c.enabled && !c.isTrigger) { hasCollider = true; break; }
-                    if (!hasCollider)
+                    Transform t = c.transform;
+                    if (IsUnderAny(t, roadsSet)) { grassSkippedUnderRoads++; continue; }
+                    if (!IsHittableGround(c))
                     {
-                        skippedNoCollider.TryGetValue(rule.Value.Label, out int n);
-                        skippedNoCollider[rule.Value.Label] = n + 1;
+                        if (c.attachedRigidbody != null) grassSkippedProp++;
                         continue;
                     }
+                    if (IsNeverGround(t)) { grassSkippedNeverGround++; continue; }
 
-                    SurfaceType s = t.GetComponent<SurfaceType>();
-                    if (s == null) s = Undo.AddComponent<SurfaceType>(t.gameObject);
-                    else Undo.RecordObject(s, "retag surface");
-                    s.kind = rule.Value.Kind;
-                    s.ApplyDefaultsForKind();
-                    tagged.Add((t, rule.Value));
+                    // Grass goes on the collider OWNER. A parent tag would also catch any road
+                    // piece that happens to sit under it, so we tag at the leaf and never above.
+                    SetKind(t, SurfaceKind.Grass);
+                    tagged.Add((t, SurfaceKind.Grass));
                 }
+            }
 
             // Weather switch, present and Dry.
             bool addedWeather = false;
@@ -98,41 +136,35 @@ namespace ZoomZoom.Vehicle.EditorTools
             EditorSceneManager.MarkSceneDirty(scene);
             bool saved = EditorSceneManager.SaveScene(scene);
 
-            // VERIFY: fire the car's ray at each tagged object and see what comes back.
+            // ---- 3. Verify with the car's own ray. ------------------------------------------------
             Physics.SyncTransforms();
-            var verified = new Dictionary<string, int>();
+            int tarmacVerified = 0, grassVerified = 0, grassTagged = 0;
             var failed = new List<string>();
-            foreach ((Transform t, Rule r) in tagged)
+            foreach ((Transform t, SurfaceKind kind) in tagged)
             {
+                if (kind == SurfaceKind.Grass) grassTagged++;
                 Bounds b = WorldBounds(t);
-                Vector3 from = new Vector3(b.center.x, b.max.y + 5f, b.center.z);
+                var from = new Vector3(b.center.x, b.max.y + 5f, b.center.z);
                 SurfaceKind? seen = null;
                 foreach (RaycastHit h in Physics.RaycastAll(from, Vector3.down, 400f, ~0, QueryTriggerInteraction.Ignore))
                 {
-                    if (h.collider.attachedRigidbody != null) continue; // ignore props
+                    if (h.collider.attachedRigidbody != null) continue;
                     if (!h.collider.transform.IsChildOf(t) && h.collider.transform != t) continue;
                     var s = h.collider.GetComponentInParent<SurfaceType>();
                     seen = s != null ? s.kind : SurfaceKind.Tarmac;
                     break;
                 }
-                if (seen == r.Kind) { verified.TryGetValue(r.Label, out int n); verified[r.Label] = n + 1; }
-                else failed.Add($"{t.name}: tagged {r.Kind}, ray saw {(seen.HasValue ? seen.Value.ToString() : "nothing")}");
+                if (seen == kind) { if (kind == SurfaceKind.Tarmac) tarmacVerified++; else grassVerified++; }
+                else failed.Add($"{t.name}: tagged {kind}, ray saw {(seen.HasValue ? seen.Value.ToString() : "nothing")}");
             }
 
-            var sb = new System.Text.StringBuilder("[SurfaceTagger] ");
-            var perLabel = new Dictionary<string, int>();
-            foreach ((Transform t, Rule r) in tagged) { perLabel.TryGetValue(r.Label, out int n); perLabel[r.Label] = n + 1; }
-            foreach (var kv in perLabel)
-            {
-                verified.TryGetValue(kv.Key, out int v);
-                sb.Append($"\n   {kv.Value,4} tagged, {v,4} verified by the car's own ray   {kv.Key}");
-            }
-            foreach (var kv in skippedNoCollider)
-                sb.Append($"\n   {kv.Value,4} skipped (no collider of their own, covered by a parent)   {kv.Key}");
-            sb.Append(addedWeather ? "\n   Weather object added, set to Dry (changes nothing until flipped)."
-                                   : "\n   WeatherState already present, left alone.");
-            sb.Append(saved ? "\n   Scene saved." : "\n   SCENE NOT SAVED: press Ctrl+S.");
-
+            // ---- 4. Report. -----------------------------------------------------------------------
+            var sb = new StringBuilder($"[SurfaceTagger] {scene.name}\n");
+            sb.Append($"   TARMAC  {roadsRoots.Count} \"Roads\" parent(s) tagged, covering {hittableUnderRoads} drivable colliders; {tarmacVerified}/{roadsRoots.Count} verified by the car's ray\n");
+            sb.Append($"   GRASS   {grassTagged} colliders tagged; {grassVerified}/{grassTagged} verified by the car's ray\n");
+            sb.Append($"   skipped {grassSkippedUnderRoads} colliders under Roads (inherit tarmac), {grassSkippedProp} props with a Rigidbody, {grassSkippedNeverGround} non-ground objects\n");
+            sb.Append(addedWeather ? "   Weather object added, Dry.\n" : "   WeatherState already present.\n");
+            sb.Append(saved ? "   Scene saved." : "   SCENE NOT SAVED: press Ctrl+S or the change is lost on Play.");
             if (failed.Count > 0)
             {
                 sb.Append($"\n{failed.Count} tags the car's ray does NOT see:");
@@ -142,10 +174,36 @@ namespace ZoomZoom.Vehicle.EditorTools
             else Debug.Log(sb.ToString());
         }
 
-        private static Rule? Match(string name)
+        private static void SetKind(Transform t, SurfaceKind kind)
         {
-            foreach (Rule r in Rules) if (r.Name.IsMatch(name)) return r;
-            return null;
+            SurfaceType s = t.GetComponent<SurfaceType>();
+            if (s == null) s = Undo.AddComponent<SurfaceType>(t.gameObject);
+            else Undo.RecordObject(s, "retag surface");
+            s.kind = kind;
+            s.ApplyDefaultsForKind();
+        }
+
+        /// <summary>A collider the car's wheel ray can land on and treat as ground.</summary>
+        private static bool IsHittableGround(Collider c)
+        {
+            if (c == null || !c.enabled || c.isTrigger) return false;
+            if (c.attachedRigidbody != null) return false;             // props, the car
+            if (c is MeshCollider mc && mc.sharedMesh == null) return false; // Roads_Parent's empty collider
+            return true;
+        }
+
+        private static bool IsUnderAny(Transform t, HashSet<Transform> roots)
+        {
+            for (Transform p = t; p != null; p = p.parent)
+                if (roots.Contains(p)) return true;
+            return false;
+        }
+
+        private static bool IsNeverGround(Transform t)
+        {
+            for (Transform p = t; p != null; p = p.parent)
+                if (NeverGround.IsMatch(p.name)) return true;
+            return false;
         }
 
         private static Bounds WorldBounds(Transform t)
