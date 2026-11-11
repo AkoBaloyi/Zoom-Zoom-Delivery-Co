@@ -13,6 +13,19 @@ namespace SimpleCity.AI
 
         AdjacencyGraph graph = new AdjacencyGraph();
 
+        public void SpawnACar()
+        {
+            foreach (var house in placementManager.GetAllHouses())
+            {
+                TrySpawninACar(house, placementManager.GetRandomSpecialStructure());
+            }
+        }
+
+        private void TrySpawninACar (StructuralModel house, StructureModel structureModel)
+        {
+
+        }
+
         public void SpawnAllAagents()
         {
             foreach (var house in placementManager.GetAllHouses())

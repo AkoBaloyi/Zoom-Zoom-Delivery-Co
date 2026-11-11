@@ -32,7 +32,7 @@ public class CarrAI : MonoBehaviour
     }
 
     [field: SerializeField ]
-    public UnityEvent <Vector2> onDerieve  { get; set; }
+    public UnityEvent <Vector2> onDrive  { get; set; }
 
 
     private void Start()
@@ -47,4 +47,89 @@ public class CarrAI : MonoBehaviour
             currentTargetPosition = path[index];
         }
     }
+
+    public void SetPath(List<Vector3> path)
+    {
+        if (path.Count == 0)
+
+        {
+            Destroy(gameObject);
+                return;
+        }
+        this.path = path;
+            index = 0;
+        currentTargetPosition = this.path[index];
+
+        Vector3 relativepoint = transform.InverseTransformPoint(this.path[index + 1]);
+        float angle = Mathf.Atan2(relativepoint.x, relativepoint.z) * Mathf.Rad2Deg;
+
+        transform.rotation = Quaternion.Euler(0, angle, 0);
+        stop = false;
+    }
+
+    private void Update()
+    {
+        CheckIfArrived();
+        Drive();
+    }
+
+    private void Drive()
+    {
+        if (stop)
+        {
+            onDrive?.Invoke(Vector2.zero);
+        }
+        else
+        {
+            Vector3 relativepoint = transform.InverseTransformPoint(currentTargetPosition);
+            float angle = Mathf.Atan2(relativepoint.x, relativepoint.z) * Mathf.Rad2Deg;
+            var rotateCar = 0;
+
+            if (angle > turningAngleOffset)
+            {
+                rotateCar = 1;
+            }
+
+            else if (angle < -turningAngleOffset)
+
+            {  rotateCar = -1;}
+
+            onDrive?.Invoke( new Vector2(rotateCar,1));
+        }
+    }
+
+    private void CheckIfArrived()
+    {
+        if (stop == false)
+
+        {
+            var distanceToCheck = arriveDistance;
+            if (index == path.Count -1)
+            {
+                distanceToCheck = lastpointArriveDistance;
+            }
+
+            if (Vector3.Distance(currentTargetPosition, transform.position) < distanceToCheck)
+
+            {
+                SetNextTargetIndex();
+            }
+        }
+    }
+
+    private void SetNextTargetIndex()
+    {
+        index++;
+
+        if (index >=path.Count)
+        {
+            stop = true;
+            Destroy(gameObject);
+        }
+        else
+        {
+            currentTargetPosition = path[index];
+        }
+    }
+
 }
