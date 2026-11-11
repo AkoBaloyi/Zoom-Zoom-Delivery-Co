@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 760" font-family="Segoe UI, Arial, sans-serif">
+  <rect width="1400" height="760" fill="#2b2b2b"/>
+  <text x="40" y="52" font-size="30" font-weight="700" fill="#ffffff">Pause and end of shift — the two screens where the player stops driving</text>
+  <text x="40" y="82" font-size="17" fill="#cccccc">Both exist as code. Neither has been designed. The pause one has a real bug: HUD markers draw over it and the trick readout covers the button.</text>
+
+  <!-- ===== PAUSE ===== -->
+  <text x="40" y="140" font-size="22" font-weight="700" fill="#ffd12e">Pause — Esc or Start. Must sit ABOVE every HUD canvas (sortingOrder 20+).</text>
+  <g>
+    <rect x="40" y="160" width="620" height="420" rx="8" fill="#0d0d0d" opacity="0.9"/>
+    <!-- ghosted game behind -->
+    <rect x="40" y="160" width="620" height="420" rx="8" fill="#3a4a5a" opacity="0.25"/>
+    <!-- panel -->
+    <rect x="200" y="210" width="300" height="320" rx="12" fill="#faedc7"/>
+    <text x="350" y="254" font-size="28" font-weight="900" fill="#40261a" text-anchor="middle">PAUSED</text>
+    <rect x="230" y="280" width="240" height="46" rx="8" fill="#40261a"/>
+    <text x="350" y="311" font-size="20" font-weight="700" fill="#faedc7" text-anchor="middle">Resume</text>
+    <rect x="230" y="338" width="240" height="46" rx="8" fill="#faedc7" stroke="#40261a" stroke-width="2"/>
+    <text x="350" y="369" font-size="20" font-weight="700" fill="#40261a" text-anchor="middle">Restart shift</text>
+    <rect x="230" y="396" width="240" height="46" rx="8" fill="#faedc7" stroke="#40261a" stroke-width="2"/>
+    <text x="350" y="427" font-size="20" font-weight="700" fill="#40261a" text-anchor="middle">Controls</text>
+    <rect x="230" y="454" width="240" height="46" rx="8" fill="#faedc7" stroke="#40261a" stroke-width="2"/>
+    <text x="350" y="485" font-size="20" font-weight="700" fill="#40261a" text-anchor="middle">Quit to menu</text>
+    <text x="350" y="516" font-size="13" fill="#8a6a4a" text-anchor="middle">Esc to resume</text>
+  </g>
+  <g font-size="14" fill="#cccccc">
+    <text x="680" y="190">Dim the game to ~25%. Freeze time.</text>
+    <text x="680" y="214">Four buttons, first one highlighted so a controller</text>
+    <text x="680" y="234">has a selection without the mouse.</text>
+    <text x="680" y="268" fill="#ff8a85" font-weight="700">Bug to design around: today the arrows and the trick</text>
+    <text x="680" y="288" fill="#ff8a85" font-weight="700">text render OVER this panel. Pause canvas must be on top.</text>
+    <text x="680" y="322">Paper + Ink, same as tickets. Primary button is Ink-filled.</text>
+    <text x="680" y="356">Controls opens the 11-action screen (sheet 04).</text>
+  </g>
+
+  <!-- ===== RESULTS ===== -->
+  <text x="720" y="140" font-size="22" font-weight="700" fill="#ffd12e">End of shift — exists as ResultsPanel, three plain lines today</text>
+  <g>
+    <rect x="720" y="160" width="640" height="420" rx="8" fill="#0d0d0d" opacity="0.9"/>
+    <rect x="720" y="160" width="640" height="420" rx="8" fill="#3a4a5a" opacity="0.25"/>
+    <rect x="790" y="190" width="500" height="360" rx="12" fill="#faedc7"/>
+    <text x="1040" y="232" font-size="26" font-weight="900" fill="#40261a" text-anchor="middle">SHIFT OVER</text>
+    <!-- stars -->
+    <text x="1040" y="290" font-size="46" fill="#ffcc33" text-anchor="middle">★ ★ <tspan fill="#d8cdb0">★</tspan></text>
+    <text x="1040" y="318" font-size="15" fill="#8a6a4a" text-anchor="middle">R 3 500 for three stars</text>
+    <!-- the ledger -->
+    <g font-size="18" fill="#40261a">
+      <text x="820" y="362">Delivered</text><text x="1260" y="362" text-anchor="end" font-weight="700">8</text>
+      <text x="820" y="390">Late</text><text x="1260" y="390" text-anchor="end" font-weight="700">2</text>
+      <text x="820" y="418">Tips from tricks</text><text x="1260" y="418" text-anchor="end" font-weight="700" fill="#1f8a3a">+R 420</text>
+      <text x="820" y="446">Repairs</text><text x="1260" y="446" text-anchor="end" font-weight="700" fill="#b3241f">−R 150</text>
+      <line x1="820" y1="462" x2="1260" y2="462" stroke="#40261a" stroke-width="2"/>
+      <text x="820" y="494" font-size="22" font-weight="900">Profit</text><text x="1260" y="494" text-anchor="end" font-size="22" font-weight="900" fill="#b38600">R 2 840</text>
+    </g>
+    <rect x="820" y="508" width="210" height="34" rx="8" fill="#40261a"/>
+    <text x="925" y="532" font-size="16" font-weight="700" fill="#faedc7" text-anchor="middle">Another shift</text>
+    <rect x="1050" y="508" width="210" height="34" rx="8" fill="#faedc7" stroke="#40261a" stroke-width="2"/>
+    <text x="1155" y="532" font-size="16" font-weight="700" fill="#40261a" text-anchor="middle">Menu</text>
+  </g>
+
+  <rect x="40" y="610" width="1320" height="120" rx="8" fill="#1f140f"/>
+  <text x="60" y="646" font-size="18" font-weight="700" fill="#ffd12e">Why the results screen is a ledger and not a score</text>
+  <text x="60" y="676" font-size="16" fill="#ffffff">The hypothesis says players replay to improve their star rating. So the screen has to show them WHAT to improve: tips they earned versus repairs they paid is the</text>
+  <text x="60" y="700" font-size="16" fill="#ffffff">whole risk economy in two lines. "Another shift" is the primary button because that click is literally the thing we are measuring.</text>
+  <text x="60" y="722" font-size="13" fill="#cccccc">Star thresholds (2 000 / 3 500 / 7 000) are from the hypothesis document and are not final. Kyuri owns the numbers; this is the frame.</text>
+</svg>

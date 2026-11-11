@@ -1,0 +1,89 @@
+You are editing the open Google Doc for Zoom Zoom Delivery Co., specifically the GAME DESIGN DOCUMENT, not the project plan or individual reflection. All source text and facts required for this step are included below. You do not need access to local files, GitHub, Unity, earlier chat messages or attachments. Do not ask me to upload those sources or tell me to retrieve facts already supplied here.
+
+Apply only the changes specified in this prompt. The location clues refer to a 46-page PDF exported from this document; use exact headings and nearby text to locate sections, because page numbers change after editing. Search the BODY, not just its table of contents. If a named target cannot be found, do not guess or replace unrelated material: identify the missing target in your response. Complete other unambiguous edits. If you cannot edit the document directly, say so and return the exact formatted replacement for the named target; do not claim the document changed.
+
+Current baseline: the active car uses Crazy Taxi-inspired ground techniques. Rocket League jump/flip/boost-tank descriptions are historical. The player drives through pickup/drop-off zones; stopping is not mandatory for every delivery. Stunt tips, processing bays and R50 repair charges are proposals, not verified implemented features. Current collision cargo damage and successful stranded recovery are implemented and must remain distinct from those proposals. Do not invent tests, screenshots, lecturer quotations, team approvals or book quotations. Use South African English.
+
+The material between BEGIN REPLACEMENT and END REPLACEMENT is finished GDD prose, not instructions to be summarised. Insert it substantially verbatim: only adapt heading numbering, native table formatting and transitions necessary for placement. Keep the analysis, limitations, examples, values and source links. Convert Markdown tables into Google Docs tables. Do not insert this instruction block, placement notes or completion checklist into the GDD. Do not create an “editorial preamble” or a list of changes inside the submitted body. After editing, report the actual headings changed and any unresolved target, outside the document.
+
+EDIT 1: Research and game identity
+
+EXACT PLACEMENT AND ACTIONS
+1. Locate “2. Game Research”, followed by “2.1. Synopsis”, “2.2. Source Games and Subsystems we took” and “2.3. Category and Subcategory Analysis” (original PDF pp. 8–12).
+2. Replace the BODY of Section 2, including those subsections, up to but NOT including “3. Interrogation, Hypothesis and Design Goals”, with the replacement below.
+3. If preserving the superseded research is necessary, first move it intact to an end appendix headed “Historical research: Rocket League controller prototype”. Clearly label it as superseded. Do not leave both versions in the current-design chapter.
+4. Remove the misplaced “1.3. Source Game Three: Crazy Taxi Analysis” paragraph from the contents/front matter (original p. 2): its function is now fulfilled by Section 2. Do not delete the genuine “1.3. Design and testing terms” glossary.
+5. The former source text may say “later submission” or “earlier document”; change these only to “earlier design proposal” or “earlier controller iteration” as appropriate. No new evidence is implied.
+
+BEGIN REPLACEMENT
+
+## 2. Game Research
+
+### 2.1. Synopsis
+
+Zoom Zoom Delivery Co. is a single-player arcade delivery game in which the player chooses between timed orders and drives the routes needed to complete them. The current design combines Overcooked-inspired concurrent task pressure with Crazy Taxi-inspired ground-based driving techniques. Rocket League informed an earlier controller iteration and is retained here as development history rather than a second simultaneous description of the current car.
+
+The car makes delivery planning consequential. A clean corner can preserve the chance to collect another order; a collision can make the original route no longer worthwhile. Position, heading, cargo and remaining time jointly determine the next useful action. The intended experience is a courier becoming more resourceful under pressure, rather than a driver struggling against arbitrary control failure.
+
+### 2.2. Source systems: current and historical
+
+| Source | Relationship to the current design | Limit of the comparison |
+| --- | --- | --- |
+| Crazy Taxi (Sega, 1999) | Current vehicle reference: acceleration techniques, momentum-preserving drift, rapid stopping and automatic chase framing. | Authored reconstruction; no claim of identical physics constants, original code or a completed stunt-tip economy. |
+| Overcooked (Ghost Town Games, 2016) | Automatic concurrent orders, deadlines and pressure to sequence work while other tasks continue ageing. | Cargo occupancy is not autonomous cooking. Processing bays remain proposed wherever not implemented. |
+| Rocket League (Psyonix, 2015) | Historical vehicle reference explored through speed, sliding and jump/flip recovery. | The current taxi controller retires the active jump, aerial flip and refillable boost tank. |
+
+### 2.3. Category and design conventions
+
+The current game is an arcade delivery-driving game with time-management decisions. The driving layer asks how to execute a route; the order layer asks which route remains worth executing. This description is an analytical position for this project, not a claim that “momentum recovery” is an established genre or that expert play in the reference games is inherently imprecise.
+
+Arcade handling permits exaggerated response when it serves a readable action. It does not require random instability. Likewise, fixed task timings can make a rule learnable without guaranteeing that every generated job is reachable or fair. That depends on route geometry, information, vehicle behaviour and the work already competing for attention.
+
+### 2.4. Operations and the meaning of the splice
+
+Bogost describes works as configurations of discrete, interlocking units of meaning. His comparative approach supports examining how an operation changes when placed in another configuration, rather than comparing only the surface appearance of complete games. [Bogost, *Unit Operations*](https://bogost.com/books/unit-operations/).
+
+Applied to this project, the useful question is what an operation does before and after the splice. “Drive quickly” is too broad. Launching, carrying, waiting, turning and recovering each establish a particular relationship between the player and the remaining work. The following is our analysis of that relationship, rather than terminology or conclusions quoted from Bogost.
+
+| Operation | Role in the reference/design lineage | Meaning in this delivery game |
+| --- | --- | --- |
+| A task's timer continues while attention is elsewhere | The Overcooked reference supplies concurrent work that does not wait for the player. | Time spent completing one journey reduces the opportunity to complete other journeys. |
+| Commit a limited resource | The station/capacity comparison concerns occupying something that another task could use. | Loading an order occupies cargo space and commits the car to destinations, but does not reproduce a cooking station that processes work while the player leaves. |
+| Dash | The Crazy Taxi driving reference supplies a deliberate acceleration technique. | A correctly aligned launch can create a delivery opportunity; a badly aligned launch can spend the same opportunity on recovery. |
+| Drift | The driving reference supplies rotation while retaining travel momentum. | A junction becomes a choice of approach and exit, with consequences for the next destination. |
+| Recover | The earlier controller explored correction after losing a line. | Recovery includes restoring movement and deciding whether the original delivery plan is still worthwhile. |
+
+This reveals a limit in the Overcooked comparison. A cargo slot can be occupied, but occupation alone is not parallel processing. If the courier has to remain with the car for every task, the system primarily asks for route sequencing. A processing bay would change that structure by allowing one operation to continue while the courier travels elsewhere. That is a meaningful proposed extension, and it must remain labelled as proposed until implemented.
+
+The same distinction applies to Crazy Taxi. Reconstructing driving techniques does not automatically reconstruct the incentive to use them. Our current movement advantage can reward a dash by saving time. The proposed stunt-tip economy would add an explicit financial reward for particular performances. Those produce different decisions, so they must not be described as an already unified system.
+
+The design claim is therefore specific: the current car and timed orders can connect execution to route opportunity. Whether that connection produces rich scheduling or sustained appetite for risk remains an evaluation question. A recognizable vehicle and an order-card interface are insufficient evidence on their own.
+
+### 2.5. The controller pivot
+
+The shift from the Rocket League-inspired prototype to the Crazy Taxi-inspired controller changes where we expect expertise to appear. The earlier document puts weight on instability, jump and flip recovery. The current controller puts greater weight on ordinary steering, ground-based techniques and repeatable input sequences. Keeping both descriptions in the present tense hides that design change.
+
+The relevant loss is also worth recording. Removing active jump and aerial flip reduces the player's vocabulary for moving vertically and correcting mid-air mistakes. The replacement gains a clearer relationship between road geometry and deliberate ground movement. A bend, a missed junction and a departure can now be addressed through drift, quick turn and dash. This is a narrower action space with a clearer relationship to the delivery task, although it still needs routes that make those differences matter.
+
+Calling the original inspiration “slightly out of control” is not enough to justify a controller. An expert's apparent chaos can depend on highly precise inputs. Our question is what a beginner can understand and what an experienced player can improve. The current design seeks low entry difficulty in basic movement and greater mastery in the timing, placement and combination of techniques.
+
+### 2.6. Crazy Taxi: reconstruction and adaptation
+
+Crazy Taxi is the current arcade driving reference. The important borrowed structure is the combination of accessible continuous steering with discrete, timed driving techniques. In a published interview, creator Kenji Kanno describes the original intention as driving action rather than vehicle simulation, including deliberate dash and drift behaviour and a late rewrite of its driving code. This supports treating the vehicle's response as authored game design rather than realism that appears automatically from a physics solver. [Kanno interview, 3DM, 23 September 2026](https://en.3dmgame.com/original/4658).
+
+**Retained/reconstructed:** the roles of dash, drift and rapid stopping; input sequences that reward practice; momentum as something the player can redirect; and an automatic chase camera that keeps driving readable. “Cloned” here means recreating these observable relationships, not copying exact constants or proprietary code.
+
+**Changed:** ordinary brake-to-reverse assistance, modern keyboard/controller mappings, automatic forward ratios, the direct quick-turn action, manual look-behind and safe-position recovery. These changes make the driving vocabulary available on the project's controls and limit time lost to being stranded. Passenger fares are recontextualised into food-delivery work and overlapping order pressure. The later submission proposes cooking bays and a stunt-versus-repair economy; these remain design intentions wherever they are not present in the inspected implementation.
+
+**Omitted or retired:** the earlier Rocket League boost tank, active jump and aerial flip. A ramp-induced jump is still possible through motion and geometry. A direct quick-turn button is a project adaptation and should not be presented as an original Crazy Taxi input.
+
+### Why ordinary Unity physics does not automatically reproduce the original
+
+Unity's built-in 3D physics uses Nvidia PhysX. It supplies general-purpose simulation, not Crazy Taxi's particular input grammar, speed rules, steering response or camera. Those rules must be authored and tuned explicitly. The project therefore retains Rigidbody collisions and suspension while implementing its own arcade driving and trick states. [Unity, Built-in 3D physics](https://docs.unity3d.com/6000.0/Documentation/Manual/PhysicsOverview.html).
+
+It would be inaccurate to say that Crazy Taxi existed “before physics engines” or that Unity cannot reproduce its feel. The defensible claim is that default physics does not reproduce a bespoke arcade controller without custom rules and comparative testing. The original handling constants and source code have not been verified here, so exact equivalence cannot be claimed.
+
+END REPLACEMENT
+
+CHECK THIS STEP
+Section 2 must identify Crazy Taxi as current and Rocket League as historical; explain the operations and limits of the comparison; contain full analysis, not just a source-game list. Leave Section 3 for the next step.

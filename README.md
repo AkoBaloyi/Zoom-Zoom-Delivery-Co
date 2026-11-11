@@ -44,13 +44,16 @@ with modern brake-to-reverse assistance for ordinary manoeuvring.
 | Game control | Input binding | Player action |
 | --- | --- | --- |
 | Drive forward; brake when reversing | `W` or `Up Arrow`, or gamepad RT | `Accelerator` |
-| Brake, then reverse at rest | `S`, `Down Arrow` or `Left Ctrl`, or gamepad LT | `Brake` |
+| Brake, then reverse at rest | `S` or `Down Arrow`, or gamepad LT | `Brake` |
 | Steer | `A` and `D`, or `Left Arrow` and `Right Arrow`, or gamepad left stick | `Steer` |
 | Drive trick gesture | `F`, or gamepad B | `GearDrive` |
 | Reverse trick gesture | `R`, or gamepad A | `GearReverse` |
-| Steer + quick 180-degree turnaround | `A`/`D` + `Space`, or stick + LB | `QuickSpin` |
+| Quick 180-degree turnaround, while steering | `Space`, or gamepad LB | `QuickSpin` |
 | Hold to look behind | `C`, or gamepad right-stick click | `LookBehind` |
 | Reset a stranded car to last clear road point | `Backspace`, or gamepad View/Select | `Recover` |
+| One-button trick: dash with gas held, stop with brake held | `Left Shift`, or gamepad RB | `Technique` |
+| One-button drift | `Left Ctrl`, or gamepad X | `Drift` |
+| Toggle camera motion effects, for motion sensitivity | `F8`, or gamepad D-pad up | `ToggleMotion` |
 
 Quick turn follows the held steering direction and does nothing with neutral steering. It retains
 90% of entry speed before any collision losses. Anti-roll support keeps the chassis flat.
@@ -71,7 +74,9 @@ are editable in the tuning asset.
 
 The gear/speed readout and named move confirmation are visible at the bottom left. There is no
 boost tank, jump, handbrake button, directional flip or aerial steering. Space / LB now performs a
-quick turnaround rather than the retired handbrake behaviour. The camera follows
+quick turnaround rather than the retired handbrake behaviour. The
+[identity and speed-feel record](docs/research/CRAZY-TAXI-IDENTITY-AND-SPEED-FEEL.md) explains the
+modern adaptations, the recorded-drive findings and the controlled before/after comparison. The camera follows
 automatically. Looking behind is optional; reversing alone keeps the normal forward view.
 
 After three seconds upside down or trying to accelerate while stuck, the car resets to its last
@@ -130,6 +135,3 @@ outside the team is recorded in [Credits](docs/CREDITS.md) with its author, sour
 - [Credits](docs/CREDITS.md)
 - [Build log](docs/BUILD-LOG.md)
 - [Git rules](docs/GIT-RULES.md)
-
-The [current identity and speed-feel record](docs/research/CRAZY-TAXI-IDENTITY-AND-SPEED-FEEL.md)
-explains the modern adaptations, recorded-drive findings and controlled before/after comparison.

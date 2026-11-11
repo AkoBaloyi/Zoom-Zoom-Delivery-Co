@@ -1,0 +1,78 @@
+You are editing the open Google Doc for Zoom Zoom Delivery Co., specifically the GAME DESIGN DOCUMENT, not the project plan or individual reflection. All source text and facts required for this step are included below. You do not need access to local files, GitHub, Unity, earlier chat messages or attachments. Do not ask me to upload those sources or tell me to retrieve facts already supplied here.
+
+Apply only the changes specified in this prompt. The location clues refer to a 46-page PDF exported from this document; use exact headings and nearby text to locate sections, because page numbers change after editing. Search the BODY, not just its table of contents. If a named target cannot be found, do not guess or replace unrelated material: identify the missing target in your response. Complete other unambiguous edits. If you cannot edit the document directly, say so and return the exact formatted replacement for the named target; do not claim the document changed.
+
+Current baseline: the active car uses Crazy Taxi-inspired ground techniques. Rocket League jump/flip/boost-tank descriptions are historical. The player drives through pickup/drop-off zones; stopping is not mandatory for every delivery. Stunt tips, processing bays and R50 repair charges are proposals, not verified implemented features. Current collision cargo damage and successful stranded recovery are implemented and must remain distinct from those proposals. Do not invent tests, screenshots, lecturer quotations, team approvals or book quotations. Use South African English.
+
+The material between BEGIN REPLACEMENT and END REPLACEMENT is finished GDD prose, not instructions to be summarised. Insert it substantially verbatim: only adapt heading numbering, native table formatting and transitions necessary for placement. Keep the analysis, limitations, examples, values and source links. Convert Markdown tables into Google Docs tables. Do not insert this instruction block, placement notes or completion checklist into the GDD. Do not create an “editorial preamble” or a list of changes inside the submitted body. After editing, report the actual headings changed and any unresolved target, outside the document.
+
+EDIT 6: Damage and recovery
+
+EXACT PLACEMENT AND ACTIONS
+1. Locate “5.3. Crash Damage and Recovery Tables” (original p. 20).
+2. Replace its body, including the existing damage table and the paragraph beginning “Following game design theories”, up to the paragraph starting “Constraint to watch: displaced objects must not become a faster route.” Preserve that following constraint paragraph.
+3. If that ending paragraph is absent, replace only this subsection up to the next same-level or higher-level heading. Do not delete the entire Core Gameplay Loop.
+4. Delete the unsupported R20 charge, 2.5-second steering stun, fixed 15%/35% impact tiers and five-second mandatory crash delay. Replace them with all three tables and the analysis below. They represent different systems, not alternative names for one punishment.
+5. The equation uses relative impact speed, not the speedometer and not the logger's definition of a wall hit.
+
+BEGIN REPLACEMENT
+
+### 5.3. Crash Damage and Recovery
+
+### Current implemented damage
+
+The inspected Easy, Medium and Hard scenes enable cargo condition damage with a 10 m/s relative-impact threshold and 1.5 condition points lost for each m/s above that threshold. Every carried order receives the damage, and condition cannot fall below zero. The car itself has no inspected health degradation or repair-payment mechanism.
+
+For one impact: **condition loss = max(0, relative impact speed − 10) × 1.5**, capped by the condition remaining. Relative impact speed is not necessarily the speedometer reading: another moving body or vertical movement can affect it.
+
+| Relative crash speed | Vehicle repair cost in inspected code | Cargo condition lost from one impact | Reduction for an otherwise R100 delivery starting at full condition |
+| --- | --- | --- | --- |
+| 0–10 m/s (0–36 km/h) | None implemented | 0 points | R0 |
+| 15 m/s (54 km/h) | None implemented | 7.5 points | R7.50 |
+| 20 m/s (72 km/h) | None implemented | 15 points | R15 |
+| 28 m/s (100.8 km/h) | None implemented | 27 points | R27 |
+| 38 m/s (136.8 km/h) | None implemented | 42 points | R42 |
+
+These are calculated examples from the implemented rule, not measured crashes or fixed repair bills. Delivery value is reduced when resolving the order; no carried cargo means no cargo-condition loss. Separate sufficiently severe deceleration events can also remove six condition points in these three scenes, subject to the hard-brake cooldown and technique protection. The older “Possible game scene” has different thresholds (6 m/s and four points per m/s), so its values must not be mixed into this table.
+
+### Proposed repair rule from the final submission
+
+An earlier final-submission design proposal specifies R50 per hard crash but leaves the trigger as “8–10 m/s”. The following is a concrete **proposed clarification**, choosing the upper end to align with the existing cargo threshold. It is not an implemented or approved rule.
+
+| Relative crash speed | Proposed repair charge |
+| --- | --- |
+| At or below 10 m/s (36 km/h) | R0 |
+| Above 10 m/s (36 km/h) | R50 per distinct crash, independent of further speed increase |
+
+If implemented, show the charge and cause immediately and total repairs in the shift summary. A sustained scrape should count as one crash, with a new charge only after separation and a new qualifying impact. Define this event rule before implementation. The team must also decide whether repair charges replace or stack with cargo-value loss; silently applying both would increase punishment beyond the documented R50 fee.
+
+### Stuck and flipped rules: implemented
+
+| Situation | Response | Cost |
+| --- | --- | --- |
+| Trying to drive but making no more than 0.75 m progress for about three seconds | Attempt recovery to the last safe road pose. | Five seconds removed from the active shift only after a successful reset. |
+| Overturned for about three seconds | Attempt the same recovery. | Same five-second cost. |
+| Manual recovery: Backspace or View/Select | Requires the car to be stranded and moving below 1.5 m/s. | Same cost after success. |
+| Safe point is obstructed or unsupported | Do not teleport into it. | No recovery charge until a reset succeeds. |
+| Parked upright or deliberately braking | Does not by itself trigger stuck recovery. | None. |
+
+The car records clear, supported road poses and can use a supported spawn as its initial fallback. A successful recovery clears motion, pending inputs and tricks, updates the camera and sends recovery feedback. The time deduction can end a shift. There is no implemented additional R50 fee merely for becoming stuck or flipped.
+
+#### Design implications: preserving a next move
+
+A collision can already cost velocity, route position and time from several active orders. Cargo damage adds a loss to the value being carried. A proposed repair fee would add another charge. These costs interact; they should not be balanced as isolated systems.
+
+In the inspected Easy, Medium and Hard scenes, a collision removes 1.5 cargo-condition points per m/s of relative impact speed above 10 m/s, down to zero condition. All carried orders are affected. This is a continuous cargo-value rule, not the new PDF's 15%/35% damage bands. The logger's speed-drop definition of a wall hit is another measurement entirely and is not the collision damage formula.
+
+The proposed R50 repair fee would change behaviour beyond cargo damage. Cargo damage matters only when carrying something. A repair fee could make an empty journey financially risky as well. A flat fee would also introduce a threshold: two impacts just above the threshold would cost twice as much as one much faster impact. That may be acceptable, but it is a design consequence that needs a reason and feedback the player can read.
+
+If stunt tips are introduced, their relationship to repair costs becomes central. A risk-reward system needs attainable upside, identifiable downside and some capacity to choose the exposure. Without the upside, additional penalties may simply teach careful driving. If reckless driving always returns more profit even after crashes, caution becomes irrelevant. Compare net outcomes and voluntary choices, not just how many penalties fired.
+
+Stranded recovery serves a different purpose. The implemented safe-position reset prevents an overturned or blocked car from consuming the remainder of the shift. A successful reset subtracts five seconds from the active shift; it does not freeze steering for five seconds. The player resumes with less time available. That preserves a cost while restoring the ability to act.
+
+There are therefore three recoveries to evaluate: restoring vehicle control, restoring orientation in the city, and restoring a viable plan. Getting upright is necessary but insufficient if the player cannot find the next useful destination. A satisfying recovery ends with an intentional next action, not just a moving Rigidbody.
+
+END REPLACEMENT
+
+CHECK THIS STEP
+Current formula and examples must remain exact. R50 above 10 m/s is explicitly a proposed clarification, not approval or implementation. Recovery costs shift time after successful relocation; it does not impose a steering stun. Stacking repairs and cargo damage remains unresolved.

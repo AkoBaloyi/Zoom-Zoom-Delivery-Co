@@ -32,6 +32,13 @@ namespace ZoomZoom.Vehicle
         public bool IsTechniqueCargoProtected => ActiveTrick != TaxiTrick.None || _cargoProtectionRemaining > 0f;
         public bool CanQuickSpinNow => tuning != null && Taxi.quickSpinEnabled && IsGrounded && IsUpright && _spinCooldownRemaining <= 0f;
         public event Action<TaxiTrick> TrickPerformed;
+
+        /// <summary>
+        /// Fired when a dash-family trick was correctly input but the surface refused it. Carries the
+        /// surface kind. Exists so the HUD can show a short "no dash on grass" cue the first few times,
+        /// which turns a silent refusal into a lesson instead of a mystery.
+        /// </summary>
+        public event Action<SurfaceKind> DashRefusedBySurface;
         public event Action Repositioned;
         public event Action<int, int> GearShifted;
         public event Action<float> Recovered;
@@ -100,8 +107,35 @@ namespace ZoomZoom.Vehicle
             Repositioned?.Invoke();
         }
 
+        /// <summary>
+        /// True when the ground under the car refuses the speed tricks.
+        ///
+        /// Grass already slows the car through Surface.driveMultiplier, but a dash pushed hard enough
+        /// to cancel that out, which quietly made the surface model irrelevant to anyone who had
+        /// learned to dash. So the dash family is refused outright on the surfaces in
+        /// Taxi.noDashSurfaces rather than merely weakened: a trick that does nothing is something a
+        /// player learns in one attempt, and a trick that half-works is something they argue with.
+        ///
+        /// Only the dash family is gated. Drift, Stop and QuickSpin are recovery and cornering tools
+        /// and taking those away on grass would strand people rather than teach them.
+        /// </summary>
+        public bool SurfaceRefusesDash =>
+            Taxi.noDashSurfaces != null && System.Array.IndexOf(Taxi.noDashSurfaces, Surface.kind) >= 0;
+
+        private static bool IsDashFamily(TaxiTrick trick) =>
+            trick == TaxiTrick.Dash || trick == TaxiTrick.BackDash || trick == TaxiTrick.LimiterCut;
+
         private void BeginTaxiTrick(TaxiTrick trick)
         {
+            // Refused before anything is touched: no ActiveTrick, no TrickCount, no TrickPerformed.
+            // The engine note and the on-screen callout both hang off that event, so a blocked
+            // dash stays silent and invisible, which is the whole point of blocking it.
+            if (IsDashFamily(trick) && SurfaceRefusesDash)
+            {
+                DashRefusedBySurface?.Invoke(Surface.kind);
+                return;
+            }
+
             ActiveTrick = trick;
             _trickRemaining = Taxi.dashDuration;
             if (trick == TaxiTrick.Drift || trick == TaxiTrick.BackDrift)

@@ -108,7 +108,7 @@ namespace ZoomZoom.Vehicle
             Quaternion heading = _recoveryRotation;
             SelfRightCount++;
             Teleport(destination, heading);
-            foreach (ShiftTimer timer in FindObjectsByType<ShiftTimer>(FindObjectsSortMode.None))
+            foreach (ShiftTimer timer in FindObjectsByType<ShiftTimer>(FindObjectsInactive.Exclude))
                 if (timer.gameObject.scene == gameObject.scene) timer.ApplyTimePenalty(Taxi.recoveryTimeCost);
             Recovered?.Invoke(Taxi.recoveryTimeCost);
         }

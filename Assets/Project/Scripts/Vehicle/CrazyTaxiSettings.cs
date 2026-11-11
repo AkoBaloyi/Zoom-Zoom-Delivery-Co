@@ -90,6 +90,12 @@ namespace ZoomZoom.Vehicle
         [Range(0f, 0.05f)] public float minimumGap = 0.008f;
         [Range(0.5f, 1f)] public float pedalFloor = 0.9f;
         [Header("Crazy manoeuvres")]
+        [Tooltip("Surfaces that REFUSE the dash family (Dash, Back Dash, Limiter Cut). The trick does " +
+                 "not fire at all: no push, no callout, no engine note. Grass by default, because grass " +
+                 "already slows the car through its drive multiplier and a full-strength dash cancelled " +
+                 "that out, making the surface meaningless to anyone who had learned to dash. Drift, " +
+                 "Stop and Quick Turn are never refused; they are how you get OFF the grass.")]
+        public SurfaceKind[] noDashSurfaces = { SurfaceKind.Grass };
         [Header("Direct technique controls")]
         public bool directTechniqueControls = true;
         [Min(0.7f)] public float directDashCooldown = 2f;

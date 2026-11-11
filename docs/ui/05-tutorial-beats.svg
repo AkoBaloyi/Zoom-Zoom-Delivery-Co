@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 1000" font-family="Segoe UI, Arial, sans-serif">
+  <rect width="1400" height="1000" fill="#2b2b2b"/>
+  <text x="40" y="52" font-size="30" font-weight="700" fill="#ffffff">The tutorial: seven beats, one new thing each, nothing to read</text>
+  <text x="40" y="82" font-size="17" fill="#cccccc">Each beat needs exactly two pieces of UI from Zah: a beat card (what to do, 5 words max) and a done stamp. Everything else is the normal HUD, revealed one zone at a time.</text>
+
+  <!-- the beat card template -->
+  <text x="40" y="140" font-size="22" font-weight="700" fill="#ffd12e">The beat card — top-centre, replaces the popup slot while a beat is active</text>
+  <rect x="300" y="160" width="800" height="90" rx="12" fill="#faedc7" stroke="#40261a" stroke-width="3"/>
+  <text x="340" y="196" font-size="16" font-weight="700" fill="#8a6a4a">BEAT 2 OF 7</text>
+  <text x="340" y="232" font-size="30" font-weight="900" fill="#40261a">Follow the arrow to the customer</text>
+  <circle cx="1040" cy="205" r="30" fill="#33d959"/>
+  <text x="1040" y="214" font-size="26" font-weight="900" fill="#ffffff" text-anchor="middle">✓</text>
+  <text x="300" y="276" font-size="14" fill="#cccccc">Paper card, Ink text, same materials as a ticket so it reads as part of the game. The tick stamps on when the beat is done, holds 1 s, then the next card slides in.</text>
+
+  <!-- seven beats, two columns -->
+  <g font-size="15">
+    <!-- headers -->
+    <text x="40" y="330" font-size="18" font-weight="700" fill="#ffd12e">Beat</text>
+    <text x="300" y="330" font-size="18" font-weight="700" fill="#ffd12e">Card text (max 5 words)</text>
+    <text x="700" y="330" font-size="18" font-weight="700" fill="#ffd12e">HUD zones visible</text>
+    <text x="1060" y="330" font-size="18" font-weight="700" fill="#ffd12e">Done when</text>
+    <line x1="40" y1="342" x2="1360" y2="342" stroke="#555"/>
+
+    <g fill="#ffffff">
+      <text x="40" y="376" font-weight="700">1  Drive</text>
+      <text x="300" y="376">Drive to the cone</text>
+      <text x="700" y="376" fill="#aaaaaa">Drive readout only</text>
+      <text x="1060" y="376">Car crosses a line</text>
+
+      <text x="40" y="416" font-weight="700">2  Arrive</text>
+      <text x="300" y="416">Follow the arrow</text>
+      <text x="700" y="416" fill="#aaaaaa">+ one arrow, one disc</text>
+      <text x="1060" y="416">Car enters the disc</text>
+
+      <text x="40" y="456" font-weight="700">3  Clock</text>
+      <text x="300" y="456">Same place. Faster.</text>
+      <text x="700" y="456" fill="#aaaaaa">+ one ticket with timer</text>
+      <text x="1060" y="456">Disc entered before 0</text>
+
+      <text x="40" y="496" font-weight="700">4  Trick</text>
+      <text x="300" y="496">Hold gas, tap Shift</text>
+      <text x="700" y="496" fill="#aaaaaa">+ trick name callout</text>
+      <text x="1060" y="496">CRAZY DASH fires once</text>
+
+      <text x="40" y="536" font-weight="700">5  Cook</text>
+      <text x="300" y="536">Fetch it. Cook it. Deliver it.</text>
+      <text x="700" y="536" fill="#aaaaaa">+ bay sign, full ticket</text>
+      <text x="1060" y="536">One order delivered</text>
+
+      <text x="40" y="576" font-weight="700">6  Overlap</text>
+      <text x="300" y="576">Don't wait. Fetch the next.</text>
+      <text x="700" y="576" fill="#aaaaaa">Two tickets in the strip</text>
+      <text x="1060" y="576">Left bay while cooking</text>
+
+      <text x="40" y="616" font-weight="700">7  Risk</text>
+      <text x="300" y="616">Close calls pay. Crashes cost.</text>
+      <text x="700" y="616" fill="#aaaaaa">Full HUD, shift panel on</text>
+      <text x="1060" y="616">One tip + one repair seen</text>
+    </g>
+  </g>
+
+  <!-- the reveal diagram -->
+  <text x="40" y="690" font-size="22" font-weight="700" fill="#ffd12e">How the HUD fills in — the same screen, zones switching on</text>
+  <g>
+    <!-- beat 1 -->
+    <rect x="40" y="710" width="300" height="170" rx="6" fill="#1a1a1a" stroke="#555"/>
+    <rect x="48" y="830" width="110" height="42" rx="3" fill="#ffd12e" opacity="0.9"/>
+    <text x="190" y="900" font-size="14" fill="#cccccc" text-anchor="middle">Beat 1: readout only</text>
+    <!-- beat 3 -->
+    <rect x="380" y="710" width="300" height="170" rx="6" fill="#1a1a1a" stroke="#555"/>
+    <rect x="388" y="830" width="110" height="42" rx="3" fill="#ffd12e" opacity="0.9"/>
+    <rect x="388" y="718" width="120" height="38" rx="3" fill="#faedc7" opacity="0.9"/>
+    <polygon points="620,760 605,790 635,790" fill="#33d959"/>
+    <text x="530" y="900" font-size="14" fill="#cccccc" text-anchor="middle">Beat 3: + ticket, arrow</text>
+    <!-- beat 5 -->
+    <rect x="720" y="710" width="300" height="170" rx="6" fill="#1a1a1a" stroke="#555"/>
+    <rect x="728" y="830" width="110" height="42" rx="3" fill="#ffd12e" opacity="0.9"/>
+    <rect x="728" y="718" width="120" height="38" rx="3" fill="#faedc7" opacity="0.9"/>
+    <polygon points="960,760 945,790 975,790" fill="#fa8c1e"/>
+    <rect x="850" y="790" width="60" height="30" rx="3" fill="#1f140f" stroke="#fa8c1e"/>
+    <text x="870" y="900" font-size="14" fill="#cccccc" text-anchor="middle">Beat 5: + bay sign</text>
+    <!-- beat 7 -->
+    <rect x="1060" y="710" width="300" height="170" rx="6" fill="#1a1a1a" stroke="#555"/>
+    <rect x="1068" y="830" width="110" height="42" rx="3" fill="#ffd12e" opacity="0.9"/>
+    <rect x="1068" y="718" width="120" height="70" rx="3" fill="#faedc7" opacity="0.9"/>
+    <rect x="1270" y="718" width="82" height="34" rx="3" fill="#1f140f" stroke="#ffffff" stroke-opacity="0.5"/>
+    <rect x="1180" y="718" width="80" height="18" rx="9" fill="#33d959"/>
+    <text x="1210" y="900" font-size="14" fill="#cccccc" text-anchor="middle">Beat 7: everything on</text>
+  </g>
+
+  <text x="40" y="960" font-size="16" fill="#ffffff">Zah, this is the whole ask for the tutorial: one card design, one stamp, and a way to hide/show each HUD zone. The content of each beat is Kyuri's and mine.</text>
+</svg>

@@ -1,0 +1,79 @@
+You are editing the open Google Doc for Zoom Zoom Delivery Co., specifically the GAME DESIGN DOCUMENT, not the project plan or individual reflection. All source text and facts required for this step are included below. You do not need access to local files, GitHub, Unity, earlier chat messages or attachments. Do not ask me to upload those sources or tell me to retrieve facts already supplied here.
+
+Apply only the changes specified in this prompt. The location clues refer to a 46-page PDF exported from this document; use exact headings and nearby text to locate sections, because page numbers change after editing. Search the BODY, not just its table of contents. If a named target cannot be found, do not guess or replace unrelated material: identify the missing target in your response. Complete other unambiguous edits. If you cannot edit the document directly, say so and return the exact formatted replacement for the named target; do not claim the document changed.
+
+Current baseline: the active car uses Crazy Taxi-inspired ground techniques. Rocket League jump/flip/boost-tank descriptions are historical. The player drives through pickup/drop-off zones; stopping is not mandatory for every delivery. Stunt tips, processing bays and R50 repair charges are proposals, not verified implemented features. Current collision cargo damage and successful stranded recovery are implemented and must remain distinct from those proposals. Do not invent tests, screenshots, lecturer quotations, team approvals or book quotations. Use South African English.
+
+The material between BEGIN REPLACEMENT and END REPLACEMENT is finished GDD prose, not instructions to be summarised. Insert it substantially verbatim: only adapt heading numbering, native table formatting and transitions necessary for placement. Keep the analysis, limitations, examples, values and source links. Convert Markdown tables into Google Docs tables. Do not insert this instruction block, placement notes or completion checklist into the GDD. Do not create an “editorial preamble” or a list of changes inside the submitted body. After editing, report the actual headings changed and any unresolved target, outside the document.
+
+EDIT 2: Goals and subsystem integration
+
+EXACT PLACEMENT AND ACTIONS
+1. Locate “3. Interrogation, Hypothesis and Design Goals” (original pp. 12–15). Replace it through its last prototype goal with the new Section 3 below.
+2. Replace “4. Integration of Subsystems”, including “4.1. Where integration is now complete”, up to but NOT including “5. Character Controller Design Rationale” with the new Section 4 below.
+3. Do not copy the old claims that the car is deliberately unreliable, that fixed task timings mean only the player can be to blame, or that capacity equal to the queue eliminates all choice.
+4. Preserve any original dated playtest evidence in its own later playtest section. Do not turn the new example into a recorded observation. Do not change the separate project-plan document or claim its hypothesis was updated.
+
+BEGIN REPLACEMENT
+
+## 3. Interrogation, Hypothesis and Design Goals
+
+### 3.1. Design question
+
+How can timed delivery commitments and learnable arcade driving make players revise their routes, recover from mistakes and improve through deliberate practice?
+
+### 3.2. Working hypothesis
+
+If orders continue ageing while the player uses a reliable car with learnable movement techniques, then driving performance can alter which deliveries remain feasible, prompting route revision and active recovery. This should give repeated shifts value through improved judgement and execution. The claim is supported only if players make meaningful choices after setbacks and can improve those outcomes; more crashes or more button presses alone do not establish success.
+
+The proposed processing-bay and stunt-tip/repair economy would extend this hypothesis. They must be evaluated as additional systems rather than used as evidence for behaviour the current build has not demonstrated.
+
+### 3.3. Controller design and experience goals
+
+The player in Zoom Zoom Delivery Co. is trying to keep a working plan alive while driving changes the conditions on which that plan was based. An order can be reachable when it appears and cease to be sensible after a missed corner. Conversely, a good exit from a junction can make an additional pickup worth attempting. The car therefore does more than carry the player between objectives. It changes which objectives remain possible.
+
+The intended character is a capable courier working close to the limit of what they can manage. The player should want to take one more order because a better line, a well-timed dash or a quicker recovery might make it achievable. Pressure comes from that possibility. If success is guaranteed, there is little to judge; if failure is inevitable, there is little reason to improve. The design needs an interval in which the player's growing ability changes the answer.
+
+This gives the car a personality through action. Ordinary driving is forgiving enough to establish confidence. Advanced moves let the player express decisiveness and control. The order queue gives those movements consequences: a fast turn is valuable because of what it makes reachable next. The desired satisfaction is not simply “the vehicle moves quickly”. It is “I saw a way to save that delivery, and I executed it”.
+
+**Controller design goal:** provide reliable basic driving and distinct, learnable techniques that let the player improve routes, approaches and recovery. Each advanced action should solve a recognisable driving problem and retain a reason not to use it in some situations.
+
+**Controller experience goal:** make the player feel increasingly resourceful under delivery pressure. Success should feel attributable to a decision and its execution; failure should remain understandable and leave a meaningful next action.
+
+These goals do not require deliberately unreliable controls. The controller's response should be consistent. Uncertainty comes from the player's judgement and execution within a changing set of commitments, not from a vehicle that arbitrarily refuses the intended action.
+
+### 3.4. Goals and evidence
+
+| Goal | Evidence to seek | What would challenge the goal |
+| --- | --- | --- |
+| Understandable basic driving | A beginner can depart, steer, brake and change direction after onboarding, and explain the controls. | Repeated confusion caused by inconsistent inputs rather than a difficult route. |
+| Useful advanced movement | Deliberate technique choices improve time, placement or control in suitable situations. | Techniques are unused or add input complexity without changing outcomes. |
+| Planning affected by execution | The player changes a route or priority after a setback or successful manoeuvre. | The only consequence is waiting, with no viable alternative. |
+| Readable failure | The player can identify the relevant input, obstacle or decision, and the recorded scene supports their account. | Information appears too late or the task was infeasible before the player's error. |
+| Recovery with a next action | After correction/reset the player can orient and choose a worthwhile task. | The vehicle moves again but no useful decision remains. |
+| Motivation to improve | Players voluntarily replay and describe something they intend to do differently. | Repetition produces resignation rather than learning or interest. |
+
+## 4. Integration of Subsystems
+
+The integration occurs through the car's position and movement within a queue of ageing commitments. Driving into a pickup zone can occupy cargo space; driving into a drop-off resolves a carried order. The player therefore acts on the task system through vehicle movement, without a separate confirmation action. Arrival and execution meet at the same event.
+
+Time spent driving or recovering reduces the remaining opportunity for all active orders. Cargo damage links qualifying collisions to the value of carried work. Route geometry and camera readability determine whether the player can anticipate and execute those journeys. This creates mutual dependencies: a controller cannot be judged only on an empty straight road, and order timers cannot be balanced without considering actual routes.
+
+Capacity below the active-order limit adds pressure to choose what to carry. It is not a universal proof that planning exists, and increasing capacity to match the queue would not remove all decisions about deadlines, route order or reward. A cargo slot also does not process a task independently while the courier leaves. Those distinctions keep the Overcooked comparison precise.
+
+The active controller uses generous ordinary cornering and explicit drift techniques. The earlier friction-circle and rear-axle account belongs to the historical controller; it should not be used to prove current driving trade-offs. Current trade-offs must be demonstrated through measured routes and observed choices.
+
+### 4.1. A delivery situation
+
+Consider an illustrative situation, not a recorded playtest. The courier is carrying two orders. One destination is close but requires turning back; the other lies along the current road. A third order is waiting near the route the courier could take after the second delivery.
+
+There is no useful decision based on urgency alone. The player must compare remaining time with travel and service requirements. Turning back may save the closest order but place the car badly for both remaining jobs. Continuing may protect the current momentum and free cargo space near the third pickup, while sacrificing the opportunity to save the first. The car's position and heading are part of the planning state.
+
+A drift and clean exit may reduce the cost of one route. A collision may change which route is feasible. The resulting reprioritisation is the interaction we need to observe: did the mistake change a decision, or did it merely make the player wait before continuing exactly as before?
+
+This also explains why increasing punishment is not the same as deepening the game. If a collision makes every remaining order impossible, it removes alternatives. A smaller setback that leaves two competing possibilities may produce a richer decision. The useful amount of resistance is enough to make a plan vulnerable while preserving something worth attempting.
+
+END REPLACEMENT
+
+CHECK THIS STEP
+Both goals must be explicitly labelled. The hypothesis must be testable and the route scenario must remain illustrative. Do not claim it has been validated.
