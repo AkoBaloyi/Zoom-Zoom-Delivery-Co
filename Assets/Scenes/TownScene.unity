@@ -4901,6 +4901,7 @@ MonoBehaviour:
   - {fileID: 5928032463670676373, guid: 646488162f240a949a4e48ed1686ccda, type: 3}
   - {fileID: 2278821950334863235, guid: 0811cac021ab5f645ae41584a145f4a1, type: 3}
   - {fileID: 8964402343246118786, guid: 6415100e42056474fb95481c5c3046f3, type: 3}
+  carPrefab: {fileID: 0}
 --- !u!4 &729311224
 Transform:
   m_ObjectHideFlags: 0

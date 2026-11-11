@@ -217,4 +217,9 @@ public class PlacementManager : MonoBehaviour
         }
         return null;
     }
+
+    internal StructureModel GetRandomSpecialStructure()
+    {
+        throw new NotImplementedException();
+    }
 }

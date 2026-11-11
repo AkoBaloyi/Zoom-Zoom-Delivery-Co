@@ -11,6 +11,8 @@ namespace SimpleCity.AI
         public PlacementManager placementManager;
         public GameObject[] pedestrianPrefabs;
 
+        public GameObject carPrefab;
+
         AdjacencyGraph graph = new AdjacencyGraph();
 
         public void SpawnACar()
@@ -21,10 +23,26 @@ namespace SimpleCity.AI
             }
         }
 
-        private void TrySpawninACar (StructuralModel house, StructureModel structureModel)
+        private void TrySpawninACar(StructureModel startStructure, StructureModel endStructure)
         {
+            if (startStructure != null &&  endStructure != null)
+            {
+                var startRoadPosition = ((INeedingRoad)startStructure).RoadPosition;
+                var endRoadPosition = ((INeedingRoad)endStructure).RoadPosition;
 
+                var path = placementManager.GetPathBetween(startRoadPosition, endRoadPosition);
+                var car = Instantiate(carPrefab, startRoadPosition, Quaternion.identity);
+                car.GetComponent<CarrAI>().SetPath(path.ConvertAll(x => (Vector3)x));
+            }
         }
+
+        /*private void TrySpawninACar (StructuralModel house, StructureModel structureModel)
+        {
+            if (startStructure != null && endStructure != null)
+            {
+               var startRoad = (INeedingRoad)startStructure).RoadPosition;
+            }
+        } */
 
         public void SpawnAllAagents()
         {
