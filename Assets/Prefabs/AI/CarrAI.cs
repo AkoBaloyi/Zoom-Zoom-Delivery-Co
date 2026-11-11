@@ -28,7 +28,7 @@ public class CarrAI : MonoBehaviour
 
 
         get { return myVar; }
-        set { stop = value; }
+        set { myVar = value; }
     }
 
     [field: SerializeField ]

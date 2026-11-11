@@ -31,7 +31,7 @@ public class CarrController : MonoBehaviour
 
     private void FixedUpdate()
     {
-        if (rb.velocity. magnitude < maxSpeed)
+        if (rb.linearVelocity. magnitude < maxSpeed)
         {
             rb.AddForce(movementVector.y * transform.forward * power);
         }

@@ -973,7 +973,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 729311223}
         m_TargetAssemblyTypeName: SimpleCity.AI.AiDirector, Assembly-CSharp
-        m_MethodName: SpawnAllAagents
+        m_MethodName: SpawnACar
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -5035,7 +5035,7 @@ MonoBehaviour:
   - {fileID: 5928032463670676373, guid: 646488162f240a949a4e48ed1686ccda, type: 3}
   - {fileID: 2278821950334863235, guid: 0811cac021ab5f645ae41584a145f4a1, type: 3}
   - {fileID: 8964402343246118786, guid: 6415100e42056474fb95481c5c3046f3, type: 3}
-  carPrefab: {fileID: 0}
+  carPrefab: {fileID: 6017445921638219920, guid: ed63b603ba61cee4db4ab76cc3f09872, type: 3}
 --- !u!4 &729311224
 Transform:
   m_ObjectHideFlags: 0
@@ -10038,7 +10038,9 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: Spawn Agents
+  m_Text: 'Spawn Cars
+
+'
 --- !u!222 &1398165929
 CanvasRenderer:
   m_ObjectHideFlags: 0
