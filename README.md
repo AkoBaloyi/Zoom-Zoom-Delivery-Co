@@ -25,7 +25,7 @@ document the current W/S pedals, F/R tricks, recovery, camera fixes and measured
 1. Add this project folder in Unity Hub.
 2. Select Unity Editor `6000.5.4f1` for the project.
 3. Open the project and allow Unity to finish importing it.
-4. In the Project window, open `Assets/Project/Scenes/Possible game scene.unity`.
+4. In the Project window, open `Assets/Project/Scenes/Medium.unity`.
 5. Enter Play mode.
 
 The build starts at the main menu; Play loads this game scene.
