@@ -64,9 +64,6 @@ namespace ZoomZoom.Orders
         [Tooltip("Rand paid for an order when no food is set on it.")]
         public float baseDeliveryValue = 250f;
 
-        [Tooltip("Optional extra Rand per metre of the order's planned distance. 0 turns it off.")]
-        public float valuePerMetre = 0f;
-
         [Header("Time bonus (share of patience left at delivery)")]
         [Range(0f, 1f)]
         [Tooltip("Delivered with more than this share of the patience bar left counts as early.")]
@@ -92,16 +89,9 @@ namespace ZoomZoom.Orders
                  "fails as well.")]
         public float burnPenalty = 50f;
 
-        /// <summary>Base pay for an order before the time bonus: the food's base pay (or Base
-        /// Delivery Value with no food) plus the optional distance extra.</summary>
-        public float BasePayFor(FoodType food, float designedDistance)
-        {
-            float basePay = food != null ? food.basePay : baseDeliveryValue;
-            return basePay + Mathf.Max(0f, designedDistance) * valuePerMetre;
-        }
-
-        /// <summary>Kept for older callers. Same as BasePayFor with no food.</summary>
-        public float DeliveryValueFor(float designedDistance) => BasePayFor(null, designedDistance);
+        /// <summary>Base pay for an order before the time bonus: the food's base pay, or Base
+        /// Delivery Value when no food is set.</summary>
+        public float BasePayFor(FoodType food) => food != null ? food.basePay : baseDeliveryValue;
 
         /// <summary>The most orders allowed open at this point in the shift.</summary>
         public int MaxOrdersAt(float shiftSeconds)
@@ -151,7 +141,6 @@ namespace ZoomZoom.Orders
             defaultCookSeconds = Mathf.Max(0f, defaultCookSeconds);
             defaultBurnSeconds = Mathf.Max(1f, defaultBurnSeconds);
             baseDeliveryValue = Mathf.Max(0f, baseDeliveryValue);
-            valuePerMetre = Mathf.Max(0f, valuePerMetre);
             cancelPenalty = Mathf.Max(0f, cancelPenalty);
             burnPenalty = Mathf.Max(0f, burnPenalty);
             lateBelowPatienceLeft = Mathf.Min(lateBelowPatienceLeft, earlyAbovePatienceLeft);

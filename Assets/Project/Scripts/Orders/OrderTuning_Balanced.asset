@@ -28,7 +28,9 @@ MonoBehaviour:
   - {fileID: 11400000, guid: ef33ff8ad08e23f46ae1425c6690c84c, type: 2}
   spawnInterval: 15
   maxActiveOrders: 4
-  orderTimeLimit: 55
+  maxOrdersByMinute: 01000000020000000300000004000000
+  firstOrderDelay: 3
+  orderTimeLimit: 651
   defaultCookSeconds: 8
   defaultBurnSeconds: 12
   baseDeliveryValue: 250

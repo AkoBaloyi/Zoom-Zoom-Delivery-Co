@@ -15,8 +15,7 @@ namespace ZoomZoom.Orders.UI
     ///   Dairy    lilac       Dairy
     ///
     /// The icon tells you exactly what it is. Icons are the Icon_ images in
-    /// Assets/Project/Art/Ingredients, put into each ingredient's Icon field by
-    /// Zoom Zoom > Assign Ingredient Icons.
+    /// Assets/Project/Art/Ingredients, dragged into each ingredient's Icon field.
     /// </summary>
     public static class IngredientIcons
     {

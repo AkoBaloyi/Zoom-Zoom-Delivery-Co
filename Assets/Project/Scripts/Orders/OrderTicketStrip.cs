@@ -29,12 +29,7 @@ namespace ZoomZoom.Orders.UI
         [Header("Wiring (all found automatically if left empty)")]
         [SerializeField] private OrderManager orderManager;
         [SerializeField] private CargoSystem cargoSystem;
-        [SerializeField] private CargoCondition cargoCondition;
         [SerializeField] private OrderFocus focus;
-
-        [Header("Art (optional)")]
-        [Tooltip("Only the stamps and the drop off icon are used from this.")]
-        [SerializeField] private HudSkin skin;
 
         [Header("Phone")]
         [Tooltip("Draw the phone around the notifications. Off shows the notifications on their own.")]
@@ -94,7 +89,6 @@ namespace ZoomZoom.Orders.UI
             public RectTransform BarFill;
             public Image BarFillImage;
             public Text Stamp;
-            public Image StampImage;
             public RectTransform StampRect;
             public CanvasGroup Group;
 
@@ -132,7 +126,6 @@ namespace ZoomZoom.Orders.UI
         {
             if (orderManager == null) orderManager = FindAnyObjectByType<OrderManager>();
             if (cargoSystem == null) cargoSystem = FindAnyObjectByType<CargoSystem>();
-            if (cargoCondition == null) cargoCondition = FindAnyObjectByType<CargoCondition>();
 
             if (orderManager == null)
             {
@@ -190,19 +183,19 @@ namespace ZoomZoom.Orders.UI
                 switch (payout.Timing)
                 {
                     case DeliveryTiming.Early:
-                        ShowStamp(card, "EARLY!", OrderPalette.Deliver, SkinSprite(s => s.stampDelivered));
+                        ShowStamp(card, "EARLY!", OrderPalette.Deliver);
                         break;
                     case DeliveryTiming.OnTime:
-                        ShowStamp(card, "ON TIME", OrderPalette.Deliver, SkinSprite(s => s.stampDelivered));
+                        ShowStamp(card, "ON TIME", OrderPalette.Deliver);
                         break;
                     case DeliveryTiming.Late:
-                        ShowStamp(card, "LATE", new Color(1f, 0.55f, 0.1f, 1f), SkinSprite(s => s.stampLate));
+                        ShowStamp(card, "LATE", new Color(1f, 0.55f, 0.1f, 1f));
                         break;
                     case DeliveryTiming.Burned:
-                        ShowStamp(card, "BURNED", OrderPalette.Urgent, null);
+                        ShowStamp(card, "BURNED", OrderPalette.Urgent);
                         break;
                     default:
-                        ShowStamp(card, "CANCELLED", OrderPalette.Urgent, null);
+                        ShowStamp(card, "CANCELLED", OrderPalette.Urgent);
                         break;
                 }
             }
@@ -356,7 +349,6 @@ namespace ZoomZoom.Orders.UI
                     Color sc = c.Stamp.color;
                     sc.a = fade;
                     c.Stamp.color = sc;
-                    c.StampImage.color = new Color(1f, 1f, 1f, fade);
                 }
             }
         }
@@ -565,7 +557,7 @@ namespace ZoomZoom.Orders.UI
         /// <summary>What delivering this order right now would pay, and which bracket it is in.</summary>
         private void PreviewPay(Order order, OrderTuning tuning, out string label, out float pay, out Color colour)
         {
-            float basePay = tuning.BasePayFor(order.Food, order.DesignedDistance);
+            float basePay = tuning.BasePayFor(order.Food);
             float fraction = order.PatienceFraction;
 
             if (fraction > tuning.earlyAbovePatienceLeft)
@@ -587,7 +579,6 @@ namespace ZoomZoom.Orders.UI
                 colour = OrderPalette.Ink;
             }
 
-            if (cargoCondition != null) pay *= cargoCondition.GetConditionMultiplier(order);
         }
 
         // ---- popups ---------------------------------------------------------------------------
@@ -708,7 +699,7 @@ namespace ZoomZoom.Orders.UI
             RectTransform popupRect = _popup.rectTransform;
             popupRect.anchorMin = popupRect.anchorMax = new Vector2(0.5f, 1f);
             popupRect.pivot = new Vector2(0.5f, 1f);
-            popupRect.anchoredPosition = new Vector2(120f, -40f);
+            popupRect.anchoredPosition = new Vector2(60f, -130f); // just under the shift timer
             popupRect.sizeDelta = new Vector2(1200f, 60f);
             AddOutline(popupGO, 3f);
         }
@@ -866,13 +857,6 @@ namespace ZoomZoom.Orders.UI
             c.Stamp.raycastTarget = false;
             AddOutline(c.Stamp.gameObject, 3f);
 
-            RectTransform stampImageRect = MakeRect(c.Root, "Stamp image", Vector2.zero, new Vector2(W * 0.6f, H * 0.8f));
-            stampImageRect.pivot = new Vector2(0.5f, 0.5f);
-            stampImageRect.anchoredPosition = new Vector2(W * 0.5f, -H * 0.5f);
-            c.StampImage = stampImageRect.gameObject.AddComponent<Image>();
-            c.StampImage.preserveAspect = true;
-            c.StampImage.raycastTarget = false;
-            c.StampImage.enabled = false;
 
             // Slides in from the left, in its slot at the bottom of the feed.
             c.Position = new Vector2(-(W + 60f), -_cards.Count * (H + notificationGap));
@@ -891,18 +875,12 @@ namespace ZoomZoom.Orders.UI
             image.raycastTarget = false;
         }
 
-        private void ShowStamp(Card c, string text, Color colour, Sprite sprite)
+        private void ShowStamp(Card c, string text, Color colour)
         {
-            bool useSprite = sprite != null;
-
-            c.StampImage.enabled = useSprite;
-            c.StampImage.sprite = sprite;
-            c.StampImage.color = Color.white;
-            c.Stamp.text = useSprite ? string.Empty : text;
+            c.Stamp.text = text;
             c.Stamp.color = colour;
 
-            // The update loop pops and fades whatever StampRect points at.
-            c.StampRect = useSprite ? c.StampImage.rectTransform : c.Stamp.rectTransform;
+            // The update loop pops the stamp in and fades it out.
             c.StampDuration = resolvedLingerSeconds + 0.6f;
             c.StampTimer = c.StampDuration;
         }
@@ -951,7 +929,8 @@ namespace ZoomZoom.Orders.UI
             return _rounded;
         }
 
-        private static void ApplyRounded(Image image, float radius)
+        /// <summary>Gives an Image rounded corners of the given radius. Also used by OrderHUD.</summary>
+        public static void ApplyRounded(Image image, float radius)
         {
             image.sprite = RoundedSprite();
             image.type = Image.Type.Sliced;
@@ -961,20 +940,16 @@ namespace ZoomZoom.Orders.UI
 
         // ---- helpers --------------------------------------------------------------------------
 
-        private Sprite SkinSprite(System.Func<HudSkin, Sprite> pick) => skin != null ? pick(skin) : null;
-
         /// <summary>COOK chip: text only.</summary>
         private static void SetChip(Chip chip, string label, Color textColour, float iconAlpha)
         {
             ApplyChip(chip, null, label, textColour, new Color(1f, 1f, 1f, iconAlpha));
         }
 
-        /// <summary>The DROP chip uses the skin's drop off icon (or done icon) when there is one.</summary>
-        private void SetDropChip(Chip chip, bool done, Color textColour, float iconAlpha)
+        /// <summary>DROP chip: text only.</summary>
+        private static void SetDropChip(Chip chip, bool done, Color textColour, float iconAlpha)
         {
-            Sprite icon = done ? SkinSprite(s => s.iconDone) : null;
-            if (icon == null) icon = SkinSprite(s => s.iconDropOff);
-            ApplyChip(chip, icon, "DROP", textColour, new Color(1f, 1f, 1f, iconAlpha));
+            ApplyChip(chip, null, "DROP", textColour, new Color(1f, 1f, 1f, iconAlpha));
         }
 
         private static void ApplyChip(Chip chip, Sprite icon, string label, Color textColour, Color iconColour)

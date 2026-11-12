@@ -21,10 +21,6 @@ namespace ZoomZoom.Orders
         [Tooltip("Found automatically if left empty.")]
         [SerializeField] private OrderManager orderManager;
 
-        [Tooltip("Optional. Found automatically if present on this GameObject. When it is " +
-                 "switched on, a delivery's pay is scaled by the cargo's condition.")]
-        [SerializeField] private CargoCondition cargoCondition;
-
         [Header("Capacity")]
         [Tooltip("How many cooked meals the car can carry at once.")]
         [SerializeField] private int capacity = 1;
@@ -60,8 +56,7 @@ namespace ZoomZoom.Orders
 
         public bool HasIngredientRoom => IngredientsHeld < ingredientCapacity;
 
-        /// <summary>Fires when a cooked meal goes into the car. CargoCondition starts tracking
-        /// its condition from 100 here.</summary>
+        /// <summary>Fires when a cooked meal goes into the car.</summary>
         public event Action<Order> OrderCarried;
 
         /// <summary>Fires when a cooked meal leaves the car for any reason.</summary>
@@ -83,7 +78,6 @@ namespace ZoomZoom.Orders
         private void Awake()
         {
             if (orderManager == null) orderManager = FindAnyObjectByType<OrderManager>();
-            if (cargoCondition == null) cargoCondition = GetComponent<CargoCondition>();
 
             if (orderManager == null)
             {
@@ -201,13 +195,9 @@ namespace ZoomZoom.Orders
             if (!_carriedOrders.Contains(expectedOrder)) return false;
             if (expectedOrder.State != OrderState.Carried) return false;
 
-            float conditionMultiplier = cargoCondition != null
-                ? cargoCondition.GetConditionMultiplier(expectedOrder)
-                : 1f;
-
             _carriedOrders.Remove(expectedOrder);
             OrderReleased?.Invoke(expectedOrder);
-            manager.ResolveDelivery(expectedOrder, conditionMultiplier);
+            manager.ResolveDelivery(expectedOrder);
 
             if (logActivity)
                 Debug.Log($"[CargoSystem] Order {expectedOrder.Id} delivered. " +

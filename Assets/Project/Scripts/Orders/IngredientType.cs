@@ -43,8 +43,8 @@ namespace ZoomZoom.Orders
                  "the start of the name.")]
         public string shortLabel = "";
 
-        [Tooltip("The ingredient's icon image (Icon_<Name>.png in Assets/Project/Art/Ingredients). " +
-                 "Zoom Zoom > Assign Ingredient Icons fills this in, or drag the image here.")]
+        [Tooltip("The ingredient's icon image. Drag its Icon_ image from " +
+                 "Assets/Project/Art/Ingredients here (set the image's Texture Type to Sprite first).")]
         public Sprite icon;
 
         /// <summary>The ingredient's type, with Auto resolved from its name.</summary>

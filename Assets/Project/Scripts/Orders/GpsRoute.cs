@@ -52,8 +52,6 @@ namespace ZoomZoom.Orders
         [SerializeField] private float heightAboveGround = 0.35f;
         [Range(0f, 1f)]
         [SerializeField] private float opacity = 0.85f;
-        [Tooltip("Seconds left below which the line flashes red.")]
-        [SerializeField] private float urgentBelowSeconds = 8f;
 
         private LineRenderer _line;
         private NavMeshPath _path;
@@ -116,7 +114,7 @@ namespace ZoomZoom.Orders
                 Rebuild(car.position, target, sameJob);
             }
 
-            Color colour = OrderPalette.OrderColourWithUrgency(order, urgentBelowSeconds, Time.time);
+            Color colour = OrderPalette.OrderColour(order);
             colour.a = opacity;
             _line.startColor = colour;
             _line.endColor = colour;

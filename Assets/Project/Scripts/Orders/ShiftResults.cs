@@ -45,13 +45,23 @@ namespace ZoomZoom.Orders.UI
         [Tooltip("Found automatically if left empty.")]
         [SerializeField] private OrderManager orderManager;
 
+        [Tooltip("Found automatically if left empty. Its balance is what decides the star rating below.")]
+        [SerializeField] private PlayerProgression wallet;
+
+        [Header("Ranking")]
+        [Tooltip("Rand balance needed for 1, 2 and 3 stars. Matches the numbers already used in the hypothesis document and Ako's sheet 06 mockup.")]
+        [SerializeField] private float oneStarAt = 2000f;
+        [SerializeField] private float twoStarsAt = 3500f;
+        [SerializeField] private float threeStarsAt = 7000f;
+
         [Header("Scenes")]
         [Tooltip("Exact name of the start screen scene. It must be in File > Build Profiles > Scene List.")]
         [SerializeField] private string mainMenuSceneName = "MainMenu";
 
         [Header("Layout")]
-        [SerializeField] private Vector2 panelSize = new Vector2(660f, 460f);
+        [SerializeField] private Vector2 panelSize = new Vector2(660f, 520f);
         [SerializeField] private int titleFontSize = 48;
+        [SerializeField] private int starsFontSize = 40;
         [SerializeField] private int fontSize = 30;
         [SerializeField] private int buttonFontSize = 26;
 
@@ -69,6 +79,7 @@ namespace ZoomZoom.Orders.UI
 
         private GameObject _panel;
         private Text _title;
+        private Text _starsLine;
         private Text _deliveredLine;
         private Text _lateLine;
         private Text _valueLine;
@@ -77,6 +88,7 @@ namespace ZoomZoom.Orders.UI
         {
             if (shiftTimer == null) shiftTimer = FindAnyObjectByType<ShiftTimer>();
             if (orderManager == null) orderManager = FindAnyObjectByType<OrderManager>();
+            if (wallet == null) wallet = FindAnyObjectByType<PlayerProgression>();
 
             if (shiftTimer == null || orderManager == null)
             {
@@ -122,6 +134,13 @@ namespace ZoomZoom.Orders.UI
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
 
+            // RANKING: the number that decides first place is the wallet balance at the
+            // whistle, not the raw tally above — it already nets every early/on-time/late
+            // payout and every cancel/burn penalty, so it is the one true score for the shift.
+            float profit = wallet != null ? wallet.Money : Value;
+            int stars = profit >= threeStarsAt ? 3 : profit >= twoStarsAt ? 2 : profit >= oneStarAt ? 1 : 0;
+            _starsLine.text = Stars(stars);
+
             _deliveredLine.text = $"Delivered   {Delivered}";
             _lateLine.text = $"Late        {Late}";
             _valueLine.text = Value < 0f ? $"Money       -R{-Value:0}" : $"Money       R{Value:0}";
@@ -129,6 +148,15 @@ namespace ZoomZoom.Orders.UI
             _panel.SetActive(true);
 
             Debug.Log($"[ShiftResults] Shift over: {Delivered} delivered, {Late} late, R{Value:0}.");
+        }
+
+        /// <summary>Three stars at R7 000, two at R3 500, one at R2 000 — the thresholds already
+        /// used in the hypothesis document, so a result here means the same thing it does there.</summary>
+        private static string Stars(int count)
+        {
+            string s = "";
+            for (int i = 0; i < 3; i++) s += i < count ? "★ " : "☆ ";
+            return s.TrimEnd();
         }
 
         /// <summary>Reloads the current scene. Also wired to the Restart button.</summary>
@@ -191,9 +219,9 @@ namespace ZoomZoom.Orders.UI
 
             Canvas canvas = canvasGO.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            // Above the HUD and the pause menu. A result the player cannot see under another panel
-            // is the silent ending this exists to remove.
-            canvas.sortingOrder = 50;
+            // Above the HUD (9), the order phone (10) and PauseMenu (60). A result the player
+            // cannot see under another panel is the silent ending this exists to remove.
+            canvas.sortingOrder = 70;
 
             CanvasScaler scaler = canvasGO.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
@@ -221,6 +249,10 @@ namespace ZoomZoom.Orders.UI
                 textColour, TextAnchor.UpperCenter);
             _title.text = "TIME UP!";
             _title.fontStyle = FontStyle.Bold;
+
+            y -= 6f;
+            _starsLine = CreateLine(panelRect, "Stars", ref y, starsFontSize + 14f, starsFontSize,
+                new Color(1f, 0.8f, 0.2f, 1f), TextAnchor.UpperCenter);
 
             y -= 18f;
             float lineHeight = fontSize + 12f;
