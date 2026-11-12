@@ -1,67 +1,50 @@
+using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
 using TMPro;
 
-// Handles beat one's prompts: an icon plus a short label while the player
-// hasn't yet done the action, and a brief confirmation line once they have,
-// in the same style as the reference screenshots (icon-led prompt, short
-// positive confirmation, then it gets out of the way).
+// Shows the player exactly what is still left to try on the car. CarFeatureVerifier calls
+// ShowChecklist every time something changes, so this is always an accurate "what's left" list
+// rather than a fixed three-step script that goes quiet once it's past step one.
+//
+// Needs just two things wired in the Inspector: the panel GameObject (promptRoot) and a
+// TextMeshProUGUI to write the checklist into (promptText). No icons, no per-step sprites.
 public class DrivePromptUI : MonoBehaviour
 {
     public GameObject promptRoot;
-    public Image iconImage;
     public TextMeshProUGUI promptText;
 
-    public GameObject confirmRoot;
-    public TextMeshProUGUI confirmText;
-
-    public Sprite accelerateIcon; // [assign your actual key/button sprite]
-    public Sprite steerIcon;
-    public Sprite brakeIcon;
-
-    public void ShowAccelerate()
+    private void Awake()
     {
-        SetPrompt(accelerateIcon, "Accelerate");
-    }
-
-    public void ConfirmAccelerate()
-    {
-        ShowConfirm("Nice, you're moving");
-        SetPrompt(steerIcon, "Steer");
-    }
-
-    public void ConfirmSteer()
-    {
-        ShowConfirm("Good turn");
-        SetPrompt(brakeIcon, "Brake");
-    }
-
-    public void ConfirmBrake()
-    {
-        ShowConfirm("Good stop");
         HideAll();
     }
 
-    private void SetPrompt(Sprite icon, string label)
+    /// <summary>remaining is the list of things still to do, in plain words (eg "steer (A/D)").
+    /// An empty list hides the panel, since there is nothing left to tell the player.</summary>
+    public void ShowChecklist(List<string> remaining)
     {
+        if (!CheckWiring()) return;
+
+        if (remaining == null || remaining.Count == 0)
+        {
+            HideAll();
+            return;
+        }
+
         promptRoot.SetActive(true);
-        iconImage.sprite = icon;
-        promptText.text = label;
+        promptText.text = "Still to try:\n" + string.Join("\n", remaining);
     }
-
-    private void ShowConfirm(string message)
-    {
-        confirmRoot.SetActive(true);
-        confirmText.text = message;
-        CancelInvoke(nameof(HideConfirm));
-        Invoke(nameof(HideConfirm), 1f);
-    }
-
-    private void HideConfirm() => confirmRoot.SetActive(false);
 
     public void HideAll()
     {
-        promptRoot.SetActive(false);
-        confirmRoot.SetActive(false);
+        if (promptRoot != null) promptRoot.SetActive(false);
+    }
+
+    private bool CheckWiring()
+    {
+        if (promptRoot != null && promptText != null) return true;
+
+        if (promptRoot == null) Debug.LogError("[DrivePromptUI] promptRoot is not assigned in the Inspector.", this);
+        if (promptText == null) Debug.LogError("[DrivePromptUI] promptText is not assigned in the Inspector.", this);
+        return false;
     }
 }
