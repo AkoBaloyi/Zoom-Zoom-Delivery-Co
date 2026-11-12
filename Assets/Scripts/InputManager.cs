@@ -27,8 +27,7 @@ public class InputManager : MonoBehaviour
     {
         if (Input.GetMouseButton(0) && EventSystem.current.IsPointerOverGameObject() == false)
         {
-
-            OnMouseClick?.Invoke(mainCamera.ScreenPointToRay(Input.mousePosition));
+            OnMouseHold?.Invoke(mainCamera.ScreenPointToRay(Input.mousePosition));
         }
     }
 

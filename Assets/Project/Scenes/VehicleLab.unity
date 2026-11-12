@@ -1685,9 +1685,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1a2b3c4d5e6f708192a3b4c5d6e7f806, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.VehicleMeasurement
-  car: {fileID: 592668308}
-  jumpFlip: {fileID: 592668307}
-  playerInput: {fileID: 592668306}
+  car: {fileID: 4495238794898293950}
+  jumpFlip: {fileID: 3699304562607384224}
+  playerInput: {fileID: 985279278623200374}
   chaseCamera: {fileID: 1222278759}
   startPoint: {fileID: 321277102}
   turnTestPoint: {fileID: 178974810}
@@ -4367,39 +4367,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 592531732}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
---- !u!114 &592668306 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 1420770098461423247, guid: 70e70a78c0867314cac79babca420139, type: 3}
-  m_PrefabInstance: {fileID: 2169605444474610425}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1a2b3c4d5e6f708192a3b4c5d6e7f802, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.VehicleInput
---- !u!114 &592668307 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 3264385488812262489, guid: 70e70a78c0867314cac79babca420139, type: 3}
-  m_PrefabInstance: {fileID: 2169605444474610425}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1a2b3c4d5e6f708192a3b4c5d6e7f804, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.VehicleJumpFlip
---- !u!114 &592668308 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 2340103198340965959, guid: 70e70a78c0867314cac79babca420139, type: 3}
-  m_PrefabInstance: {fileID: 2169605444474610425}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1a2b3c4d5e6f708192a3b4c5d6e7f803, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.VehicleController
 --- !u!1 &592668320
 GameObject:
   m_ObjectHideFlags: 0
@@ -9345,7 +9312,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.CargoSystem
   orderManager: {fileID: 0}
-  cargoCondition: {fileID: 0}
   capacity: 1
   ingredientCapacity: 4
   logActivity: 1
@@ -9518,13 +9484,8 @@ MonoBehaviour:
   orderManager: {fileID: 816895044}
   cargoSystem: {fileID: 935175481}
   shiftTimer: {fileID: 0}
-  cargoCondition: {fileID: 0}
-  playerProgression: {fileID: 0}
-  skin: {fileID: 0}
-  panelPosition: {x: 24, y: -450}
-  panelSize: {x: 420, y: 340}
-  fontSize: 26
-  urgentShiftSeconds: 30
+  wallet: {fileID: 0}
+  timerWarningSeconds: 30
 --- !u!4 &1027706771
 Transform:
   m_ObjectHideFlags: 0
@@ -11931,9 +11892,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1a2b3c4d5e6f708192a3b4c5d6e7f805, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.ChaseCamera
-  target: {fileID: 592668308}
+  target: {fileID: 4495238794898293950}
   tuningOverride: {fileID: 0}
-  input: {fileID: 592668306}
+  input: {fileID: 985279278623200374}
   collisionLayers:
     serializedVersion: 2
     m_Bits: 4294967291
@@ -20139,7 +20100,7 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2135440271}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
---- !u!1001 &2169605444474610425
+--- !u!1001 &475439410028259223
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -20147,74 +20108,107 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 1424967620463515243, guid: 70e70a78c0867314cac79babca420139, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1424967620463515243, guid: 70e70a78c0867314cac79babca420139, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0.8
-      objectReference: {fileID: 0}
-    - target: {fileID: 1424967620463515243, guid: 70e70a78c0867314cac79babca420139, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1424967620463515243, guid: 70e70a78c0867314cac79babca420139, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 1424967620463515243, guid: 70e70a78c0867314cac79babca420139, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1424967620463515243, guid: 70e70a78c0867314cac79babca420139, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1424967620463515243, guid: 70e70a78c0867314cac79babca420139, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1424967620463515243, guid: 70e70a78c0867314cac79babca420139, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1424967620463515243, guid: 70e70a78c0867314cac79babca420139, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1424967620463515243, guid: 70e70a78c0867314cac79babca420139, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1764419513649387747, guid: 70e70a78c0867314cac79babca420139, type: 3}
+    - target: {fileID: 1472970855832290203, guid: 64b7773b5d9532a408ba16f04d81f55a, type: 3}
       propertyPath: skidMarks
       value: 
       objectReference: {fileID: 592668324}
-    - target: {fileID: 5531202167981744043, guid: 70e70a78c0867314cac79babca420139, type: 3}
+    - target: {fileID: 4203751081782687155, guid: 64b7773b5d9532a408ba16f04d81f55a, type: 3}
+      propertyPath: m_Name
+      value: Car
+      objectReference: {fileID: 0}
+    - target: {fileID: 5872461531587445449, guid: 64b7773b5d9532a408ba16f04d81f55a, type: 3}
       propertyPath: cargoSystem
       value: 
       objectReference: {fileID: 935175481}
-    - target: {fileID: 5531202167981744043, guid: 70e70a78c0867314cac79babca420139, type: 3}
+    - target: {fileID: 5872461531587445449, guid: 64b7773b5d9532a408ba16f04d81f55a, type: 3}
       propertyPath: orderManager
       value: 
       objectReference: {fileID: 816895044}
-    - target: {fileID: 7092618432473585867, guid: 70e70a78c0867314cac79babca420139, type: 3}
-      propertyPath: m_Name
-      value: Car
+    - target: {fileID: 8055116704708976518, guid: 64b7773b5d9532a408ba16f04d81f55a, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8055116704708976518, guid: 64b7773b5d9532a408ba16f04d81f55a, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.8
+      objectReference: {fileID: 0}
+    - target: {fileID: 8055116704708976518, guid: 64b7773b5d9532a408ba16f04d81f55a, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8055116704708976518, guid: 64b7773b5d9532a408ba16f04d81f55a, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8055116704708976518, guid: 64b7773b5d9532a408ba16f04d81f55a, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8055116704708976518, guid: 64b7773b5d9532a408ba16f04d81f55a, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8055116704708976518, guid: 64b7773b5d9532a408ba16f04d81f55a, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8055116704708976518, guid: 64b7773b5d9532a408ba16f04d81f55a, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8055116704708976518, guid: 64b7773b5d9532a408ba16f04d81f55a, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8055116704708976518, guid: 64b7773b5d9532a408ba16f04d81f55a, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 70e70a78c0867314cac79babca420139, type: 3}
+  m_SourcePrefab: {fileID: 100100000, guid: 64b7773b5d9532a408ba16f04d81f55a, type: 3}
+--- !u!114 &985279278623200374 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3849141493074611533, guid: 64b7773b5d9532a408ba16f04d81f55a, type: 3}
+  m_PrefabInstance: {fileID: 475439410028259223}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a2b3c4d5e6f708192a3b4c5d6e7f802, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.VehicleInput
+--- !u!114 &3699304562607384224 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1361468530501840131, guid: 64b7773b5d9532a408ba16f04d81f55a, type: 3}
+  m_PrefabInstance: {fileID: 475439410028259223}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a2b3c4d5e6f708192a3b4c5d6e7f804, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.VehicleJumpFlip
+--- !u!114 &4495238794898293950 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2260232039763127423, guid: 64b7773b5d9532a408ba16f04d81f55a, type: 3}
+  m_PrefabInstance: {fileID: 475439410028259223}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a2b3c4d5e6f708192a3b4c5d6e7f803, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.VehicleController
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
   - {fileID: 2083125224}
   - {fileID: 1148610072}
-  - {fileID: 2169605444474610425}
+  - {fileID: 475439410028259223}
   - {fileID: 1222278762}
   - {fileID: 228251578}
   - {fileID: 816895045}

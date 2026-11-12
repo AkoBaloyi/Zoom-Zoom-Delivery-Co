@@ -24,7 +24,7 @@ namespace SimpleCity.AI
 
         private void Start()
         {
-            pathVisualizer = FindObjectOfType<PathVisualizer>();
+            pathVisualizer = FindAnyObjectByType<PathVisualizer>();
             pathColor = UnityEngine.Random.ColorHSV(0f, 1f, 0f, 1f, 0f, 1f);
         }
 

@@ -90,6 +90,21 @@ namespace ZoomZoom.Orders
             EndShift();
         }
 
+        /// <summary>Deducts time from the shift as a penalty, used by recovery/self-righting.
+        /// Clamped so it can't push the timer negative, and ends the shift if it reaches zero,
+        /// matching the normal countdown-to-zero behaviour exactly.</summary>
+        public void ApplyTimePenalty(float seconds)
+        {
+            if (!IsShiftActive) return;
+
+            TimeRemaining = Mathf.Max(0f, TimeRemaining - seconds);
+
+            if (logActivity)
+                Debug.Log($"[ShiftTimer] Time penalty applied: -{seconds:0} seconds.");
+
+            if (TimeRemaining <= 0f) EndShift();
+        }
+
         private void EndShift()
         {
             IsShiftActive = false;
