@@ -80,10 +80,28 @@ namespace ZoomZoom.Orders
             ShiftStarted?.Invoke();
         }
 
+        /// <summary>Lets the player end the shift before the clock hits zero (an "End Shift"
+        /// button on the pause menu, say). Runs the exact same ending as running out of time,
+        /// so ShiftResults and everything else downstream behaves identically either way.</summary>
+        public void EndShiftEarly()
+        {
+            if (!IsShiftActive) return;
+            TimeRemaining = 0f;
+            EndShift();
+        }
+
+        /// <summary>Deducts time from the shift as a penalty, used by recovery/self-righting.
+        /// Clamped so it can't push the timer negative, and ends the shift if it reaches zero,
+        /// matching the normal countdown-to-zero behaviour exactly.</summary>
         public void ApplyTimePenalty(float seconds)
         {
-            if (!IsShiftActive || seconds <= 0f) return;
+            if (!IsShiftActive) return;
+
             TimeRemaining = Mathf.Max(0f, TimeRemaining - seconds);
+
+            if (logActivity)
+                Debug.Log($"[ShiftTimer] Time penalty applied: -{seconds:0} seconds.");
+
             if (TimeRemaining <= 0f) EndShift();
         }
 
