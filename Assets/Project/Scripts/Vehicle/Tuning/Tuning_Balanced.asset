@@ -352,7 +352,7 @@ MonoBehaviour:
     recoveryLift: 0.8
     techniquesCauseHardBrakeDamage: 0
     cameraDistance: 5.6
-    cameraHeight: 2.1
+    cameraHeight: 2.6
     cameraLookAhead: 7
     cameraAimHeight: 1.15
     cameraVelocityMinimumSpeed: 2

@@ -125,7 +125,7 @@ the camera inward immediately; the normal distance returns smoothly once the vie
 The default reverse presentation retains the original forward-facing chase orientation. Players
 can hold a look-behind control; the designer can instead enable automatic reverse framing. Camera
 distance, height, aim, smoothing, drift lead, collision clearance and field of view are adjustable.
-Default presentation now sits 2.1 m above the chassis and 5.6 m behind it, with a 7 m look-ahead.
+Default presentation now sits 2.6 m above the chassis and 5.6 m behind it, with a 7 m look-ahead.
 Speed smoothly widens the FOV from 65 to 74 degrees, adds up to 0.6 m chase distance, and forward
 acceleration adds up to 0.3 m of eased pullback. These are bounded, authored modern cues rather
 than claimed Sega camera constants. The horizon stays stable; no random camera shake is used.

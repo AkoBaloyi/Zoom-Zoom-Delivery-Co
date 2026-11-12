@@ -87,7 +87,7 @@ It would be inaccurate to say that Crazy Taxi existed â€œbefore physics enginesâ
 
 ## 6. Camera and communication design
 
-The camera follows behind and above the car using smoothed position and heading changes. Its horizon uses world-up, so chassis roll does not tip the entire view. Current taxi settings place it 5.6 m behind and 2.1 m above the car, with an aim height of 1.15 m and 7 m look-ahead. The field of view eases from 65 to 74 degrees as ordinary speed increases. Speed can add 0.6 m follow distance, and acceleration up to another 0.3 m, giving bounded speed feedback rather than an uncontrolled retreat.
+The camera follows behind and above the car using smoothed position and heading changes. Its horizon uses world-up, so chassis roll does not tip the entire view. Current taxi settings place it 5.6 m behind and 2.6 m above the car, with an aim height of 1.15 m and 7 m look-ahead. The field of view eases from 65 to 74 degrees as ordinary speed increases. Speed can add 0.6 m follow distance, and acceleration up to another 0.3 m, giving bounded speed feedback rather than an uncontrolled retreat.
 
 To avoid wall clipping, the camera checks for overlap around its aim pivot and sweeps a sphere toward the intended viewing position. Clearance includes the camera's near-plane corners, rather than checking only a single line. An obstruction pulls the camera inward immediately; its normal distance returns smoothly after the obstruction clears. Another sweep checks the adjusted position, and the follow spring resumes from the safe point. The checks ignore the car's own colliders and triggers, and depend on correctly configured solid colliders and camera layers.
 

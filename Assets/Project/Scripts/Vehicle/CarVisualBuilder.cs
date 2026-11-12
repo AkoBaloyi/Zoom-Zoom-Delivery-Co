@@ -29,16 +29,45 @@ namespace ZoomZoom.Vehicle
     /// Built at runtime, the same way VehicleLabBuilder builds the lab, so the layout lives in
     /// readable code rather than in thousands of lines of unreviewable scene file. Use the Build
     /// Model Now item in the component's context menu to see it in the editor without pressing Play.
+    ///
+    /// BODY STYLES
+    /// The player drives the Transit van from CarVisualBuilder.Vans.cs in every scene. Body Style
+    /// can still switch a car back to the original body or to the bakery van. Only the look
+    /// changes. Every style sits on the same four wheels from the same tuning asset, and the hit box
+    /// and every handling number stay as they are, so no measurement needs retaking.
     /// </summary>
     [RequireComponent(typeof(VehicleController))]
     [DisallowMultipleComponent]
-    public class CarVisualBuilder : MonoBehaviour
+    public partial class CarVisualBuilder : MonoBehaviour
     {
         private const string GeneratedName = "Model (generated)";
+
+        /// <summary>
+        /// Which body goes on the wheels. Purely visual.
+        ///
+        /// The Transit van is the player's vehicle, which is why it is 0. A car in a scene or prefab
+        /// that has never saved a style gets the default, and a saved 0 reads the same, so every car
+        /// in every scene comes out as the Transit van without anyone editing the scene files.
+        /// </summary>
+        public enum BodyStyle
+        {
+            [InspectorName("Transit van")] TransitVan = 0,
+            [InspectorName("Car")] Car = 1,
+            [InspectorName("Bakery van")] BakeryVan = 2,
+        }
 
         [Header("Build")]
         [Tooltip("Build the model when the scene starts. Untick this once a real car model is in place.")]
         [SerializeField] private bool buildOnStart = true;
+
+        [Tooltip("Which body to build. The Transit van is the player's vehicle in every scene. " +
+                 "Every style changes the look only: the wheels, the hit box and the handling are " +
+                 "the same for all three. Changing this in Play mode swaps the body on the next " +
+                 "frame, so the styles can be compared on the same drive.")]
+        [SerializeField] private BodyStyle bodyStyle = BodyStyle.TransitVan;
+
+        /// <summary>The body style this builder makes.</summary>
+        public BodyStyle Style => bodyStyle;
 
         [Header("Body proportions (metres)")]
         [Tooltip("Width of the main body. Kept narrower than the wheel track on purpose so the wheels " +
@@ -83,10 +112,27 @@ namespace ZoomZoom.Vehicle
 
         private readonly List<Renderer> _brakeLightRenderers = new List<Renderer>();
 
+        /// <summary>
+        /// Materials this component made for itself, so Clear can destroy them again. Saved .mat
+        /// assets are never added, so a rebuild cannot delete anything on disk.
+        /// </summary>
+        private readonly List<Material> _ownedMaterials = new List<Material>();
+
+        /// <summary>The style of the model currently built, or null when there is none.</summary>
+        private BodyStyle? _builtStyle;
+
         /// <summary>Saved asset if present, otherwise a generated throwaway.</summary>
         private Material Resolve(Material asset, string name, Color colour, float smoothness)
         {
-            return asset != null ? asset : MakeMaterial(name, colour, smoothness);
+            return asset != null ? asset : Generated(name, colour, smoothness);
+        }
+
+        /// <summary>A throwaway material owned by this component, destroyed again by Clear.</summary>
+        private Material Generated(string name, Color colour, float smoothness)
+        {
+            Material material = MakeMaterial(name, colour, smoothness);
+            _ownedMaterials.Add(material);
+            return material;
         }
 
         private VehicleController _car;
@@ -109,6 +155,47 @@ namespace ZoomZoom.Vehicle
         {
             if (buildOnStart) Build();
         }
+
+        /// <summary>
+        /// Changes the body style, rebuilding straight away if a model is already built. Before the
+        /// first build this only records the choice, and Start builds it.
+        /// </summary>
+        public void SetBodyStyle(BodyStyle style)
+        {
+            bodyStyle = style;
+            if (_builtStyle.HasValue && _builtStyle.Value != style) Build();
+        }
+
+        /// <summary>
+        /// Swaps the body when Body Style is changed in the inspector during Play mode, so the styles
+        /// can be compared on the same drive. Checked every frame rather than left to OnValidate,
+        /// because OnValidate does not fire for every way the inspector can change a value.
+        /// </summary>
+        private void Update()
+        {
+            if (_builtStyle.HasValue && _builtStyle.Value != bodyStyle && Tuning != null) Build();
+        }
+
+#if UNITY_EDITOR
+        /// <summary>
+        /// The edit mode version of Update above: rebuilds when Body Style is changed on a car that
+        /// has a model from Build Model Now. Deferred, because Unity does not allow objects to be
+        /// created or destroyed from inside OnValidate. Does nothing to a car that has not been
+        /// built, so editing a scene or prefab never adds a model to it.
+        /// </summary>
+        private void OnValidate()
+        {
+            if (Application.isPlaying) return;
+            if (!_builtStyle.HasValue || _builtStyle.Value == bodyStyle) return;
+
+            UnityEditor.EditorApplication.delayCall += () =>
+            {
+                if (this == null || Application.isPlaying) return;
+                if (!_builtStyle.HasValue || _builtStyle.Value == bodyStyle) return;
+                Build();
+            };
+        }
+#endif
 
         // ==================================================================
         // BUILD
@@ -139,7 +226,7 @@ namespace ZoomZoom.Vehicle
             // Saved assets when assigned, generated from the tuning colours otherwise. Once the baker
             // has run, these are ordinary .mat files: Zubuhle can recolour the car without touching C#,
             // and the brake light material is a real asset the emission can be tuned on.
-            Material body = Resolve(bodyMaterialAsset, "Car body", tuning.bodyColour, 0.35f);
+            // The vans bring their own paint (see the Van Paint fields) and share the rest.
             Material trim = Resolve(trimMaterialAsset, "Car trim", tuning.trimColour, 0.2f);
             Material glass = Resolve(glassMaterialAsset, "Car glass", tuning.glassColour, 0.85f);
             Material tyre = Resolve(tyreMaterialAsset, "Car tyre", tuning.tyreColour, 0.15f);
@@ -150,8 +237,24 @@ namespace ZoomZoom.Vehicle
 
             _brakeLightRenderers.Clear();
 
-            BuildBody(body, trim, glass, headlight, brakeLight);
-            WheelVisual[] wheels = BuildWheels(tuning, tyre, rim);
+            Material whitewall = null;
+            switch (bodyStyle)
+            {
+                case BodyStyle.TransitVan:
+                    BuildTransitVan(tuning, trim, glass, headlight, brakeLight, rim);
+                    break;
+
+                case BodyStyle.BakeryVan:
+                    BuildBakeryVan(tuning, trim, glass, headlight, brakeLight, rim, out whitewall);
+                    break;
+
+                default:
+                    Material body = Resolve(bodyMaterialAsset, "Car body", tuning.bodyColour, 0.35f);
+                    BuildBody(body, trim, glass, headlight, brakeLight);
+                    break;
+            }
+
+            WheelVisual[] wheels = BuildWheels(tuning, tyre, rim, whitewall);
 
             // Hand the references over rather than making somebody drag eight transforms into the
             // inspector, which is eight chances to put a rear wheel in a front slot.
@@ -167,8 +270,14 @@ namespace ZoomZoom.Vehicle
                     "the car, so the wheels will not turn. Add one.", this);
             }
 
+            _builtStyle = bodyStyle;
+
+            string what = bodyStyle == BodyStyle.Car
+                ? $"Model built. Body {bodyWidth:0.00} x {bodyLength:0.00} m, "
+                : $"{VanLabel(bodyStyle)} built on the car's wheels, hit box and handling unchanged. ";
+
             Debug.Log(
-                $"[CarVisualBuilder] Model built. Body {bodyWidth:0.00} x {bodyLength:0.00} m, " +
+                $"[CarVisualBuilder] {what}" +
                 $"wheels {tuning.wheelRadius * 2f:0.00} m across, " +
                 $"track {(tuning.wheelSideOffset * 2f) + tuning.wheelWidth:0.00} m.");
         }
@@ -179,13 +288,36 @@ namespace ZoomZoom.Vehicle
             Transform existing = transform.Find(GeneratedName);
             while (existing != null)
             {
-                if (Application.isPlaying) Destroy(existing.gameObject);
-                else DestroyImmediate(existing.gameObject);
+                GameObject old = existing.gameObject;
+
+                if (Application.isPlaying)
+                {
+                    // Destroy only takes effect at the end of the frame, so until then Find keeps
+                    // returning the same child and this loop would never finish. Renaming it takes
+                    // it out of the search at once, and hiding it stops it drawing for that frame.
+                    old.name = GeneratedName + " (discarded)";
+                    old.SetActive(false);
+                    Destroy(old);
+                }
+                else
+                {
+                    DestroyImmediate(old);
+                }
 
                 existing = transform.Find(GeneratedName);
             }
 
+            foreach (Material material in _ownedMaterials)
+            {
+                if (material == null) continue;
+
+                if (Application.isPlaying) Destroy(material);
+                else DestroyImmediate(material);
+            }
+
+            _ownedMaterials.Clear();
             _generated = null;
+            _builtStyle = null;
         }
 
         // ==================================================================
@@ -289,7 +421,8 @@ namespace ZoomZoom.Vehicle
         /// from the tuning asset, the same numbers the suspension raycasts use, so the model can never
         /// disagree with the physics about where the wheels are.
         /// </summary>
-        private WheelVisual[] BuildWheels(VehicleTuning tuning, Material tyre, Material rim)
+        private WheelVisual[] BuildWheels(VehicleTuning tuning, Material tyre, Material rim,
+            Material whitewall)
         {
             var result = new WheelVisual[VehicleController.WheelCount];
 
@@ -317,7 +450,7 @@ namespace ZoomZoom.Vehicle
                 var spin = new GameObject("Spin").transform;
                 spin.SetParent(pivot, false);
 
-                BuildWheelModel(spin, tuning, tyre, rim);
+                BuildWheelModel(spin, tuning, tyre, rim, whitewall);
 
                 result[i] = new WheelVisual { pivot = pivot, spin = spin, steers = isFront };
             }
@@ -333,7 +466,8 @@ namespace ZoomZoom.Vehicle
         /// visually identical at every angle, so without something off-axis to catch the eye the
         /// wheels appear completely stationary no matter how fast they are turning.
         /// </summary>
-        private void BuildWheelModel(Transform spin, VehicleTuning tuning, Material tyre, Material rim)
+        private void BuildWheelModel(Transform spin, VehicleTuning tuning, Material tyre, Material rim,
+            Material whitewall)
         {
             float diameter = tuning.wheelRadius * 2f;
 
@@ -344,6 +478,16 @@ namespace ZoomZoom.Vehicle
             GameObject tyreObject = Cylinder("Tyre", Vector3.zero,
                 new Vector3(diameter, tuning.wheelWidth * 0.5f, diameter), tyre, onItsSide);
             tyreObject.transform.SetParent(spin, false);
+
+            // Optional white sidewall, for the bakery van. Fractionally wider than the tyre so it
+            // shows on both faces, and narrower than the hub so the hub and its bar sit on top.
+            if (whitewall != null)
+            {
+                GameObject ring = Cylinder("Whitewall", Vector3.zero,
+                    new Vector3(diameter * 0.80f, tuning.wheelWidth * 0.52f, diameter * 0.80f),
+                    whitewall, onItsSide);
+                ring.transform.SetParent(spin, false);
+            }
 
             // Hub, very slightly wider than the tyre so it reads as a separate part.
             GameObject hub = Cylinder("Hub", Vector3.zero,
