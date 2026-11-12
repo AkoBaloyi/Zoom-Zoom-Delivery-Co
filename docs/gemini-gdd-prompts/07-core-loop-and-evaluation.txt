@@ -1,0 +1,70 @@
+You are editing the open Google Doc for Zoom Zoom Delivery Co., specifically the GAME DESIGN DOCUMENT, not the project plan or individual reflection. All source text and facts required for this step are included below. You do not need access to local files, GitHub, Unity, earlier chat messages or attachments. Do not ask me to upload those sources or tell me to retrieve facts already supplied here.
+
+Apply only the changes specified in this prompt. The location clues refer to a 46-page PDF exported from this document; use exact headings and nearby text to locate sections, because page numbers change after editing. Search the BODY, not just its table of contents. If a named target cannot be found, do not guess or replace unrelated material: identify the missing target in your response. Complete other unambiguous edits. If you cannot edit the document directly, say so and return the exact formatted replacement for the named target; do not claim the document changed.
+
+Current baseline: the active car uses Crazy Taxi-inspired ground techniques. Rocket League jump/flip/boost-tank descriptions are historical. The player drives through pickup/drop-off zones; stopping is not mandatory for every delivery. Stunt tips, processing bays and R50 repair charges are proposals, not verified implemented features. Current collision cargo damage and successful stranded recovery are implemented and must remain distinct from those proposals. Do not invent tests, screenshots, lecturer quotations, team approvals or book quotations. Use South African English.
+
+The material between BEGIN REPLACEMENT and END REPLACEMENT is finished GDD prose, not instructions to be summarised. Insert it substantially verbatim: only adapt heading numbering, native table formatting and transitions necessary for placement. Keep the analysis, limitations, examples, values and source links. Convert Markdown tables into Google Docs tables. Do not insert this instruction block, placement notes or completion checklist into the GDD. Do not create an “editorial preamble” or a list of changes inside the submitted body. After editing, report the actual headings changed and any unresolved target, outside the document.
+
+EDIT 7: Core loop and evaluation
+
+EXACT PLACEMENT AND ACTIONS
+Apply the following separate, bounded changes. The replacement contains labelled components for each destination; do not paste the entire block into one location.
+1. Replace “6.1. Source Game One, Rocket League” BODY with “Source controller: Crazy Taxi, with a historical Rocket League lineage” and its two paragraphs. Rename that subsection accordingly.
+2. Replace “6.2. Source Game Two, Overcooked” BODY with “Overcooked: concurrent work and the limits of the adaptation” and its paragraph. Remove the now-duplicate EMPTY heading “6.3. Source Game Three, Crazy Taxi”; do not remove a nonempty section without checking whether its contents are already preserved by Prompt 1 or the source-controller text.
+3. Replace “6.9. Combined Core Loop” (original p. 23), up to but not including “Systems and Mechanics”, with the supplied Combined core loop paragraphs. They preserve the useful position/time/earnings argument.
+4. In the “Systems and Mechanics” table (original pp. 24–26), replace ONLY the Vehicle physics and Chase camera rows using the supplied rows. Add Recovery and Collision cargo damage rows if absent; otherwise update their existing rows. Preserve all other rows and images.
+5. Replace “6.10. System Interaction” BODY, up to “7. Playtesting Documentation”, with the System interaction paragraph.
+6. In “7.1. What We Will Record During Testing”, replace the outdated goals/evidence table with the supplied Current controller evaluation table and its final paragraph. Keep original recorded results and participant quotations in later subsections. Add a sentence immediately before those historical results identifying that their boost/jump/flip metrics describe the earlier controller and do not validate the current taxi techniques.
+7. Do not set a new shift length, order spawn interval or XP threshold. This prompt does not supply verified replacement values for those other-team systems. Report any conflicting values externally for reconciliation.
+
+BEGIN REPLACEMENT
+
+### Source controller: Crazy Taxi, with a historical Rocket League lineage
+
+The current vehicle loop is to read a route, establish a line, execute ordinary driving or a deliberate technique, judge the resulting position and choose the next action. Crazy Taxi supplies the current reference for accessible arcade motion with timed dash/drift techniques. The project reconstructs observable action relationships rather than Sega's source code or exact tuning values. Automatic forward ratios, brake-to-reverse assistance, a direct quick turn and safe-position recovery are project adaptations.
+
+Rocket League informed the earlier prototype's jump, flip, boost and momentum-recovery experiments. Those details belong to the iteration record. The current controller does not retain active jump, aerial flip or the refillable boost tank.
+
+### Overcooked: concurrent work and the limits of the adaptation
+
+The order reference concerns work that continues ageing while the player attends elsewhere. This forces comparison of commitments rather than allowing each journey to be considered in isolation. Cargo occupancy adds a capacity constraint, but a car carrying an order is not a cooking station processing it independently. Proposed processing bays would create that additional scheduling structure and must be documented as a separate extension until implemented.
+
+### Combined core loop
+
+An order appears and its deadline starts. The player compares the live work, their position and heading, available cargo space and the route needed to complete a job. Entering a valid pickup zone loads the order if capacity permits. Driving toward its destination changes the time left on every active order. Ordinary controls and techniques affect how efficiently the route is executed; qualifying collisions can reduce carried cargo condition. Entering the matching drop-off resolves the delivery according to the order's reward rules. The player then reassesses the remaining opportunities from their new position.
+
+Position carries between deliveries: finishing a job leaves the courier somewhere that may favour another route. Time carries: work that was not served continues ageing. Earnings carry: losses affect the result of a shift that is still ongoing. What matters is whether the player can use that changing state to make another worthwhile decision. A crash that changes which job to attempt is more consequential to planning than one that merely adds a delay to an otherwise fixed sequence.
+
+The inspected delivery-resolution code calculates base pay, then applies an early bonus or late deduction based on patience remaining, and applies cargo condition to that adjusted value. Exact reward amounts depend on tuning. This is not evidence of a separate stunt-tip system. Proposed repairs, stunt chains and processing bays must not be described as already producing this loop.
+
+### System interaction
+
+Vehicle movement and district geometry determine the time and positioning needed to reach a destination. The order queue determines deadlines and opportunities. Cargo capacity affects which commitments can be carried together, and cargo condition links collision consequences to delivery value. The camera and navigation feedback determine whether those choices are perceptible in time. The shift timer also interacts with stranded recovery: a successful reset removes five seconds from the active shift, so it is not an isolated system coupled only at session end.
+
+### Current vehicle and camera implementation rows
+
+| System | Current supported description | Limits or work still requiring evaluation |
+| --- | --- | --- |
+| Vehicle controller | Custom arcade controller on a Rigidbody with four suspension rays; ordinary driving plus Crazy Dash, Crazy Drift, Crazy Stop and quick turn; automatic forward ratios; current normal cruise ceiling 28 m/s. | Retired jump/flip/boost fields are not active features. Technique usefulness needs route comparisons and player observation. |
+| Camera | Automatic chase view, stable horizon, smoothed follow/heading, 7 m aim offset, drift travel-direction framing, bounded speed FOV, collision sweeps and manual look-behind. | Aim offset is not visible road distance. Corner readability and comfort require rendered playtesting. |
+| Recovery | Safe-road-pose reset for stranded/overturned conditions; successful reset clears motion and deducts five seconds from the active shift. | Check orientation and next viable route after recovery, not just restored motion. |
+| Collision cargo damage | Easy/Medium/Hard: max(0, relative impact speed in m/s − 10) × 1.5 condition points per carried order, limited by remaining condition. | Proposed repair fees and stunt-tip rewards are separate unimplemented/unchecked extensions. |
+
+### Current controller evaluation
+
+| Claim to evaluate | Comparison or observation | Finding that would challenge it |
+| --- | --- | --- |
+| Advanced moves create useful mastery. | Compare a route using ordinary controls with the same route using a learned technique; record completion, mistakes and the player's reason for choosing it. | More input complexity without a useful change in time, position or control. |
+| Quick turn supports recovery without erasing alternatives. | Compare quick turn, reverse, drift and normal turning at missed junctions. | One move is consistently preferable across every relevant context. |
+| Driving and order planning affect one another. | Observe the intended next job before and after an actual driving setback. | The player repeats the same action with added delay, with no viable alternative or meaningful revision. |
+| The camera supports informed commitment. | Record first recognition of turns and obstacles under different approaches. | The relevant information appears only after avoiding failure becomes impractical. |
+| Damage makes cargo matter. | Compare empty and loaded journeys and ask why the player changed their driving. | No behavioural distinction, or players become so cautious that the techniques cease to be worthwhile. |
+| Recovery preserves engagement. | Observe the next intentional action and willingness to continue after a reset. | Reset restores the car but leaves the player lost, resigned or unable to save anything. |
+
+Use repeated route setups for controller comparisons, while separating beginner and experienced-player observations. Pair recorded behaviour with explanations in the player's own words. A high number of crashes alone does not prove entertaining difficulty, and a low number does not prove the absence of challenge. The question is whether the player can perceive, choose and improve.
+
+END REPLACEMENT
+
+CHECK THIS STEP
+Changes must land in their separate named destinations. Retain historical test results as history. Do not imply newly executed tests or alter unrelated order/level implementation rows.

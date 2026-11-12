@@ -1,0 +1,52 @@
+You are editing the open Google Doc for Zoom Zoom Delivery Co., specifically the GAME DESIGN DOCUMENT, not the project plan or individual reflection. All source text and facts required for this step are included below. You do not need access to local files, GitHub, Unity, earlier chat messages or attachments. Do not ask me to upload those sources or tell me to retrieve facts already supplied here.
+
+Apply only the changes specified in this prompt. The location clues refer to a 46-page PDF exported from this document; use exact headings and nearby text to locate sections, because page numbers change after editing. Search the BODY, not just its table of contents. If a named target cannot be found, do not guess or replace unrelated material: identify the missing target in your response. Complete other unambiguous edits. If you cannot edit the document directly, say so and return the exact formatted replacement for the named target; do not claim the document changed.
+
+Current baseline: the active car uses Crazy Taxi-inspired ground techniques. Rocket League jump/flip/boost-tank descriptions are historical. The player drives through pickup/drop-off zones; stopping is not mandatory for every delivery. Stunt tips, processing bays and R50 repair charges are proposals, not verified implemented features. Current collision cargo damage and successful stranded recovery are implemented and must remain distinct from those proposals. Do not invent tests, screenshots, lecturer quotations, team approvals or book quotations. Use South African English.
+
+The material between BEGIN REPLACEMENT and END REPLACEMENT is finished GDD prose, not instructions to be summarised. Insert it substantially verbatim: only adapt heading numbering, native table formatting and transitions necessary for placement. Keep the analysis, limitations, examples, values and source links. Convert Markdown tables into Google Docs tables. Do not insert this instruction block, placement notes or completion checklist into the GDD. Do not create an “editorial preamble” or a list of changes inside the submitted body. After editing, report the actual headings changed and any unresolved target, outside the document.
+
+EDIT 5: Camera and engine
+
+EXACT PLACEMENT AND ACTIONS
+1. Locate the subsection called “6.4. Vehicle and Camera” (original p. 21), following the empty “6.3. Source Game Three, Crazy Taxi” heading. Its old body starts “[HISTORICAL NOTE...]” and “We will start with a simple placeholder vehicle”.
+2. Replace that subsection's body through the paragraph before “6.5. Orders and Timing” with the two supplied sections below. Keep its parent heading “Vehicle and Camera”; use the supplied headings beneath it.
+3. If the old body has historical value, move it to “Historical controller and camera prototype” at the end; do not leave it as the only detailed current vehicle explanation.
+4. The 7 m aim offset is not a visibility limit. Delete any sentence within this target that equates aim distance with visible road length, or guarantees that every corner is visible before braking is necessary. Do not invent screenshot evidence.
+
+BEGIN REPLACEMENT
+
+### Engine and vehicle implementation
+
+The project uses Unity 6000.5.4f1. The controller combines a Rigidbody and body collider with four downward suspension rays, custom movement rules and a 120 Hz physics step. The suspension rays detect support and surface information. The custom controller supplies the acceleration, braking, steering, grip and technique behaviour; Unity resolves physical contact with the environment. This division makes handling parameters directly adjustable while retaining collision and ramp interaction.
+
+Input events are captured with timestamps and consumed by the controller, allowing short technique sequences to survive between physics updates. Pending sequences are cleared on events such as teleporting and disabling input, so a stored button sequence cannot unexpectedly activate after recovery. The car's lowered centre of mass and grounded anti-roll assistance support readable road movement. Ramps can launch the vehicle physically, but there is no active jump button, directional aerial flip or airborne propulsion in the current taxi controller.
+
+This is a reconstruction of arcade driving behaviour, not a claim to reproduce Sega's original source code. Legacy jump, boost and camera fields still exist in serialized data for compatibility; their presence does not mean those older mechanics remain active. Current taxi settings take precedence.
+
+### Camera design: information before commitment
+
+The camera determines which decisions the player can make in time. Before a dash, the player needs to judge the departure space. During a drift, they need to read both their movement and the exit. After a collision, they need to understand the car's new orientation and a possible way back into the route. A camera can remain technically outside a wall while still failing all three tasks.
+
+The current chase camera follows above and behind the car, keeps a level horizon and eases heading changes. During a forward drift it partly frames travel direction, helping the player read the path while the chassis rotates. Speed widens the field of view within a bounded range. These are communication choices: the view should convey motion without making the car feel remote or making the road difficult to judge.
+
+Wall avoidance uses overlap resolution and sphere sweeps with near-plane clearance. Obstructions pull the view inward and the camera returns outward smoothly when clear. This addresses physical clipping, but a tightly obstructed camera can still become too close to read an exit. Dense corners therefore need a separate readability test in the rendered level.
+
+The current 7 m look-ahead value is an offset of the point toward which the camera aims. It is not a claim that only 7 m of road is visible. Visible and readable distance depends on camera placement, field of view, elevation and occlusion. Comparing that number directly with stopping distance cannot establish an execution bottleneck or justify reverting to the old 28 m value.
+
+A stronger test records when the relevant turn or obstacle first becomes recognisable and how much time remains before the player reaches it. Repeat it during ordinary driving, a dash approach and a drift exit. If the player has already committed before the exit becomes readable, the issue may require a landmark, changed geometry or different framing, rather than blaming their reaction time.
+
+#### Current camera behaviour and settings
+
+The camera follows behind and above the car using smoothed position and heading changes. Its horizon uses world-up, so chassis roll does not tip the entire view. Current taxi settings place it 5.6 m behind and 2.1 m above the car, with an aim height of 1.15 m and 7 m look-ahead. The field of view eases from 65 to 74 degrees as ordinary speed increases. Speed can add 0.6 m follow distance, and acceleration up to another 0.3 m, giving bounded speed feedback rather than an uncontrolled retreat.
+
+To avoid wall clipping, the camera checks for overlap around its aim pivot and sweeps a sphere toward the intended viewing position. Clearance includes the camera's near-plane corners, rather than checking only a single line. An obstruction pulls the camera inward immediately; its normal distance returns smoothly after the obstruction clears. Another sweep checks the adjusted position, and the follow spring resumes from the safe point. The checks ignore the car's own colliders and triggers, and depend on correctly configured solid colliders and camera layers.
+
+Look-ahead lets the player read the road ahead. During a forward drift, the camera partially follows travel direction as well as the car's nose, helping keep the exit road visible as the chassis rotates. This helps corner readability; it does not let the player see through a building or guarantee visibility around every blind bend. The normal reverse view keeps its forward chase orientation; holding C or right-stick click provides look-behind. Recovery snaps the camera to the restored vehicle rather than dragging the view across the map.
+
+The design goal is to communicate speed, direction and available road without making the car feel detached from the player. Actual city corners still need rendered playtesting for visibility and comfort; the saved automated collision checks cannot establish those experiential outcomes.
+
+END REPLACEMENT
+
+CHECK THIS STEP
+Preserve camera distances, FOV, drift framing, overlap/sphere sweep explanation, near-plane protection, look-behind, and actual readability test. No claim that the camera sees through buildings or that Unity cannot support bespoke arcade physics.

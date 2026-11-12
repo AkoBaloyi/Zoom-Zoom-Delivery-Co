@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 900" font-family="Segoe UI, Arial, sans-serif">
+  <rect width="1400" height="900" fill="#2b2b2b"/>
+  <text x="40" y="52" font-size="30" font-weight="700" fill="#ffffff">Telling the player a trick landed, and telling them the controls exist</text>
+  <text x="40" y="82" font-size="17" fill="#cccccc">For two weeks the car performed tricks silently. This is the fix: the biggest text on screen, for one second, every time.</text>
+
+  <!-- ===== Trick confirmation ===== -->
+  <text x="40" y="140" font-size="22" font-weight="700" fill="#ffd12e">Trick confirmation — bottom-left, 1 s, then fades (exists: CrazyTaxiFeedback)</text>
+
+  <g>
+    <rect x="40" y="170" width="640" height="200" rx="8" fill="#1f140f" opacity="0.85"/>
+    <text x="64" y="240" font-size="56" font-weight="900" fill="#ffd12e">CRAZY DRIFT</text>
+    <text x="64" y="300" font-size="30" font-weight="700" fill="#ffffff">D2  ·  19 m/s  ·  SHIFT</text>
+    <text x="64" y="346" font-size="16" fill="#d9e6ff">W GAS · S BRAKE · SHIFT TRICK · CTRL DRIFT · SPACE TURN</text>
+  </g>
+  <g font-size="15" fill="#cccccc">
+    <text x="720" y="200">Line 1 — the trick name. Gold. 56 px. Appears on the event, holds 1 s, fades.</text>
+    <text x="720" y="226">Eight possible names: CRAZY DASH, CRAZY DRIFT, CRAZY STOP, LIMITER CUT,</text>
+    <text x="720" y="248">QUICK TURN, CRAZY BACK DASH, CRAZY BACK DRIFT, and BACK ON ROAD -3s (recovery).</text>
+    <text x="720" y="286">Line 2 — always on. Gear (D1-D5 or R), speed, and a state word: SHIFT, FREE REV,</text>
+    <text x="720" y="308">LIMITER, DASH ACTIVE. Turns gold while a gear change is in progress.</text>
+    <text x="720" y="346">Line 3 — the hint. Reads the connected device and names ITS buttons.</text>
+  </g>
+
+  <!-- the eight names as a swatch strip -->
+  <g font-size="20" font-weight="900" fill="#ffd12e">
+    <text x="40" y="420">CRAZY DASH</text>
+    <text x="260" y="420">CRAZY DRIFT</text>
+    <text x="490" y="420">CRAZY STOP</text>
+    <text x="700" y="420">LIMITER CUT</text>
+    <text x="920" y="420">QUICK TURN</text>
+    <text x="40" y="456">CRAZY BACK DASH</text>
+    <text x="340" y="456">CRAZY BACK DRIFT</text>
+    <text x="660" y="456" fill="#8cf0a3">BACK ON ROAD -3s</text>
+  </g>
+  <text x="40" y="490" font-size="14" fill="#cccccc">Zah: these are fixed strings. Design one treatment that works for the longest (CRAZY BACK DRIFT, 16 chars) and the shortest.</text>
+
+  <!-- ===== Controls screen ===== -->
+  <text x="40" y="560" font-size="22" font-weight="700" fill="#ffd12e">Controls screen — currently lists 6 of 11 actions. This is the full set.</text>
+
+  <g>
+    <rect x="40" y="590" width="1320" height="280" rx="10" fill="#1f140f"/>
+    <!-- column 1: drive -->
+    <text x="70" y="630" font-size="18" font-weight="700" fill="#9fc8ff">DRIVE</text>
+    <g font-size="17" fill="#ffffff">
+      <text x="70" y="662"><tspan font-weight="700" fill="#ffd12e">W</tspan>  Accelerate</text>
+      <text x="70" y="690"><tspan font-weight="700" fill="#ffd12e">S</tspan>  Brake, then reverse at rest</text>
+      <text x="70" y="718"><tspan font-weight="700" fill="#ffd12e">A D</tspan>  Steer</text>
+      <text x="70" y="746"><tspan font-weight="700" fill="#ffd12e">C</tspan>  Look behind (hold)</text>
+      <text x="70" y="774"><tspan font-weight="700" fill="#ffd12e">Backspace</tspan>  Reset to road</text>
+    </g>
+    <!-- column 2: tricks -->
+    <text x="500" y="630" font-size="18" font-weight="700" fill="#ffc37a">TRICKS — easy way</text>
+    <g font-size="17" fill="#ffffff">
+      <text x="500" y="662"><tspan font-weight="700" fill="#ffd12e">Shift</tspan> + gas  Dash</text>
+      <text x="500" y="690"><tspan font-weight="700" fill="#ffd12e">Shift</tspan> + brake  Stop</text>
+      <text x="500" y="718"><tspan font-weight="700" fill="#ffd12e">Ctrl</tspan> + steer  Drift</text>
+      <text x="500" y="746"><tspan font-weight="700" fill="#ffd12e">Space</tspan> + steer  Quick turn</text>
+    </g>
+    <!-- column 3: tricks hard -->
+    <text x="900" y="630" font-size="18" font-weight="700" fill="#ff9926">TRICKS — arcade way</text>
+    <g font-size="17" fill="#ffffff">
+      <text x="900" y="662"><tspan font-weight="700" fill="#ffd12e">F</tspan>  Drive gear</text>
+      <text x="900" y="690"><tspan font-weight="700" fill="#ffd12e">R</tspan>  Reverse gear</text>
+      <text x="900" y="718" font-size="15" fill="#cccccc">Lift gas → F → gas = Dash</text>
+      <text x="900" y="742" font-size="15" fill="#cccccc">Lift gas → R, F + steer = Drift</text>
+      <text x="900" y="766" font-size="15" fill="#cccccc">The original rhythm. Harder, same result.</text>
+    </g>
+    <text x="70" y="840" font-size="15" fill="#cccccc"><tspan font-weight="700" fill="#ffd12e">F8</tspan>  Toggle camera motion effects    ·    Gamepad: RT gas · LT brake · RB trick · X drift · LB turn · B drive · A reverse · Esc/Start pause</text>
+  </g>
+</svg>

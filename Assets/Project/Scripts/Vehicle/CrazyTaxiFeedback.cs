@@ -50,12 +50,28 @@ namespace ZoomZoom.Vehicle
             if (_car == null) return;
             _car.TrickPerformed += Confirm;
             _car.Recovered += ShowRecovery;
+            _car.DashRefusedBySurface += ShowRefusal;
         }
         private void OnDisable()
         {
             if (_car != null) _car.TrickPerformed -= Confirm;
             if (_car != null) _car.Recovered -= ShowRecovery;
+            if (_car != null) _car.DashRefusedBySurface -= ShowRefusal;
             if (_canvas != null) _canvas.SetActive(false);
+        }
+
+        // Shown the first few times only. A refusal with no explanation is a mystery; a refusal
+        // explained every single time is nagging. Three is enough to learn "not on grass".
+        private int _refusalsShown;
+        private const int RefusalLessons = 3;
+
+        private void ShowRefusal(SurfaceKind surface)
+        {
+            if (_refusalsShown >= RefusalLessons) return;
+            _refusalsShown++;
+            _move.text = $"NO DASH ON {surface.ToString().ToUpperInvariant()}";
+            _move.color = new Color(0.85f, 0.9f, 1f);
+            _showUntil = Time.time + 1.1f;
         }
         private void Confirm(TaxiTrick trick)
         {
@@ -64,6 +80,7 @@ namespace ZoomZoom.Vehicle
                 trick == TaxiTrick.BackDash ? "CRAZY BACK DASH" :
                 trick == TaxiTrick.BackDrift ? "CRAZY BACK DRIFT" : "CRAZY " + trick.ToString().ToUpperInvariant();
             _move.text = name;
+            _move.color = new Color(1f, 0.82f, 0.18f); // a refusal lesson may have left it blue
             _showUntil = Time.time + 1.1f;
         }
         private void ShowRecovery(float cost)

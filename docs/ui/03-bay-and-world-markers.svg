@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 820" font-family="Segoe UI, Arial, sans-serif">
+  <rect width="1400" height="820" fill="#2b2b2b"/>
+  <text x="40" y="52" font-size="30" font-weight="700" fill="#ffffff">In the world: the bay sign and the ground discs</text>
+  <text x="40" y="82" font-size="17" fill="#cccccc">These live in 3D, not on the HUD. The player reads them while driving at them. Big, few words, one colour each.</text>
+
+  <!-- ===== Bay sign states (exists: ProcessingBay label) ===== -->
+  <text x="40" y="140" font-size="22" font-weight="700" fill="#ffd12e">Bay sign — floating label above the bay, always faces the camera</text>
+
+  <g text-anchor="middle" font-weight="900">
+    <!-- EMPTY -->
+    <rect x="40" y="170" width="300" height="130" rx="10" fill="#1f140f" opacity="0.88"/>
+    <text x="190" y="218" font-size="26" fill="#ffffff">BAY 1</text>
+    <text x="190" y="262" font-size="30" fill="#bfb49a">EMPTY</text>
+    <!-- COOKING -->
+    <rect x="370" y="170" width="300" height="130" rx="10" fill="#1f140f" opacity="0.88"/>
+    <text x="520" y="218" font-size="26" fill="#ffffff">BAY 1</text>
+    <text x="520" y="262" font-size="30" fill="#fa8c1e">COOKING 5s</text>
+    <rect x="400" y="278" width="240" height="10" rx="5" fill="#4a3a2a"/>
+    <rect x="400" y="278" width="90" height="10" rx="5" fill="#fa8c1e"/>
+    <!-- READY -->
+    <rect x="700" y="170" width="300" height="130" rx="10" fill="#1f140f" opacity="0.88"/>
+    <text x="850" y="218" font-size="26" fill="#ffffff">BAY 1</text>
+    <text x="850" y="262" font-size="30" fill="#33d959">READY 11s</text>
+    <rect x="730" y="278" width="240" height="10" rx="5" fill="#4a3a2a"/>
+    <rect x="730" y="278" width="220" height="10" rx="5" fill="#33d959"/>
+    <!-- BURNING -->
+    <rect x="1030" y="170" width="300" height="130" rx="10" fill="#3a0a08" opacity="0.92" stroke="#f2261f" stroke-width="4"/>
+    <text x="1180" y="218" font-size="26" fill="#ffffff">BAY 1</text>
+    <text x="1180" y="262" font-size="30" fill="#f2261f">BURNING 3s</text>
+    <rect x="1060" y="278" width="240" height="10" rx="5" fill="#4a3a2a"/>
+    <rect x="1060" y="278" width="55" height="10" rx="5" fill="#f2261f"/>
+  </g>
+  <g font-size="14" fill="#cccccc">
+    <text x="40" y="326">Grey. Nothing to do here.</text>
+    <text x="370" y="326">Bar fills. Count DOWN to ready.</text>
+    <text x="700" y="326">Bar drains. Count DOWN to burn.</text>
+    <text x="1030" y="326">Red frame flashes. Last 4 s.</text>
+  </g>
+
+  <!-- ===== Ground discs (exist: OrderBeacon) ===== -->
+  <text x="40" y="400" font-size="22" font-weight="700" fill="#ffd12e">Ground discs — the 6 m trigger zone, drawn where it actually is</text>
+  <text x="40" y="426" font-size="15" fill="#cccccc">The disc IS the hitbox. If the disc is drawn wider or narrower than 6 m the player learns the wrong thing. Drive through it at any speed and it fires: no stop needed.</text>
+
+  <g>
+    <!-- pickup disc -->
+    <ellipse cx="200" cy="600" rx="150" ry="52" fill="#3399ff" opacity="0.28" stroke="#3399ff" stroke-width="5"/>
+    <rect x="130" y="478" width="140" height="44" rx="6" fill="#1f140f" opacity="0.88"/>
+    <text x="200" y="507" font-size="17" font-weight="900" fill="#3399ff" text-anchor="middle">#13 BUTCHER 64s</text>
+    <line x1="200" y1="522" x2="200" y2="548" stroke="#3399ff" stroke-width="3"/>
+    <text x="200" y="690" font-size="15" fill="#9fc8ff" font-weight="700" text-anchor="middle">PICK UP — blue</text>
+
+    <!-- bay disc -->
+    <ellipse cx="600" cy="600" rx="150" ry="52" fill="#fa8c1e" opacity="0.28" stroke="#fa8c1e" stroke-width="5"/>
+    <rect x="535" y="478" width="130" height="44" rx="6" fill="#1f140f" opacity="0.88"/>
+    <text x="600" y="507" font-size="17" font-weight="900" fill="#fa8c1e" text-anchor="middle">#13 COOK 64s</text>
+    <line x1="600" y1="522" x2="600" y2="548" stroke="#fa8c1e" stroke-width="3"/>
+    <text x="600" y="690" font-size="15" fill="#ffc37a" font-weight="700" text-anchor="middle">BAY — orange (becomes READY, green)</text>
+
+    <!-- dropoff disc -->
+    <ellipse cx="1000" cy="600" rx="150" ry="52" fill="#33d959" opacity="0.28" stroke="#33d959" stroke-width="5"/>
+    <rect x="938" y="478" width="124" height="44" rx="6" fill="#1f140f" opacity="0.88"/>
+    <text x="1000" y="507" font-size="17" font-weight="900" fill="#33d959" text-anchor="middle">#13 DROP 29s</text>
+    <line x1="1000" y1="522" x2="1000" y2="548" stroke="#33d959" stroke-width="3"/>
+    <text x="1000" y="690" font-size="15" fill="#8cf0a3" font-weight="700" text-anchor="middle">DROP OFF — green</text>
+
+    <!-- selected / focus -->
+    <ellipse cx="1250" cy="600" rx="100" ry="36" fill="#33d959" opacity="0.5" stroke="#ffffff" stroke-width="6"/>
+    <text x="1250" y="690" font-size="15" fill="#ffffff" font-weight="700" text-anchor="middle">FOCUSED order:</text>
+    <text x="1250" y="710" font-size="15" fill="#ffffff" font-weight="700" text-anchor="middle">white ring, full opacity</text>
+  </g>
+
+  <rect x="40" y="740" width="1320" height="60" rx="8" fill="#1f140f"/>
+  <text x="60" y="778" font-size="16" fill="#ffffff">The label above each disc uses the SAME words as the ticket card and the SAME colour as the arrow. Three places, one vocabulary, so the player never has to translate.</text>
+</svg>
