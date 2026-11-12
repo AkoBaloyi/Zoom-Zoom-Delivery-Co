@@ -119,6 +119,12 @@ namespace ZoomZoom.Vehicle
         {
             _brakeLightMaterials = new Material[brakeLights.Length];
 
+            // Outside Play mode nothing lights the brake lights, because Update only runs in Play
+            // mode. Asking a renderer for its own copy there leaks the copy into the scene, which
+            // Unity reports as an error every time a model is built in the editor (Build Model Now,
+            // or the van preview). Play mode prepares them again, in Awake and on every Bind.
+            if (!Application.isPlaying) return;
+
             for (int i = 0; i < brakeLights.Length; i++)
             {
                 if (brakeLights[i] == null) continue;
