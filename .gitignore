@@ -245,3 +245,4 @@ docs/handouts/
 # up in docs/ and the measurement CSVs under VehicleLab_Measurements/; these are the raw output
 # they were derived from, kept locally while a run is being investigated and not afterwards.
 tmp/
+Assets/Aside/Art/Toon Gas Station/Terrain/Terrain_Demo_Scene.asset.meta
