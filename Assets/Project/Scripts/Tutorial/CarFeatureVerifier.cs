@@ -3,9 +3,11 @@ using UnityEngine;
 using ZoomZoom.Vehicle;
 
 // Finishes the drive tutorial once the player has genuinely tried every part of the car:
-// accelerate, steer, brake, and every trick the recognizer knows about (dash, back dash, drift,
-// back drift, stop, limiter cut, quick spin). No fixed finish line, no trigger collider; it's
-// done when the player has actually done everything, however long that takes.
+// accelerate, steer, brake, and every trick the car's current controls can perform. With the
+// direct technique buttons (the shipped setting) that is dash, stop, drift and quick spin; back
+// dash, back drift and limiter cut have no button then, so asking for them meant the tutorial
+// could never finish. No fixed finish line, no trigger collider; it's done when the player has
+// actually done everything, however long that takes.
 //
 // Tricks are read from VehicleController.TrickPerformed, the real event the car fires every
 // time a trick lands (see BeginTaxiTrick in VehicleController.Taxi.cs), so this never has to
@@ -39,6 +41,7 @@ public class CarFeatureVerifier : MonoBehaviour
         foreach (TaxiTrick trick in System.Enum.GetValues(typeof(TaxiTrick)))
         {
             if (trick == TaxiTrick.None) continue;
+            if (vehicle != null && !vehicle.CanPerform(trick)) continue; // no button for it
             _requiredTricks.Add(trick);
         }
     }
