@@ -19,7 +19,7 @@ namespace SimpleCity.AI
         {
             foreach (var house in placementManager.GetAllHouses())
             {
-                TrySpawninACar(house, placementManager.GetRandomSpecialStructure());
+                TrySpawninACar(house, placementManager.GetRandomSpecialStrucutre());
             }
         }
 
@@ -31,6 +31,8 @@ namespace SimpleCity.AI
                 var endRoadPosition = ((INeedingRoad)endStructure).RoadPosition;
 
                 var path = placementManager.GetPathBetween(startRoadPosition, endRoadPosition);
+                path.Reverse();
+
                 var car = Instantiate(carPrefab, startRoadPosition, Quaternion.identity);
                 car.GetComponent<CarrAI>().SetPath(path.ConvertAll(x => (Vector3)x));
             }
