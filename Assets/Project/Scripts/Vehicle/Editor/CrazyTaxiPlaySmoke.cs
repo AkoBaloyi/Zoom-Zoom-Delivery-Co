@@ -50,7 +50,7 @@ namespace ZoomZoom.Vehicle.Editor
         public static void Run()
         {
             SessionState.SetBool("CrazyTaxiSmoke.Lab", false);
-            StartScene("Assets/Project/Scenes/Possible game scene.unity");
+            StartScene("Assets/Project/Scenes/Medium.unity");
         }
         public static void RunLab()
         {
