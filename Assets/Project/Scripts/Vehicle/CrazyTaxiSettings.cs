@@ -139,6 +139,9 @@ namespace ZoomZoom.Vehicle
         [Min(0f)] public float recoveryTimeCost = 5f;
         [Min(0.1f)] public float recoveryLift = 0.8f;
         public Vector3 recoveryClearanceHalfSize = new Vector3(1f, 0.5f, 1.8f);
+        [Tooltip("How far below its start, or below the lowest road spot it has saved, the car may fall before it is put back automatically, " +
+                 "in metres. Catches a car that has dropped through a gap or off the edge of the level.")]
+        [Min(5f)] public float fallRespawnDepth = 40f;
         [Tooltip("Allow deliberate driving techniques to cause hard-brake cargo damage. Collisions remain independently damaging.")]
         public bool techniquesCauseHardBrakeDamage = false;
         [Min(0f)] public float techniqueCargoGraceTime = 0.1f;

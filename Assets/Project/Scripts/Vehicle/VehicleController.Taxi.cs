@@ -100,10 +100,7 @@ namespace ZoomZoom.Vehicle
             _rightingDelay = 0f;
             _taxiRecoveryRequested = false;
             _spinCooldownRemaining = 0f;
-            _hasRecoveryPoint = false;
-            _safeSampleRemaining = 0f;
-            _monitoringStuck = false;
-            SeedRecoveryPoint();
+            ResetRecovery();
             Repositioned?.Invoke();
         }
 
