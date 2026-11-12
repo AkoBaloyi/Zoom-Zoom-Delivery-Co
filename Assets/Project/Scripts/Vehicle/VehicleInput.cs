@@ -14,6 +14,10 @@ namespace ZoomZoom.Vehicle
         private InputAction _gas, _brake, _steer, _drive, _reverse, _lookBehind, _recover, _spin, _technique, _drift, _motion;
         private bool _floored, _braking, _suppress, _paused;
         private bool _hasFocus = true;
+
+        // When Technique (Shift / RB) was last pressed with no pedal down yet. The pedal arriving
+        // within the input window completes the trick, so Shift-then-W works as well as W-then-Shift.
+        private double _techniqueAt = double.NegativeInfinity;
         private float _gasAmount, _brakeAmount;
         private readonly TaxiPedalDirection _direction = new TaxiPedalDirection();
         public float RawAccelerator { get; private set; }
@@ -117,6 +121,14 @@ namespace ZoomZoom.Vehicle
             if (down == _floored) return;
             _floored = down;
             controller.QueueTaxiCommand(down ? TaxiCommand.GasDown : TaxiCommand.GasUp, context.time);
+
+            // Technique first, gas second: the same Dash as the other way round.
+            if (down && TechniqueChordOpen(context.time) &&
+                _brake.ReadValue<float>() <= controller.Taxi.brakeTrickThreshold)
+            {
+                _techniqueAt = double.NegativeInfinity;
+                controller.QueueTaxiCommand(TaxiCommand.DirectDash, context.time);
+            }
         }
         private void BrakeChanged(InputAction.CallbackContext context)
         {
@@ -125,7 +137,25 @@ namespace ZoomZoom.Vehicle
             if (down == _braking) return;
             _braking = down;
             controller.QueueTaxiCommand(down ? TaxiCommand.BrakeDown : TaxiCommand.BrakeUp, context.time);
+
+            // Technique first, brake second: the same Stop as the other way round.
+            if (down && TechniqueChordOpen(context.time))
+            {
+                _techniqueAt = double.NegativeInfinity;
+                controller.QueueTaxiCommand(TaxiCommand.DirectStop, context.time);
+            }
         }
+
+        /// <summary>
+        /// True when a pedal arriving now should complete a Technique press: the button is still
+        /// held, or was tapped within the input window. Dash and Stop are chords, and players press
+        /// chords in either order. Typing habit puts the modifier first, so "Shift + W" usually
+        /// arrives as Shift then W. The car still decides whether the trick is allowed: speed,
+        /// cooldown, grass and the rest are checked exactly as for the other order.
+        /// </summary>
+        private bool TechniqueChordOpen(double time) =>
+            controller.Taxi.directTechniqueControls &&
+            (_technique.IsPressed() || time - _techniqueAt <= controller.Taxi.inputWindow);
         private void SelectDrive(InputAction.CallbackContext context)
         {
             if (!AcceptInput || controller.Taxi.directTechniqueControls) return;
@@ -166,6 +196,8 @@ namespace ZoomZoom.Vehicle
                 controller.QueueTaxiCommand(TaxiCommand.DirectStop, context.time);
             else if (_gas.ReadValue<float>() >= controller.Taxi.pedalFloor)
                 controller.QueueTaxiCommand(TaxiCommand.DirectDash, context.time);
+            else
+                _techniqueAt = context.time; // no pedal yet: GasChanged or BrakeChanged finishes the chord
         }
         private void DirectDrift(InputAction.CallbackContext context)
         {
@@ -211,6 +243,7 @@ namespace ZoomZoom.Vehicle
         public void ResetInput()
         {
             _floored = _braking = false;
+            _techniqueAt = double.NegativeInfinity;
             _gasAmount = _brakeAmount = RawAccelerator = RawBrake = 0f;
             SelectedGear = TaxiGear.Drive;
             _direction.Reset();

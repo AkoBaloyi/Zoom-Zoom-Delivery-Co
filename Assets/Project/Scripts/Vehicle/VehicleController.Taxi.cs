@@ -122,6 +122,27 @@ namespace ZoomZoom.Vehicle
         public bool SurfaceRefusesDash =>
             Taxi.noDashSurfaces != null && System.Array.IndexOf(Taxi.noDashSurfaces, Surface.kind) >= 0;
 
+        /// <summary>
+        /// Whether the current controls can produce this trick at all. With direct technique
+        /// controls on, which is the shipped setting, only Dash, Stop, Drift and QuickSpin have a
+        /// button. LimiterCut, BackDash and BackDrift come only from the old gear-tap gestures, which
+        /// are ignored while the direct controls are on. Anything that asks the player for every
+        /// trick, such as the tutorial checklist, should ask this first.
+        /// </summary>
+        public bool CanPerform(TaxiTrick trick)
+        {
+            if (tuning == null) return trick != TaxiTrick.None;
+            switch (trick)
+            {
+                case TaxiTrick.None: return false;
+                case TaxiTrick.QuickSpin: return Taxi.quickSpinEnabled;
+                case TaxiTrick.Dash:
+                case TaxiTrick.Drift:
+                case TaxiTrick.Stop: return true;
+                default: return !Taxi.directTechniqueControls;
+            }
+        }
+
         private static bool IsDashFamily(TaxiTrick trick) =>
             trick == TaxiTrick.Dash || trick == TaxiTrick.BackDash || trick == TaxiTrick.LimiterCut;
 

@@ -293,7 +293,7 @@ namespace ZoomZoom.Vehicle.EditorTools
             // onto the pavement instead. Sideways overlaps are only reported, never moved.
             var lifted = new List<string>();
             var stillInside = new List<string>();
-            foreach (Rigidbody body in Object.FindObjectsByType<Rigidbody>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
+            foreach (Rigidbody body in Object.FindObjectsByType<Rigidbody>(FindObjectsInactive.Exclude))
             {
                 if (body.gameObject.scene != scene || body.GetComponent<VehicleController>() != null) continue;
 
@@ -650,7 +650,7 @@ namespace ZoomZoom.Vehicle.EditorTools
 
         private static VehicleController FindCar(Scene scene)
         {
-            foreach (VehicleController car in Object.FindObjectsByType<VehicleController>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
+            foreach (VehicleController car in Object.FindObjectsByType<VehicleController>(FindObjectsInactive.Exclude))
                 if (car.gameObject.scene == scene) return car;
             return null;
         }
