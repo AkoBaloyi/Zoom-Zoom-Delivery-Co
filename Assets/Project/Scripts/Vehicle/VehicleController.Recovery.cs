@@ -24,9 +24,12 @@ namespace ZoomZoom.Vehicle
                 nearest = hit.distance;
                 support = hit;
             }
+            // Any upright, supported ground will do for the seed, grass included. It is where the
+            // level put the car, so it is a safe place to come back to. Medium's spawn is on the
+            // lawn 14 m from the nearest road, and while this only accepted tarmac and concrete the
+            // car had no recovery point at all until it first reached a road. The 0.5 s sampler
+            // below still saves road poses only, and replaces this one as soon as the car is on one.
             if (support.collider == null || support.normal.y < 0.85f) return;
-            SurfaceType surface = support.collider.GetComponentInParent<SurfaceType>();
-            if (surface != null && surface.kind != SurfaceKind.Tarmac && surface.kind != SurfaceKind.Concrete) return;
             Vector3 forward = Vector3.ProjectOnPlane(transform.forward, Vector3.up);
             if (forward.sqrMagnitude < 0.01f) forward = Vector3.forward;
             Quaternion rotation = Quaternion.LookRotation(forward, Vector3.up);
