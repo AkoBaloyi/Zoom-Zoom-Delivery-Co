@@ -166,7 +166,7 @@ GameObject:
   - component: {fileID: 120801926}
   - component: {fileID: 120801925}
   m_Layer: 5
-  m_Name: Hard
+  m_Name: Back
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -236,9 +236,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 454319636}
-        m_TargetAssemblyTypeName: ZoomZoom.Orders.UI.DifficultySceneLoader, Assembly-CSharp
-        m_MethodName: LoadHard
+      - m_Target: {fileID: 454319637}
+        m_TargetAssemblyTypeName: ZoomZoom.Orders.UI.MainMenuManager, Assembly-CSharp
+        m_MethodName: BackToMainMenu
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -1807,9 +1807,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 454319636}
-        m_TargetAssemblyTypeName: ZoomZoom.Orders.UI.DifficultySceneLoader, Assembly-CSharp
-        m_MethodName: LoadMedium
+      - m_Target: {fileID: 454319637}
+        m_TargetAssemblyTypeName: ZoomZoom.Orders.UI.MainMenuManager, Assembly-CSharp
+        m_MethodName: OpenDifficultyPanel
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -2775,7 +2775,7 @@ GameObject:
   - component: {fileID: 1624146237}
   - component: {fileID: 1624146236}
   m_Layer: 5
-  m_Name: Easy
+  m_Name: Tutorial
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2847,7 +2847,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 454319636}
         m_TargetAssemblyTypeName: ZoomZoom.Orders.UI.DifficultySceneLoader, Assembly-CSharp
-        m_MethodName: LoadEasy
+        m_MethodName: LoadTutorial
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -2952,7 +2952,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: HARD
+  m_text: BACK
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 5302535af1044152a457ed104f1f4b91, type: 2}
   m_sharedMaterial: {fileID: 2164040, guid: 5302535af1044152a457ed104f1f4b91, type: 2}
@@ -3089,7 +3089,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: EASY
+  m_text: TUTORIAL
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 5302535af1044152a457ed104f1f4b91, type: 2}
   m_sharedMaterial: {fileID: 2164040, guid: 5302535af1044152a457ed104f1f4b91, type: 2}

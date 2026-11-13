@@ -4,10 +4,11 @@ using UnityEngine.SceneManagement;
 namespace ZoomZoom.Orders.UI
 {
     /// <summary>
-    /// Loads a separate scene for each difficulty. Wire each button's OnClick to one method:
-    ///   Easy button   -> LoadEasy
-    ///   Medium button -> LoadMedium
-    ///   Hard button   -> LoadHard
+    /// Loads a separate scene for each level. Wire each button's OnClick to one method:
+    ///   Tutorial button -> LoadTutorial
+    ///   Medium button   -> LoadMedium
+    ///   Easy button     -> LoadEasy   (the Easy scene was deleted; kept for old buttons)
+    ///   Hard button     -> LoadHard   (the Hard scene was deleted; kept for old buttons)
     /// Each scene name must match the scene file's name exactly, and every scene must be in
     /// File > Build Profiles > Scene List, or Unity cannot load it.
     /// </summary>
@@ -15,9 +16,12 @@ namespace ZoomZoom.Orders.UI
     public class DifficultySceneLoader : MonoBehaviour
     {
         [Header("Scene names (exact file names, no .unity)")]
+        [SerializeField] private string tutorialSceneName = "Tutorial";
         [SerializeField] private string easySceneName = "Easy";
         [SerializeField] private string mediumSceneName = "Medium";
         [SerializeField] private string hardSceneName = "Hard";
+
+        public void LoadTutorial() => Load(tutorialSceneName);
 
         public void LoadEasy() => Load(easySceneName);
 

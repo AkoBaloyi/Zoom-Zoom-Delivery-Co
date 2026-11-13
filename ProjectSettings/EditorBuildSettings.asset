@@ -8,9 +8,6 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Project/Scenes/MainMenu.unity
     guid: e71d76ed1ced2be4796dd1ef17d8f256
-  - enabled: 1
-    path: Assets/Project/Scenes/Possible game scene.unity
-    guid: 553626d0237d7af42b0bcb6b968487be
   - enabled: 0
     path: Assets/Project/Scenes/VehicleLab.unity
     guid: 1a2b3c4d5e6f708192a3b4c5d6e7f814
@@ -20,8 +17,8 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Project/Scenes/Medium.unity
     guid: e7827e5c95f19e1478dffb7655729e25
-  - enabled: 0
-    path: Assets/Project/Scenes/Hard.unity
-    guid: 5bb0ed30a38ab784b81e369088a29d6b
+  - enabled: 1
+    path: Assets/Project/Scenes/Tutorial.unity
+    guid: 49565df9eca75b84597c4ef8005dcd0b
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
