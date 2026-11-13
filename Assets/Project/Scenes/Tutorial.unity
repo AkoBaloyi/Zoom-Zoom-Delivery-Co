@@ -39310,14 +39310,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 0.79, g: 0.79, b: 0.79, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: ec9bde2ba59089b41aa33ca7e3e52c88, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 51b1523bf0582724ab80623d257ff12a, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -71133,21 +71133,25 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.UI.ShiftResults
   shiftTimer: {fileID: 816895046}
   orderManager: {fileID: 816895044}
-  wallet: {fileID: 816895047}
-  oneStarAt: 2000
-  twoStarsAt: 3500
-  threeStarsAt: 7000
+  crashCounter: {fileID: 0}
+  ordersPerShift: 12
+  oneStarPercent: 30
+  twoStarPercent: 60
+  threeStarPercent: 80
   mainMenuSceneName: MainMenu
-  panelSize: {x: 660, y: 520}
-  titleFontSize: 48
-  starsFontSize: 40
-  fontSize: 30
-  buttonFontSize: 26
-  panelColour: {r: 0, g: 0, b: 0, a: 0.82}
-  textColour: {r: 1, g: 1, b: 1, a: 1}
-  deliveredColour: {r: 0.15, g: 1, b: 0.3, a: 1}
-  lateColour: {r: 1, g: 0.05, b: 0.05, a: 1}
-  buttonColour: {r: 0.16, g: 0.16, b: 0.16, a: 1}
+  panelSprite: {fileID: 0}
+  cardSize: {x: 1150, y: 653}
+  backdropColour: {r: 0, g: 0, b: 0, a: 0.55}
+  titleSize: 58
+  starsSize: 54
+  rowSize: 30
+  buttonTextSize: 30
+  fallbackPanelColour: {r: 0, g: 0, b: 0, a: 0.82}
+  inkColour: {r: 0.26, g: 0.16, b: 0.09, a: 1}
+  deliveredTextColour: {r: 0.1, g: 0.52, b: 0.2, a: 1}
+  lateTextColour: {r: 0.78, g: 0.16, b: 0.12, a: 1}
+  starColour: {r: 1, g: 0.72, b: 0.15, a: 1}
+  buttonFill: {r: 0.98, g: 0.72, b: 0.14, a: 1}
 --- !u!4 &1322130163
 Transform:
   m_ObjectHideFlags: 0
@@ -76621,45 +76625,33 @@ MonoBehaviour:
   finishedMessage: 'Nice work, you passed training. Welcome to Zoom Zoom Delivery
     Co.
 
-    
+    From here it''s real food and real money, so drive like it. Every bump
+    and crash knocks your cargo about, and a collision will damage your vehicle which
+    comes straight off your payout.
 
-    From here it''s real food and real money, so drive like it.
-    Every bump and crash knocks your cargo about, and damaged food comes straight
-    off your payout.
+    Your phone sits in the top left. Every order
+    gets its own colour for the card, beacon and arrow. Four jobs at once, four colours,
+    so you always know which is which.
 
-    
-
-    Your phone sits in the top left. Every order gets
-    its own colour and keeps it everywhere: the card on your phone, the beacon in
-    the street, the arrow on your screen. Four jobs at once, four colours, so you
-    always know which is which.
-
-    
-
-    The arrows do the thinking. One per
-    order, pointing at whatever you need next: the ingredient first, then the kitchen,
-    then the customer, with the distance underneath. If it''s behind you the arrow
-    drops to the bottom of the screen and swings round as you turn. While your food
-    is cooking the arrow disappears, because there''s nowhere to be yet.
-
-    
+    The arrows do the thinking. One per order,
+    pointing at whatever you need next: the ingredient first, then the kitchen, then
+    the customer, with the distance underneath. If it''s behind you the arrow drops
+    to the bottom of the screen and swings round as you turn. While your food is
+    cooking the arrow disappears. Keep an eye on it, because once the orange "cooking"
+    light changes, you have exactly 10 seconds to collect the food before it burns.
 
     The
     colours tell you the step. Blue, you''re still collecting. Orange, it''s on the
     stove. Green, it''s ready, or it''s money in your pocket. Red, you''re nearly
-    out of time, and the marker starts swelling to warn you.
+    out of time, and the marker starts bouncing to warn you.
 
-    
+    Watch the clock
+    twice on every job: once while you''re fetching, once while it cooks. Early gets
+    you a bonus on top of the base pay. Late and they take a cut off it. Let it burn
+    and you pay a penalty for the waste.
 
-    Watch the
-    clock twice on every job: once while you''re fetching, once while it cooks. Early
-    gets you a bonus on top of the base pay. Late and they take a cut off it. Let
-    it burn and you pay a penalty for the waste.
-
-    
-
-    Right. Keys are in
-    the van. Go earn.'
+    Right. Keys are in the van. Go earn.'
+  finishPanelDelay: 2.5
 --- !u!4 &1430461144
 Transform:
   m_ObjectHideFlags: 0
@@ -91326,7 +91318,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "WOULD YOU LIKE \nTO CONTINUE? "
+  m_text: End text
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 0161d805a3764c089bef00bfe00793f5, type: 2}
   m_sharedMaterial: {fileID: 2147374, guid: 0161d805a3764c089bef00bfe00793f5, type: 2}
@@ -91335,8 +91327,8 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4279969599
-  m_fontColor: {r: 0.24705884, g: 0.15294118, b: 0.10588236, a: 1}
+    rgba: 4278721599
+  m_fontColor: {r: 0.24705884, g: 0.10980393, b: 0.03137255, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -91353,14 +91345,14 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 120
-  m_fontSizeBase: 120
+  m_fontSize: 90
+  m_fontSizeBase: 90
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
   m_fontSizeMax: 72
   m_fontStyle: 17
-  m_HorizontalAlignment: 2
+  m_HorizontalAlignment: 8
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
@@ -91392,7 +91384,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: -2939.459, y: -517.8673, z: -2946.4688, w: -1097.157}
+  m_margin: {x: -2872.0962, y: -327.43185, z: -2849.046, w: -1009.6752}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0
@@ -100029,6 +100021,7 @@ MonoBehaviour:
   minForwardSpeed: 1.5
   minSteerAmount: 0.3
   minBrakeInput: 0.2
+  choicePanelDelay: 2
 --- !u!4 &1876399040
 Transform:
   m_ObjectHideFlags: 0
