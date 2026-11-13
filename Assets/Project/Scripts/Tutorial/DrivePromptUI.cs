@@ -18,7 +18,8 @@ public class DrivePromptUI : MonoBehaviour
         HideAll();
     }
 
-    /// <summary>remaining is the list of things still to do, in plain words (eg "steer (A/D)").
+    /// <summary>remaining is the list of things still to do, in plain words with the keyboard key
+    /// and the controller button (eg "steer: A/D | left stick").
     /// An empty list hides the panel, since there is nothing left to tell the player.</summary>
     public void ShowChecklist(List<string> remaining)
     {
@@ -31,7 +32,7 @@ public class DrivePromptUI : MonoBehaviour
         }
 
         promptRoot.SetActive(true);
-        promptText.text = "Still to try:\n" + string.Join("\n", remaining);
+        promptText.text = "Still to try (keyboard | controller):\n" + string.Join("\n", remaining);
     }
 
     public void HideAll()

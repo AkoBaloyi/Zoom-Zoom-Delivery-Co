@@ -136,28 +136,29 @@ public class CarFeatureVerifier : MonoBehaviour
         if (promptUI == null) return;
 
         var remaining = new List<string>();
-        if (!_hasAccelerated) remaining.Add("accelerate (W)");
-        if (!_hasSteered) remaining.Add("steer (A/D)");
-        if (!_hasBraked) remaining.Add("brake (S)");
+        if (!_hasAccelerated) remaining.Add("accelerate: W | RT (R2)");
+        if (!_hasSteered) remaining.Add("steer: A/D | left stick");
+        if (!_hasBraked) remaining.Add("brake: S | LT (L2)");
         foreach (TaxiTrick trick in _requiredTricks)
             if (!_tricksDone.Contains(trick)) remaining.Add(TrickLabel(trick));
 
         promptUI.ShowChecklist(remaining);
     }
 
-    // The combos below match Ako's UI pack for the four tricks it documents explicitly
-    // (Shift+gas dash, Shift+brake stop, Ctrl+steer drift, Space+steer quick turn). Back dash,
-    // back drift and limiter cut aren't pinned down in anything I've read from this project, so
-    // those three just name the trick rather than guess a combo. Check them against your actual
-    // input script and fix the strings below if they're wrong.
+    // Each line is "keyboard | controller", with the Xbox button first and the PlayStation one in
+    // brackets. The keys are the car's bindings in Vehicle/VehicleControls.inputactions and match
+    // the main menu's controls card, so change all three together if a binding moves. Back dash,
+    // back drift and limiter cut only exist when the direct technique buttons are switched off
+    // (they come from gear-tap gestures), so they never appear in the shipped tutorial and just
+    // name the trick.
     private static string TrickLabel(TaxiTrick trick)
     {
         switch (trick)
         {
-            case TaxiTrick.Dash: return "dash (Shift + gas)";
-            case TaxiTrick.Stop: return "crazy stop (Shift + brake)";
-            case TaxiTrick.Drift: return "drift (Ctrl + steer)";
-            case TaxiTrick.QuickSpin: return "quick turn (Space + steer)";
+            case TaxiTrick.Dash: return "dash: Shift + W | RB (R1) + RT (R2)";
+            case TaxiTrick.Stop: return "crazy stop: Shift + S | RB (R1) + LT (L2)";
+            case TaxiTrick.Drift: return "drift: Ctrl + A/D | X (Square) + left stick";
+            case TaxiTrick.QuickSpin: return "quick turn: Space + A/D | LB (L1) + left stick";
             case TaxiTrick.BackDash: return "back dash";
             case TaxiTrick.BackDrift: return "back drift";
             case TaxiTrick.LimiterCut: return "limiter cut";
