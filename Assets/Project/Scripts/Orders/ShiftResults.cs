@@ -65,29 +65,35 @@ namespace ZoomZoom.Orders.UI
                  "old plain dark panel.")]
         [SerializeField] private Sprite panelSprite;
 
+        // These fields are deliberately named differently from the ones this class used before the
+        // artwork went in. Unity keeps a serialised value against a field NAME, so a component
+        // already sitting in a scene holds on to its old numbers and never sees a new default. The
+        // old Button Colour was a near black grey, which with the new dark brown label made the
+        // buttons look like they had vanished. Renaming drops the stale value and takes these.
+
         [Tooltip("Keep this at the artwork's own ratio, about 1.76 wide to 1 tall, or the picture " +
-                 "stretches. 1000 x 568 is that ratio.")]
-        [SerializeField] private Vector2 panelSize = new Vector2(1000f, 568f);
+                 "stretches. 1150 x 653 is that ratio; scale both numbers together to resize.")]
+        [SerializeField] private Vector2 cardSize = new Vector2(1150f, 653f);
 
         [Tooltip("Darkens the game behind the panel so it reads as an ending, not an overlay.")]
         [SerializeField] private Color backdropColour = new Color(0f, 0f, 0f, 0.55f);
 
         [Header("Type")]
-        [SerializeField] private int titleFontSize = 54;
-        [SerializeField] private int starsFontSize = 46;
-        [SerializeField] private int fontSize = 32;
-        [SerializeField] private int buttonFontSize = 26;
+        [SerializeField] private int titleSize = 58;
+        [SerializeField] private int starsSize = 54;
+        [SerializeField] private int rowSize = 34;
+        [SerializeField] private int buttonTextSize = 30;
 
         [Header("Colours (tuned for the cream panel, not the old dark one)")]
         [Tooltip("Used only when Panel Sprite is empty.")]
-        [SerializeField] private Color panelColour = new Color(0f, 0f, 0f, 0.82f);
+        [SerializeField] private Color fallbackPanelColour = new Color(0f, 0f, 0f, 0.82f);
         [Tooltip("The dark brown of the artwork's outlines. Used for the title and the labels.")]
         [SerializeField] private Color inkColour = new Color(0.26f, 0.16f, 0.09f, 1f);
-        [SerializeField] private Color deliveredColour = new Color(0.10f, 0.52f, 0.20f, 1f);
-        [SerializeField] private Color lateColour = new Color(0.78f, 0.16f, 0.12f, 1f);
+        [SerializeField] private Color deliveredTextColour = new Color(0.10f, 0.52f, 0.20f, 1f);
+        [SerializeField] private Color lateTextColour = new Color(0.78f, 0.16f, 0.12f, 1f);
         [SerializeField] private Color starColour = new Color(1f, 0.72f, 0.15f, 1f);
         [Tooltip("The orange of the artwork's header band.")]
-        [SerializeField] private Color buttonColour = new Color(0.98f, 0.72f, 0.14f, 1f);
+        [SerializeField] private Color buttonFill = new Color(0.98f, 0.72f, 0.14f, 1f);
 
         public int Delivered { get; private set; }
         public int Late { get; private set; }
@@ -276,7 +282,7 @@ namespace ZoomZoom.Orders.UI
             RectTransform card = cardGO.AddComponent<RectTransform>();
             card.anchorMin = card.anchorMax = card.pivot = new Vector2(0.5f, 0.5f);
             card.anchoredPosition = Vector2.zero;
-            card.sizeDelta = panelSize;
+            card.sizeDelta = cardSize;
 
             Image cardImage = cardGO.AddComponent<Image>();
             if (panelSprite != null)
@@ -286,27 +292,27 @@ namespace ZoomZoom.Orders.UI
             }
             else
             {
-                cardImage.color = panelColour;
+                cardImage.color = fallbackPanelColour;
             }
 
             // Title, centred in the orange header band. Starts past x 0.20 so it clears the little
             // parcel and its sparkles in the artwork's top left corner.
             _title = MakeText(card, "Title", new Vector2(0.20f, HeaderBottom), new Vector2(0.94f, HeaderTop),
-                titleFontSize, inkColour, TextAnchor.MiddleCenter, true);
+                titleSize, inkColour, TextAnchor.MiddleCenter, true);
             _title.text = "TIME UP!";
 
             _starsLine = MakeText(card, "Stars", new Vector2(0.08f, 0.545f), new Vector2(0.92f, BodyTop),
-                starsFontSize, starColour, TextAnchor.MiddleCenter, true);
+                starsSize, starColour, TextAnchor.MiddleCenter, true);
             AddOutline(_starsLine.gameObject, inkColour, 2f);
 
             // Three stat rows: label on the left of the body, number on the right.
-            MakeStatRow(card, "Delivered", "Delivered", 0.450f, 0.545f, deliveredColour, out _deliveredValue);
-            MakeStatRow(card, "Late", "Late", 0.355f, 0.450f, lateColour, out _lateValue);
+            MakeStatRow(card, "Delivered", "Delivered", 0.450f, 0.545f, deliveredTextColour, out _deliveredValue);
+            MakeStatRow(card, "Late", "Late", 0.355f, 0.450f, lateTextColour, out _lateValue);
             MakeStatRow(card, "Money", "Money", 0.260f, 0.355f, inkColour, out _moneyValue);
 
             // Buttons across the bottom of the cream body.
-            const float buttonBottom = BodyBottom + 0.035f;
-            const float buttonTop = buttonBottom + 0.115f;
+            const float buttonBottom = BodyBottom + 0.025f;
+            const float buttonTop = buttonBottom + 0.130f;
             MakeButton(card, "Restart", "RESTART", 0.090f, 0.345f, buttonBottom, buttonTop, Restart);
             MakeButton(card, "MainMenu", "MAIN MENU", 0.372f, 0.628f, buttonBottom, buttonTop, GoToMainMenu);
             MakeButton(card, "Quit", "QUIT", 0.655f, 0.910f, buttonBottom, buttonTop, Quit);
@@ -318,11 +324,11 @@ namespace ZoomZoom.Orders.UI
             Color colour, out Text value)
         {
             Text labelText = MakeText(card, name + " label", new Vector2(0.12f, bottom), new Vector2(0.55f, top),
-                fontSize, inkColour, TextAnchor.MiddleLeft, true);
+                rowSize, inkColour, TextAnchor.MiddleLeft, true);
             labelText.text = label;
 
             value = MakeText(card, name + " value", new Vector2(0.45f, bottom), new Vector2(0.88f, top),
-                fontSize, colour, TextAnchor.MiddleRight, true);
+                rowSize, colour, TextAnchor.MiddleRight, true);
             value.text = "0";
         }
 
@@ -363,7 +369,7 @@ namespace ZoomZoom.Orders.UI
             rect.offsetMax = Vector2.zero;
 
             Image image = go.AddComponent<Image>();
-            image.color = buttonColour;
+            image.color = buttonFill;
             // The rounded rectangle OrderTicketStrip generates, so the buttons match the artwork's
             // soft corners without needing a second sprite.
             OrderTicketStrip.ApplyRounded(image, 18f);
@@ -373,7 +379,7 @@ namespace ZoomZoom.Orders.UI
             button.onClick.AddListener(onClick);
 
             Text text = MakeText(rect, "Label", Vector2.zero, Vector2.one,
-                buttonFontSize, inkColour, TextAnchor.MiddleCenter, true);
+                buttonTextSize, inkColour, TextAnchor.MiddleCenter, true);
             text.text = label;
         }
 
