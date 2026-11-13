@@ -236,8 +236,21 @@ namespace ZoomZoom.Vehicle
             Transform existing = transform.Find(GeneratedContainerName);
             while (existing != null)
             {
-                if (Application.isPlaying) Destroy(existing.gameObject);
-                else DestroyImmediate(existing.gameObject);
+                GameObject old = existing.gameObject;
+
+                if (Application.isPlaying)
+                {
+                    // Destroy only takes effect at the end of the frame, so until then Find keeps
+                    // returning the same child and this loop would never finish. Renaming it takes
+                    // it out of the search at once, and hiding it stops it drawing for that frame.
+                    old.name = GeneratedContainerName + " (discarded)";
+                    old.SetActive(false);
+                    Destroy(old);
+                }
+                else
+                {
+                    DestroyImmediate(old);
+                }
 
                 existing = transform.Find(GeneratedContainerName);
             }

@@ -719,7 +719,7 @@ namespace ZoomZoom.Vehicle.Editor
                     "Drift key cannot also apply ordinary brake: " + binding.path);
             }
             UnityEngine.Object.DestroyImmediate(fallback);
-            foreach (var path in new[] { "Assets/Project/Scenes/Possible game scene.unity", "Assets/Project/Scenes/VehicleLab.unity" })
+            foreach (var path in new[] { "Assets/Project/Scenes/Medium.unity", "Assets/Project/Scenes/VehicleLab.unity" })
             {
                 string scene = File.ReadAllText(path);
                 Check(scene.Contains("1a2b3c4d5e6f708192a3b4c5d6e7f803"), path + " retains its vehicle controller reference");

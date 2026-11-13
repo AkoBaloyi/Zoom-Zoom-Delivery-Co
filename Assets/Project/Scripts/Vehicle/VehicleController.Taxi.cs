@@ -100,10 +100,7 @@ namespace ZoomZoom.Vehicle
             _rightingDelay = 0f;
             _taxiRecoveryRequested = false;
             _spinCooldownRemaining = 0f;
-            _hasRecoveryPoint = false;
-            _safeSampleRemaining = 0f;
-            _monitoringStuck = false;
-            SeedRecoveryPoint();
+            ResetRecovery();
             Repositioned?.Invoke();
         }
 
@@ -221,8 +218,10 @@ namespace ZoomZoom.Vehicle
                         ForwardSpeed >= -Taxi.reverseEngageSpeed && (ForwardSpeed <= Taxi.cruiseSpeed + 0.1f || IsTaxiDrifting) &&
                         _directDashCooldown <= 0f && ActiveTrick != TaxiTrick.Dash)
                     {
-                        _directDashCooldown = Mathf.Max(Taxi.dashDuration, Taxi.directDashCooldown);
                         BeginTaxiTrick(TaxiTrick.Dash);
+                        // A dash the surface refused never started, so it costs no cooldown.
+                        if (ActiveTrick == TaxiTrick.Dash)
+                            _directDashCooldown = Mathf.Max(Taxi.dashDuration, Taxi.directDashCooldown);
                     }
                     else if (input.command == TaxiCommand.DirectDrift && !freeRev && ForwardSpeed >= Taxi.driftMinimumSpeed &&
                         Mathf.Abs(Drive.steer) >= Taxi.trickSteerThreshold && !IsTaxiDrifting)
