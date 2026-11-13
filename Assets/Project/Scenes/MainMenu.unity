@@ -1020,8 +1020,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "W = Acceleration/Forward\nA = Steer Left       \nS = Brake/Reverse\nD
-    = Steer Right  \nShift  = Jump\nSpaceBar = Hand Brake  "
+  m_text: "DIRECT DRIVING CONTROLS\nHOLD W / RT (R2)    ACCELERATE\nHOLD S / LT (L2)    BRAKE, THEN REVERSE\nHOLD A/D / LEFT STICK    STEER\n\nDASH: HOLD W/RT + PRESS SHIFT/RB (R1)\nDRIFT: STEER + PRESS CTRL / X (SQUARE)\nSTOP: HOLD S/LT + PRESS SHIFT/RB (R1)\nQUICK TURN: STEER + PRESS SPACE/LB (L1)\n\nDash works up to cruising speed or out of a drift. Ready again after 2s.\nDrift/Stop need forward speed. Tricks require ground contact.\nHOLD C / R3    LOOK BEHIND\nPRESS BACKSPACE / VIEW    RESET IF STUCK (-5s)\nPRESS F8 / D-PAD UP    TOGGLE MOTION EFFECTS"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 5302535af1044152a457ed104f1f4b91, type: 2}
   m_sharedMaterial: {fileID: 2164040, guid: 5302535af1044152a457ed104f1f4b91, type: 2}
@@ -1051,9 +1050,9 @@ MonoBehaviour:
   m_fontSize: 53
   m_fontSizeBase: 53
   m_fontWeight: 400
-  m_enableAutoSizing: 0
-  m_fontSizeMin: 0
-  m_fontSizeMax: 0
+  m_enableAutoSizing: 1
+  m_fontSizeMin: 18
+  m_fontSizeMax: 36
   m_fontStyle: 1
   m_HorizontalAlignment: 2
   m_VerticalAlignment: 512
