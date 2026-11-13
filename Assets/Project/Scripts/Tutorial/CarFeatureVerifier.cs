@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using ZoomZoom.Vehicle;
@@ -28,6 +29,13 @@ public class CarFeatureVerifier : MonoBehaviour
     public float minForwardSpeed = 1.5f;
     public float minSteerAmount = 0.3f;
     public float minBrakeInput = 0.2f;
+
+    [Header("Finish")]
+    [Tooltip("Seconds between the last checklist item and the choice panel opening. The panel " +
+             "pauses the game, and a trick is ticked off the moment it starts, so without this " +
+             "wait the last trick freezes before the player sees it. The longest trick (drift) " +
+             "lasts 1.2 s.")]
+    [Min(0f)] public float choicePanelDelay = 2f;
 
     private bool _hasAccelerated;
     private bool _hasSteered;
@@ -103,8 +111,16 @@ public class CarFeatureVerifier : MonoBehaviour
         {
             _finished = true;
             if (promptUI != null) promptUI.HideAll();
-            if (choiceUI != null) choiceUI.Show();
+            StartCoroutine(ShowChoiceAfterDelay());
         }
+    }
+
+    // Game time, not real time: if the player pauses during the wait, the panel waits too
+    // instead of opening behind the pause menu.
+    private IEnumerator ShowChoiceAfterDelay()
+    {
+        if (choicePanelDelay > 0f) yield return new WaitForSeconds(choicePanelDelay);
+        if (choiceUI != null) choiceUI.Show();
     }
 
     private bool IsEverythingDone()

@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using ZoomZoom.Orders;
 
@@ -56,6 +57,10 @@ public class TutorialOrderVerifier : MonoBehaviour
     [TextArea]
     [SerializeField] private string finishedMessage =
         "Nice work, that's the whole loop. You're ready to start your shift.";
+
+    [Tooltip("Seconds between the delivery and the finish panel opening, so the player sees the " +
+             "delivery land first. The payout popup lasts 1.8 s and the money change 2 s.")]
+    [Min(0f)] [SerializeField] private float finishPanelDelay = 2.5f;
 
     private Order _order;
     private bool _finished;
@@ -146,7 +151,7 @@ public class TutorialOrderVerifier : MonoBehaviour
             _finished = true;
             if (finishPanel != null)
             {
-                finishPanel.Show(finishedMessage);
+                StartCoroutine(ShowFinishPanelAfterDelay());
             }
             else
             {
@@ -163,6 +168,15 @@ public class TutorialOrderVerifier : MonoBehaviour
         Debug.Log($"[TutorialOrderVerifier] Tutorial order ended as {order.State} - spawning " +
                   "another one so the player can finish the beat.");
         SpawnTutorialOrder();
+    }
+
+    // The finish panel pauses the game, so opening it the instant the food is handed over
+    // freezes the delivery before the player sees it. Game time, so a pause during the wait
+    // holds the panel back too.
+    private IEnumerator ShowFinishPanelAfterDelay()
+    {
+        if (finishPanelDelay > 0f) yield return new WaitForSeconds(finishPanelDelay);
+        if (finishPanel != null) finishPanel.Show(finishedMessage);
     }
 
     /// <summary>Uses the wired panel if there is one, and the scene's TutorialMessage (or a

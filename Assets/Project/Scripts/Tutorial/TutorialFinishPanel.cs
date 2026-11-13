@@ -14,9 +14,16 @@ public class TutorialFinishPanel : MonoBehaviour
 
     [SerializeField] private bool pauseWhileOpen = true;
 
+    // Set by Show just before it switches the panel on. If something else hides the panel
+    // before this component's own Awake has run (in the tutorial scene, TutFinish also points
+    // at EndPanel), Unity only runs that Awake when Show switches the panel on. Without this
+    // check the panel would hide itself again at once and leave the game paused with nothing
+    // on screen.
+    private bool _showRequested;
+
     private void Awake()
     {
-        if (panelRoot != null) panelRoot.SetActive(false);
+        if (panelRoot != null && !_showRequested) panelRoot.SetActive(false);
     }
 
     public void Show(string message)
@@ -30,6 +37,7 @@ public class TutorialFinishPanel : MonoBehaviour
         }
 
         if (messageText != null) messageText.text = message;
+        _showRequested = true;
         panelRoot.SetActive(true);
 
         if (pauseWhileOpen) Time.timeScale = 0f;
@@ -37,6 +45,7 @@ public class TutorialFinishPanel : MonoBehaviour
 
     public void Hide()
     {
+        _showRequested = false;
         if (pauseWhileOpen) Time.timeScale = 1f;
         if (panelRoot != null) panelRoot.SetActive(false);
     }
