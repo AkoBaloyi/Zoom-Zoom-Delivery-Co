@@ -8,6 +8,7 @@ using TMPro;
 // your two buttons' OnClick to Continue() and GoToMainMenu() below.
 public class TutorialChoiceUI : MonoBehaviour
 {
+    [Header("Your panel (built by hand, starts switched off)")]
     public GameObject panelRoot;
     [Tooltip("Optional. A line like \"You've tried everything the car can do.\"")]
     public TextMeshProUGUI messageText;
@@ -16,12 +17,22 @@ public class TutorialChoiceUI : MonoBehaviour
     [Tooltip("Scene to load for Main Menu. Must match the scene's actual name.")]
     [SerializeField] private string mainMenuSceneName = "MainMenu";
 
+    /// <summary>Fires every time Continue is pressed, after the panel is hidden and time is
+    /// resumed. This same panel gets reused for more than one beat finishing (the car beat,
+    /// then later the whole order tutorial), so whatever should happen next is decided by
+    /// whoever is listening, not hardcoded here.</summary>
+    public event System.Action Continued;
+
     private void Awake()
     {
         if (panelRoot != null) panelRoot.SetActive(false);
     }
 
-    public void Show()
+    /// <summary>message is what this beat wants the panel to say, so the same panel can read
+    /// "You've tried everything the car can do." the first time and "Nice work, you've
+    /// delivered your first order." the second, without needing a separate component for
+    /// each.</summary>
+    public void Show(string message = "You've tried everything the car can do.")
     {
         if (panelRoot == null)
         {
@@ -29,7 +40,7 @@ public class TutorialChoiceUI : MonoBehaviour
             return;
         }
 
-        if (messageText != null) messageText.text = "You've tried everything the car can do.";
+        if (messageText != null) messageText.text = message;
         panelRoot.SetActive(true);
 
         // Pause so the choice isn't made under a still-moving car.
@@ -41,8 +52,7 @@ public class TutorialChoiceUI : MonoBehaviour
     {
         Time.timeScale = 1f;
         if (panelRoot != null) panelRoot.SetActive(false);
-
-        // [hook: start the next tutorial beat, or SceneManager.LoadScene the next scene]
+        Continued?.Invoke();
     }
 
     /// <summary>Wire this to the Main Menu button's OnClick.</summary>

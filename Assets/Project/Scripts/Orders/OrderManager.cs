@@ -51,6 +51,12 @@ namespace ZoomZoom.Orders
         [Header("Debug")]
         [SerializeField] private bool logActivity = true;
 
+        [Header("Tutorial")]
+        [Tooltip("Off stops the normal timed/random spawn loop entirely, so a tutorial scene can " +
+                 "spawn exactly the one scripted order it wants (via the public SpawnOrder " +
+                 "overload below) and nothing else competes with it. On for every normal shift.")]
+        public bool AutoSpawnEnabled = true;
+
         public event Action<Order> OrderSpawned;
 
         /// <summary>Fires when the difficulty ramp changes how many orders can be open at once,
@@ -204,6 +210,8 @@ namespace ZoomZoom.Orders
 
         private void TrySpawn(float dt)
         {
+            if (!AutoSpawnEnabled) return; // tutorial scenes: only the scripted order, nothing random
+
             _shiftSeconds += dt;
 
             int max = CurrentMaxOrders;
@@ -232,15 +240,24 @@ namespace ZoomZoom.Orders
             _timeUntilNextSpawn = tuning.spawnInterval;
         }
 
-        private void SpawnOrder()
+        private void SpawnOrder() => SpawnOrder(null);
+
+        /// <summary>
+        /// Spawns one order right now, bypassing the spawn timer and the active-order cap.
+        /// Pass a specific FoodType to control exactly what gets delivered (a tutorial's one
+        /// scripted order, say); leave it null for the normal random pick from the tuning
+        /// menu, same as the regular timed loop uses. Returns the order that was created, or
+        /// null if there was nowhere to put it (no ingredient sources and no pickup points).
+        /// </summary>
+        public Order SpawnOrder(FoodType foodOverride)
         {
-            FoodType food = tuning.PickFood();
+            FoodType food = foodOverride != null ? foodOverride : tuning.PickFood();
             List<IngredientStop> stops = BuildStops(food);
             if (stops.Count == 0)
             {
                 Debug.LogWarning("[OrderManager] Could not build an order: no ingredient sources " +
                                  "and no pickup points. Skipping.", this);
-                return;
+                return null;
             }
 
             int dropIndex = PickIndexAvoidingCollisions(_dropOffPositions, o => o.DropOffPoint);
@@ -280,6 +297,7 @@ namespace ZoomZoom.Orders
             }
 
             OrderSpawned?.Invoke(order);
+            return order;
         }
 
         /// <summary>One stop per ingredient, at a random source that supplies it.</summary>
