@@ -24,16 +24,18 @@ namespace ZoomZoom.Orders.UI
     /// time. The HUD will count it; this screen will not, because a delivery after the whistle is not
     /// part of the shift.
     ///
-    /// TIME UP AND THE START SCREEN (added alongside the original panel)
-    /// The panel is titled TIME UP and has a Main Menu button next to Restart and Quit, which
-    /// loads the start screen scene. Restart reloads the current scene, so it keeps the same
-    /// difficulty when each difficulty is its own scene.
+    /// THE PANEL ART
+    /// Drag the cartoon panel PNG onto Panel Sprite and the whole screen is laid out around it:
+    /// the title sits in the orange header band, the stars and the three stat rows on the cream
+    /// body, and the buttons across the bottom of it. Everything is positioned in fractions of the
+    /// panel rather than fixed pixels, so changing Panel Size keeps the layout on the art.
+    /// Panel Size must keep the artwork's own ratio (about 1.76 wide to 1 tall) or the picture
+    /// stretches. Leave Panel Sprite empty and it falls back to the old plain dark panel.
     ///
     /// BUILT IN CODE, LIKE THE HUD
     /// Same pattern as OrderHUD: Canvas, Image panel and UI.Text created at runtime from a handful
     /// of serialised numbers, so the layout is tunable in the inspector and there is no prefab to
-    /// keep in step with the scene. Colours are the HUD's so a delivered count reads in the same
-    /// green as a carried order and a late count in the same red as an expiring one.
+    /// keep in step with the scene.
     /// </summary>
     [DisallowMultipleComponent]
     public class ShiftResults : MonoBehaviour
@@ -45,7 +47,7 @@ namespace ZoomZoom.Orders.UI
         [Tooltip("Found automatically if left empty.")]
         [SerializeField] private OrderManager orderManager;
 
-        [Tooltip("Found automatically if left empty. Its balance is what decides the star rating below.")]
+        [Tooltip("Found automatically if left empty. Its balance is what decides the star rating below; falls back to the Delivered/Late tally if there isn't one in the scene.")]
         [SerializeField] private PlayerProgression wallet;
 
         [Header("Ranking")]
@@ -58,19 +60,34 @@ namespace ZoomZoom.Orders.UI
         [Tooltip("Exact name of the start screen scene. It must be in File > Build Profiles > Scene List.")]
         [SerializeField] private string mainMenuSceneName = "MainMenu";
 
-        [Header("Layout")]
-        [SerializeField] private Vector2 panelSize = new Vector2(660f, 520f);
-        [SerializeField] private int titleFontSize = 48;
-        [SerializeField] private int starsFontSize = 40;
-        [SerializeField] private int fontSize = 30;
+        [Header("Panel art")]
+        [Tooltip("The cartoon panel PNG. Import it as a Sprite (2D and UI). Leave empty for the " +
+                 "old plain dark panel.")]
+        [SerializeField] private Sprite panelSprite;
+
+        [Tooltip("Keep this at the artwork's own ratio, about 1.76 wide to 1 tall, or the picture " +
+                 "stretches. 1000 x 568 is that ratio.")]
+        [SerializeField] private Vector2 panelSize = new Vector2(1000f, 568f);
+
+        [Tooltip("Darkens the game behind the panel so it reads as an ending, not an overlay.")]
+        [SerializeField] private Color backdropColour = new Color(0f, 0f, 0f, 0.55f);
+
+        [Header("Type")]
+        [SerializeField] private int titleFontSize = 54;
+        [SerializeField] private int starsFontSize = 46;
+        [SerializeField] private int fontSize = 32;
         [SerializeField] private int buttonFontSize = 26;
 
-        [Header("Colours (match OrderHUD so the same fact has the same colour everywhere)")]
+        [Header("Colours (tuned for the cream panel, not the old dark one)")]
+        [Tooltip("Used only when Panel Sprite is empty.")]
         [SerializeField] private Color panelColour = new Color(0f, 0f, 0f, 0.82f);
-        [SerializeField] private Color textColour = Color.white;
-        [SerializeField] private Color deliveredColour = new Color(0.15f, 1f, 0.3f, 1f);
-        [SerializeField] private Color lateColour = new Color(1f, 0.05f, 0.05f, 1f);
-        [SerializeField] private Color buttonColour = new Color(0.16f, 0.16f, 0.16f, 1f);
+        [Tooltip("The dark brown of the artwork's outlines. Used for the title and the labels.")]
+        [SerializeField] private Color inkColour = new Color(0.26f, 0.16f, 0.09f, 1f);
+        [SerializeField] private Color deliveredColour = new Color(0.10f, 0.52f, 0.20f, 1f);
+        [SerializeField] private Color lateColour = new Color(0.78f, 0.16f, 0.12f, 1f);
+        [SerializeField] private Color starColour = new Color(1f, 0.72f, 0.15f, 1f);
+        [Tooltip("The orange of the artwork's header band.")]
+        [SerializeField] private Color buttonColour = new Color(0.98f, 0.72f, 0.14f, 1f);
 
         public int Delivered { get; private set; }
         public int Late { get; private set; }
@@ -80,9 +97,9 @@ namespace ZoomZoom.Orders.UI
         private GameObject _panel;
         private Text _title;
         private Text _starsLine;
-        private Text _deliveredLine;
-        private Text _lateLine;
-        private Text _valueLine;
+        private Text _deliveredValue;
+        private Text _lateValue;
+        private Text _moneyValue;
 
         private void Awake()
         {
@@ -135,15 +152,16 @@ namespace ZoomZoom.Orders.UI
             Cursor.visible = true;
 
             // RANKING: the number that decides first place is the wallet balance at the
-            // whistle, not the raw tally above — it already nets every early/on-time/late
-            // payout and every cancel/burn penalty, so it is the one true score for the shift.
+            // whistle, since that is the canonical running total and stays correct even if
+            // something outside order resolution ever touches money. Falls back to Value, this
+            // class's own tally of OrderResolved events, if no PlayerProgression is in the scene.
             float profit = wallet != null ? wallet.Money : Value;
             int stars = profit >= threeStarsAt ? 3 : profit >= twoStarsAt ? 2 : profit >= oneStarAt ? 1 : 0;
             _starsLine.text = Stars(stars);
 
-            _deliveredLine.text = $"Delivered   {Delivered}";
-            _lateLine.text = $"Late        {Late}";
-            _valueLine.text = Value < 0f ? $"Money       -R{-Value:0}" : $"Money       R{Value:0}";
+            _deliveredValue.text = Delivered.ToString();
+            _lateValue.text = Late.ToString();
+            _moneyValue.text = Value < 0f ? $"-R{-Value:0}" : $"R{Value:0}";
 
             _panel.SetActive(true);
 
@@ -211,6 +229,16 @@ namespace ZoomZoom.Orders.UI
         // ==================================================================
         // LAYOUT
         // ==================================================================
+        //
+        // Where the artwork's parts sit, measured off the PNG, as fractions of its height from the
+        // top: the orange header band runs 0.10 to 0.31, and the cream body 0.33 to 0.90. Anchors
+        // below are in Unity's bottom-up form (1 is the top edge), which is why the header lands at
+        // 0.69 to 0.90 and the body at 0.10 to 0.67.
+
+        private const float HeaderBottom = 0.69f;
+        private const float HeaderTop = 0.90f;
+        private const float BodyBottom = 0.10f;
+        private const float BodyTop = 0.67f;
 
         private void BuildCanvas()
         {
@@ -230,108 +258,130 @@ namespace ZoomZoom.Orders.UI
 
             canvasGO.AddComponent<GraphicRaycaster>();
 
-            _panel = new GameObject("Panel");
+            // The backdrop is what gets switched on and off, so the dim and the card appear
+            // together and nothing of the result is left showing behind it.
+            _panel = new GameObject("Results");
             _panel.transform.SetParent(canvasGO.transform, false);
+            RectTransform backdrop = _panel.AddComponent<RectTransform>();
+            backdrop.anchorMin = Vector2.zero;
+            backdrop.anchorMax = Vector2.one;
+            backdrop.offsetMin = Vector2.zero;
+            backdrop.offsetMax = Vector2.zero;
+            Image dim = _panel.AddComponent<Image>();
+            dim.color = backdropColour;
 
-            Image panelImage = _panel.AddComponent<Image>();
-            panelImage.color = panelColour;
+            // The card itself.
+            var cardGO = new GameObject("Card");
+            cardGO.transform.SetParent(_panel.transform, false);
+            RectTransform card = cardGO.AddComponent<RectTransform>();
+            card.anchorMin = card.anchorMax = card.pivot = new Vector2(0.5f, 0.5f);
+            card.anchoredPosition = Vector2.zero;
+            card.sizeDelta = panelSize;
 
-            RectTransform panelRect = _panel.GetComponent<RectTransform>();
-            panelRect.anchorMin = new Vector2(0.5f, 0.5f);
-            panelRect.anchorMax = new Vector2(0.5f, 0.5f);
-            panelRect.pivot = new Vector2(0.5f, 0.5f);
-            panelRect.anchoredPosition = Vector2.zero;
-            panelRect.sizeDelta = panelSize;
+            Image cardImage = cardGO.AddComponent<Image>();
+            if (panelSprite != null)
+            {
+                cardImage.sprite = panelSprite;
+                cardImage.color = Color.white;
+            }
+            else
+            {
+                cardImage.color = panelColour;
+            }
 
-            float y = -28f;
-
-            _title = CreateLine(panelRect, "Title", ref y, titleFontSize + 16f, titleFontSize,
-                textColour, TextAnchor.UpperCenter);
+            // Title, centred in the orange header band. Starts past x 0.20 so it clears the little
+            // parcel and its sparkles in the artwork's top left corner.
+            _title = MakeText(card, "Title", new Vector2(0.20f, HeaderBottom), new Vector2(0.94f, HeaderTop),
+                titleFontSize, inkColour, TextAnchor.MiddleCenter, true);
             _title.text = "TIME UP!";
-            _title.fontStyle = FontStyle.Bold;
 
-            y -= 6f;
-            _starsLine = CreateLine(panelRect, "Stars", ref y, starsFontSize + 14f, starsFontSize,
-                new Color(1f, 0.8f, 0.2f, 1f), TextAnchor.UpperCenter);
+            _starsLine = MakeText(card, "Stars", new Vector2(0.08f, 0.545f), new Vector2(0.92f, BodyTop),
+                starsFontSize, starColour, TextAnchor.MiddleCenter, true);
+            AddOutline(_starsLine.gameObject, inkColour, 2f);
 
-            y -= 18f;
-            float lineHeight = fontSize + 12f;
+            // Three stat rows: label on the left of the body, number on the right.
+            MakeStatRow(card, "Delivered", "Delivered", 0.450f, 0.545f, deliveredColour, out _deliveredValue);
+            MakeStatRow(card, "Late", "Late", 0.355f, 0.450f, lateColour, out _lateValue);
+            MakeStatRow(card, "Money", "Money", 0.260f, 0.355f, inkColour, out _moneyValue);
 
-            _deliveredLine = CreateLine(panelRect, "Delivered", ref y, lineHeight, fontSize,
-                deliveredColour, TextAnchor.UpperCenter);
-            _lateLine = CreateLine(panelRect, "Late", ref y, lineHeight, fontSize,
-                lateColour, TextAnchor.UpperCenter);
-            _valueLine = CreateLine(panelRect, "Value", ref y, lineHeight, fontSize,
-                textColour, TextAnchor.UpperCenter);
-
-            // Buttons sit on the panel's bottom edge, side by side.
-            var buttonSize = new Vector2(190f, 64f);
-            CreateButton(panelRect, "Restart", "RESTART", new Vector2(-210f, 48f), buttonSize, Restart);
-            CreateButton(panelRect, "MainMenu", "MAIN MENU", new Vector2(0f, 48f), buttonSize, GoToMainMenu);
-            CreateButton(panelRect, "Quit", "QUIT", new Vector2(210f, 48f), buttonSize, Quit);
+            // Buttons across the bottom of the cream body.
+            const float buttonBottom = BodyBottom + 0.035f;
+            const float buttonTop = buttonBottom + 0.115f;
+            MakeButton(card, "Restart", "RESTART", 0.090f, 0.345f, buttonBottom, buttonTop, Restart);
+            MakeButton(card, "MainMenu", "MAIN MENU", 0.372f, 0.628f, buttonBottom, buttonTop, GoToMainMenu);
+            MakeButton(card, "Quit", "QUIT", 0.655f, 0.910f, buttonBottom, buttonTop, Quit);
         }
 
-        private Text CreateLine(RectTransform parent, string name, ref float y, float advance,
-            int size, Color colour, TextAnchor alignment)
+        /// <summary>A label on the left and its number on the right, both on one band of the body,
+        /// which reads far better than one centred line of padded spaces.</summary>
+        private void MakeStatRow(RectTransform card, string name, string label, float bottom, float top,
+            Color colour, out Text value)
+        {
+            Text labelText = MakeText(card, name + " label", new Vector2(0.12f, bottom), new Vector2(0.55f, top),
+                fontSize, inkColour, TextAnchor.MiddleLeft, true);
+            labelText.text = label;
+
+            value = MakeText(card, name + " value", new Vector2(0.45f, bottom), new Vector2(0.88f, top),
+                fontSize, colour, TextAnchor.MiddleRight, true);
+            value.text = "0";
+        }
+
+        private Text MakeText(RectTransform parent, string name, Vector2 anchorMin, Vector2 anchorMax,
+            int size, Color colour, TextAnchor alignment, bool bold)
         {
             var go = new GameObject(name);
             go.transform.SetParent(parent, false);
+
+            RectTransform rect = go.AddComponent<RectTransform>();
+            rect.anchorMin = anchorMin;
+            rect.anchorMax = anchorMax;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
 
             Text text = go.AddComponent<Text>();
             text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             text.fontSize = size;
+            text.fontStyle = bold ? FontStyle.Bold : FontStyle.Normal;
             text.color = colour;
             text.alignment = alignment;
             text.horizontalOverflow = HorizontalWrapMode.Overflow;
             text.verticalOverflow = VerticalWrapMode.Overflow;
-
-            RectTransform rect = go.GetComponent<RectTransform>();
-            rect.anchorMin = new Vector2(0f, 1f);
-            rect.anchorMax = new Vector2(1f, 1f);
-            rect.pivot = new Vector2(0.5f, 1f);
-            rect.anchoredPosition = new Vector2(0f, y);
-            rect.sizeDelta = new Vector2(0f, advance);
-
-            y -= advance;
+            text.raycastTarget = false;
             return text;
         }
 
-        private void CreateButton(RectTransform parent, string name, string label, Vector2 offset,
-            Vector2 size, UnityEngine.Events.UnityAction onClick)
+        private void MakeButton(RectTransform parent, string name, string label,
+            float left, float right, float bottom, float top, UnityEngine.Events.UnityAction onClick)
         {
             var go = new GameObject(name);
             go.transform.SetParent(parent, false);
 
+            RectTransform rect = go.AddComponent<RectTransform>();
+            rect.anchorMin = new Vector2(left, bottom);
+            rect.anchorMax = new Vector2(right, top);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
             Image image = go.AddComponent<Image>();
             image.color = buttonColour;
+            // The rounded rectangle OrderTicketStrip generates, so the buttons match the artwork's
+            // soft corners without needing a second sprite.
+            OrderTicketStrip.ApplyRounded(image, 18f);
 
             Button button = go.AddComponent<Button>();
             button.targetGraphic = image;
             button.onClick.AddListener(onClick);
 
-            RectTransform rect = go.GetComponent<RectTransform>();
-            rect.anchorMin = new Vector2(0.5f, 0f);
-            rect.anchorMax = new Vector2(0.5f, 0f);
-            rect.pivot = new Vector2(0.5f, 0f);
-            rect.anchoredPosition = offset;
-            rect.sizeDelta = size;
-
-            var labelGO = new GameObject("Label");
-            labelGO.transform.SetParent(go.transform, false);
-
-            Text text = labelGO.AddComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            text.fontSize = buttonFontSize;
-            text.fontStyle = FontStyle.Bold;
-            text.color = textColour;
-            text.alignment = TextAnchor.MiddleCenter;
+            Text text = MakeText(rect, "Label", Vector2.zero, Vector2.one,
+                buttonFontSize, inkColour, TextAnchor.MiddleCenter, true);
             text.text = label;
+        }
 
-            RectTransform labelRect = labelGO.GetComponent<RectTransform>();
-            labelRect.anchorMin = Vector2.zero;
-            labelRect.anchorMax = Vector2.one;
-            labelRect.offsetMin = Vector2.zero;
-            labelRect.offsetMax = Vector2.zero;
+        private static void AddOutline(GameObject go, Color colour, float distance)
+        {
+            var outline = go.AddComponent<Outline>();
+            outline.effectColor = colour;
+            outline.effectDistance = new Vector2(distance, -distance);
         }
     }
 }

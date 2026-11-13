@@ -116,6 +116,15 @@ namespace ZoomZoom.Orders.UI
         private static readonly Color GoodGreen = new Color(0.1f, 0.5f, 0.2f, 1f);
         private static readonly Color MutedInk = new Color(0.25f, 0.15f, 0.08f, 0.6f);
 
+        // Whole card tints, so a glance down the phone says what each job is doing. These follow
+        // OrderPalette's meanings: blue gathering, orange cooking, green ready, red failed.
+        private static readonly Color ActiveCard = new Color(0.70f, 0.83f, 0.96f, 1f);
+        private static readonly Color CookingCard = new Color(0.98f, 0.73f, 0.48f, 1f);
+        private static readonly Color CookingCardBright = new Color(0.98f, 0.64f, 0.32f, 1f);
+        private static readonly Color ReadyCard = new Color(0.58f, 0.90f, 0.64f, 1f);
+        private static readonly Color ReadyCardBright = new Color(0.42f, 0.88f, 0.50f, 1f);
+        private static readonly Color BurnedCard = new Color(0.96f, 0.55f, 0.52f, 1f);
+
         private float W => notificationSize.x;
         private float H => notificationSize.y;
         private float BarWidth => W - 36f;
@@ -192,10 +201,10 @@ namespace ZoomZoom.Orders.UI
                         ShowStamp(card, "LATE", new Color(1f, 0.55f, 0.1f, 1f));
                         break;
                     case DeliveryTiming.Burned:
-                        ShowStamp(card, "BURNED", OrderPalette.Urgent);
+                        ShowStamp(card, "FAIL", OrderPalette.Urgent, 64, 0.9f);
                         break;
                     default:
-                        ShowStamp(card, "CANCELLED", OrderPalette.Urgent);
+                        ShowStamp(card, "FAIL", OrderPalette.Urgent, 64, 0.9f);
                         break;
                 }
             }
@@ -380,7 +389,7 @@ namespace ZoomZoom.Orders.UI
             c.TimeText.rectTransform.localScale = Vector3.one * (urgent ? 1f + 0.15f * pulse : 1f);
 
             float urgency = urgent ? 1f - Mathf.Clamp01(order.SecondsUntilLost / Mathf.Max(0.01f, urgentBelowSeconds)) : 0f;
-            c.Background.color = Color.Lerp(CardColour, UrgentCard, urgency * (0.4f + 0.6f * pulse));
+            c.Background.color = Color.Lerp(CardTint(order, pulse), UrgentCard, urgency * (0.4f + 0.6f * pulse));
 
             foreach (Chip chip in c.Chips) RefreshChip(chip, order, pulse);
 
@@ -408,6 +417,42 @@ namespace ZoomZoom.Orders.UI
                 : fraction > tuning.earlyAbovePatienceLeft ? OrderPalette.Deliver
                 : fraction < tuning.lateBelowPatienceLeft ? OrderPalette.Urgent
                 : OrderPalette.Warning;
+        }
+
+        /// <summary>The whole card tinted by what the order is doing, so the player can see at a
+        /// glance which jobs are mid-flight without reading a word:
+        ///   pale blue  ingredients of this order are already in the car
+        ///   orange     cooking at a bay
+        ///   green      ready to collect, or cooked and riding to the customer
+        ///   red        burned
+        /// Cooking and ready breathe gently so they pull the eye. Nothing flashes, same rule as
+        /// the beacons and the arrows.</summary>
+        private static Color CardTint(Order order, float pulse)
+        {
+            switch (order.State)
+            {
+                case OrderState.Cooking:
+                    return Color.Lerp(CookingCard, CookingCardBright, pulse);
+
+                case OrderState.Ready:
+                    return Color.Lerp(ReadyCard, ReadyCardBright, pulse);
+
+                case OrderState.Carried:
+                case OrderState.Delivered:
+                    return ReadyCard;
+
+                case OrderState.Burned:
+                case OrderState.Late:
+                    return BurnedCard;
+
+                case OrderState.Active:
+                    // Anything already picked up for this order, including everything gathered
+                    // and now on its way to the bay.
+                    return order.IngredientsCollected > 0 ? ActiveCard : CardColour;
+
+                default:
+                    return CardColour;
+            }
         }
 
         private void RefreshChip(Chip chip, Order order, float pulse)
@@ -875,13 +920,18 @@ namespace ZoomZoom.Orders.UI
             image.raycastTarget = false;
         }
 
-        private void ShowStamp(Card c, string text, Color colour)
+        /// <summary>fontSize and extraLinger let a failure land harder than a routine delivery:
+        /// FAIL is stamped bigger and held longer than EARLY or ON TIME.</summary>
+        private void ShowStamp(Card c, string text, Color colour, int fontSize = 34, float extraLinger = 0f)
         {
             c.Stamp.text = text;
             c.Stamp.color = colour;
+            c.Stamp.fontSize = fontSize;
+
+            if (extraLinger > 0f) c.ResolveTimer = resolvedLingerSeconds + extraLinger;
 
             // The update loop pops the stamp in and fades it out.
-            c.StampDuration = resolvedLingerSeconds + 0.6f;
+            c.StampDuration = resolvedLingerSeconds + extraLinger + 0.6f;
             c.StampTimer = c.StampDuration;
         }
 
