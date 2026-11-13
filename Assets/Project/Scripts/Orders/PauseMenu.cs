@@ -10,11 +10,16 @@ namespace ZoomZoom.Orders.UI
     /// button logic. Build the panel by hand in the Canvas, leave it switched off in the scene,
     /// then drag it onto panelRoot below and wire your buttons' OnClick to the public methods:
     ///
-    ///   Resume button      -> Resume()
-    ///   Restart Shift       -> RestartShift()
-    ///   Controls button     -> ToggleControls()  (needs a separate controls panel/object)
-    ///   End Shift button     -> EndShiftEarly()   (goes straight to the results screen)
-    ///   Quit to Menu button -> QuitToMenu()
+    ///   On-screen Pause button -> Pause()          (or TogglePause() if the same button closes it)
+    ///   Resume button          -> Resume()
+    ///   Restart Shift          -> RestartShift()
+    ///   Controls button        -> ToggleControls()  (needs a separate controls panel/object)
+    ///   End Shift button       -> EndShiftEarly()   (goes straight to the results screen)
+    ///   Quit to Menu button    -> QuitToMenu()
+    ///
+    /// Do NOT wire a button to SetPaused: it takes a bool, so the Inspector shows a checkbox that
+    /// is easy to leave on the wrong setting, and a Pause button wired to it with the box unticked
+    /// does nothing at all. Pause(), Resume() and TogglePause() exist so that cannot happen.
     ///
     /// Put this on an empty GameObject anywhere in the gameplay scene.
     /// </summary>
@@ -28,9 +33,15 @@ namespace ZoomZoom.Orders.UI
         [Tooltip("Optional. A separate panel/object for the controls list, toggled by ToggleControls().")]
         [SerializeField] private GameObject controlsPanel;
 
+        [Tooltip("Optional. Your on-screen Pause button, hidden while the game is paused so it " +
+                 "cannot sit on top of the pause panel. Leave empty if the panel covers it anyway.")]
+        [SerializeField] private GameObject pauseButton;
+
         [Header("Scenes")]
         [Tooltip("Scene to load for Quit to Menu. Must match the scene's actual name.")]
         [SerializeField] private string mainMenuSceneName = "MainMenu";
+
+        public bool IsPaused => _paused;
 
         private ShiftTimer _shiftTimer;
         private bool _paused;
@@ -49,7 +60,7 @@ namespace ZoomZoom.Orders.UI
                 (Keyboard.current.escapeKey.wasPressedThisFrame || Keyboard.current.pKey.wasPressedThisFrame);
             if (!pressed && Gamepad.current != null) pressed = Gamepad.current.startButton.wasPressedThisFrame;
 
-            if (pressed) SetPaused(!_paused);
+            if (pressed) TogglePause();
         }
 
         public void SetPaused(bool paused)
@@ -58,7 +69,18 @@ namespace ZoomZoom.Orders.UI
             Time.timeScale = paused ? 0f : 1f;
             if (panelRoot != null) panelRoot.SetActive(paused);
             if (!paused && controlsPanel != null) controlsPanel.SetActive(false);
+
+            // The on-screen Pause button has nothing to do while the panel is up, and leaving it
+            // sitting over a dimmed panel reads as a bug.
+            if (pauseButton != null) pauseButton.SetActive(!paused);
         }
+
+        /// <summary>Wire this to your on-screen Pause button's OnClick. Safe to call when already
+        /// paused: it simply stays paused.</summary>
+        public void Pause() => SetPaused(true);
+
+        /// <summary>Wire this instead if the same button should both open and close the panel.</summary>
+        public void TogglePause() => SetPaused(!_paused);
 
         /// <summary>Wire this to the Resume button's OnClick.</summary>
         public void Resume() => SetPaused(false);

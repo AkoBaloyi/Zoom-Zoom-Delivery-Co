@@ -1,4 +1,3 @@
-using System.Collections;
 using UnityEngine;
 using ZoomZoom.Orders;
 
@@ -53,14 +52,43 @@ public class TutorialOrderVerifier : MonoBehaviour
     [SerializeField] private string readyMessageText =
         "Pick up the finished item and drop it off.";
 
-    [Tooltip("What the shared choice panel says once this order is delivered.")]
-    [TextArea]
-    [SerializeField] private string finishedMessage =
-        "Nice work, that's the whole loop. You're ready to start your shift.";
+    [Header("If the order is lost")]
+    [Tooltip("Optional. Shown when the tutorial order runs out of patience or burns, with a " +
+             "button that hands the player a fresh copy. Left empty, a fresh order is spawned " +
+             "silently instead, which is the old behaviour and tells the player nothing.")]
+    public TutorialRetryPanel retryPanel;
 
-    [Tooltip("Seconds between the delivery and the finish panel opening, so the player sees the " +
-             "delivery land first. The payout popup lasts 1.8 s and the money change 2 s.")]
-    [Min(0f)] [SerializeField] private float finishPanelDelay = 2.5f;
+    [TextArea]
+    [SerializeField] private string lateRetryText =
+        "The customer gave up waiting. Nothing lost, there's no rush in training. " +
+        "Let's run that order again.";
+
+    [TextArea]
+    [SerializeField] private string burnedRetryText =
+        "The food sat too long in the kitchen and burned. Once the bay turns green, head " +
+        "straight back for it. Let's run that order again.";
+
+    [Tooltip("What the shared choice panel says once this order is delivered.")]
+    [TextArea(12, 30)]
+    [SerializeField] private string finishedMessage =
+        "Nice work, you passed training. Welcome to Zoom Zoom Delivery Co.\n\n" +
+        "From here it's real food and real money, so drive like it. Every bump and crash " +
+        "knocks your cargo about, and damaged food comes straight off your payout.\n\n" +
+        "Your phone sits in the top left. Every order gets its own colour and keeps it " +
+        "everywhere: the card on your phone, the beacon in the street, the arrow on your " +
+        "screen. Four jobs at once, four colours, so you always know which is which.\n\n" +
+        "The arrows do the thinking. One per order, pointing at whatever you need next: the " +
+        "ingredient first, then the kitchen, then the customer, with the distance underneath. " +
+        "If it's behind you the arrow drops to the bottom of the screen and swings round as " +
+        "you turn. While your food is cooking the arrow disappears, because there's nowhere " +
+        "to be yet.\n\n" +
+        "The colours tell you the step. Blue, you're still collecting. Orange, it's on the " +
+        "stove. Green, it's ready, or it's money in your pocket. Red, you're nearly out of " +
+        "time, and the marker starts swelling to warn you.\n\n" +
+        "Watch the clock twice on every job: once while you're fetching, once while it cooks. " +
+        "Early gets you a bonus on top of the base pay. Late and they take a cut off it. Let " +
+        "it burn and you pay a penalty for the waste.\n\n" +
+        "Right. Keys are in it. Go earn.";
 
     private Order _order;
     private bool _finished;
@@ -85,6 +113,8 @@ public class TutorialOrderVerifier : MonoBehaviour
         orderManager.AutoSpawnEnabled = false;
         orderManager.OrderResolved += HandleOrderResolved;
 
+        if (retryPanel != null) retryPanel.RetryPressed += HandleRetryPressed;
+
         SpawnTutorialOrder();
     }
 
@@ -95,6 +125,7 @@ public class TutorialOrderVerifier : MonoBehaviour
             orderManager.OrderResolved -= HandleOrderResolved;
             orderManager.AutoSpawnEnabled = true; // leave the next scene's real spawning alone
         }
+        if (retryPanel != null) retryPanel.RetryPressed -= HandleRetryPressed;
         if (_order != null) _order.StateChanged -= HandleOrderStateChanged;
     }
 
@@ -151,7 +182,7 @@ public class TutorialOrderVerifier : MonoBehaviour
             _finished = true;
             if (finishPanel != null)
             {
-                StartCoroutine(ShowFinishPanelAfterDelay());
+                finishPanel.Show(finishedMessage);
             }
             else
             {
@@ -162,21 +193,34 @@ public class TutorialOrderVerifier : MonoBehaviour
             return;
         }
 
-        // Late (patience ran out) or Burned: this beat is meant to be pressure-free, so rather
-        // than fail the player out of the tutorial over a slip, hand them a fresh copy of the
-        // same order and let them finish the loop properly.
-        Debug.Log($"[TutorialOrderVerifier] Tutorial order ended as {order.State} - spawning " +
-                  "another one so the player can finish the beat.");
+        // Late (patience ran out) or Burned. This beat is meant to be pressure-free, so the
+        // player is never failed out of the tutorial over a slip: they get a fresh copy of the
+        // same order either way. The only question is whether they are told why.
+        Debug.Log($"[TutorialOrderVerifier] Tutorial order ended as {order.State}.");
+
+        if (retryPanel != null)
+        {
+            // Say what went wrong and wait for the button. The order is already resolved and
+            // gone, and CargoSystem releases anything it was carrying off the same event, so
+            // nothing is left in the car and nothing is ageing behind the panel.
+            bool shown = retryPanel.Show(
+                order.State == OrderState.Burned ? burnedRetryText : lateRetryText);
+
+            // Show returns false when the panel could not actually be put on screen. Falling
+            // through to a silent restart is far better than leaving the player with a tutorial
+            // that has quietly stopped.
+            if (shown) return;
+        }
+
+        // No panel wired: fall back to the old silent restart so the tutorial still works.
         SpawnTutorialOrder();
     }
 
-    // The finish panel pauses the game, so opening it the instant the food is handed over
-    // freezes the delivery before the player sees it. Game time, so a pause during the wait
-    // holds the panel back too.
-    private IEnumerator ShowFinishPanelAfterDelay()
+    /// <summary>The player pressed Try Again on the retry panel.</summary>
+    private void HandleRetryPressed()
     {
-        if (finishPanelDelay > 0f) yield return new WaitForSeconds(finishPanelDelay);
-        if (finishPanel != null) finishPanel.Show(finishedMessage);
+        if (_finished) return;
+        SpawnTutorialOrder();
     }
 
     /// <summary>Uses the wired panel if there is one, and the scene's TutorialMessage (or a

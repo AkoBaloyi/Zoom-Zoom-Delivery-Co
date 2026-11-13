@@ -930,6 +930,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ca921ef0a0c061e4eb3aea9b63813970, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.UI.DifficultySceneLoader
+  tutorialSceneName: Tutorial
   easySceneName: Easy
   mediumSceneName: Medium
   hardSceneName: Hard
@@ -948,6 +949,7 @@ MonoBehaviour:
   mainMenuPanel: {fileID: 1515588185}
   difficultyPanel: {fileID: 1375675257}
   controlsPanel: {fileID: 1497669910}
+  settingsPanel: {fileID: 0}
 --- !u!4 &454319638
 Transform:
   m_ObjectHideFlags: 0
@@ -1020,7 +1022,40 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "DIRECT DRIVING CONTROLS\nHOLD W / RT (R2)    ACCELERATE\nHOLD S / LT (L2)    BRAKE, THEN REVERSE\nHOLD A/D / LEFT STICK    STEER\n\nDASH: HOLD W/RT + PRESS SHIFT/RB (R1)\nDRIFT: STEER + PRESS CTRL / X (SQUARE)\nSTOP: HOLD S/LT + PRESS SHIFT/RB (R1)\nQUICK TURN: STEER + PRESS SPACE/LB (L1)\n\nDash works up to cruising speed or out of a drift. Ready again after 2s.\nDrift/Stop need forward speed. Tricks require ground contact.\nHOLD C / R3    LOOK BEHIND\nPRESS BACKSPACE / VIEW    RESET IF STUCK (-5s)\nPRESS F8 / D-PAD UP    TOGGLE MOTION EFFECTS"
+  m_text: 'DIRECT DRIVING CONTROLS
+
+    HOLD W / RT (R2)    ACCELERATE
+
+    HOLD
+    S / LT (L2)    BRAKE, THEN REVERSE
+
+    HOLD A/D / LEFT STICK    STEER
+
+
+    DASH:
+    HOLD W/RT + PRESS SHIFT/RB (R1)
+
+    DRIFT: STEER + PRESS CTRL / X (SQUARE)
+
+    STOP:
+    HOLD S/LT + PRESS SHIFT/RB (R1)
+
+    QUICK TURN: STEER + PRESS SPACE/LB (L1)
+
+
+    Dash
+    works up to cruising speed or out of a drift. Ready again after 2s.
+
+    Drift/Stop
+    need forward speed. Tricks require ground contact.
+
+    HOLD C / R3    LOOK BEHIND
+
+    PRESS
+    BACKSPACE / VIEW    RESET IF STUCK (-5s)
+
+    PRESS F8 / D-PAD UP    TOGGLE MOTION
+    EFFECTS'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 5302535af1044152a457ed104f1f4b91, type: 2}
   m_sharedMaterial: {fileID: 2164040, guid: 5302535af1044152a457ed104f1f4b91, type: 2}
@@ -2046,7 +2081,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: MEDIUM
+  m_text: GAME
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 5302535af1044152a457ed104f1f4b91, type: 2}
   m_sharedMaterial: {fileID: 2164040, guid: 5302535af1044152a457ed104f1f4b91, type: 2}
@@ -2382,7 +2417,7 @@ GameObject:
   - component: {fileID: 1472239900}
   - component: {fileID: 1472239899}
   m_Layer: 5
-  m_Name: Medium
+  m_Name: Game
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
