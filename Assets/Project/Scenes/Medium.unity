@@ -105052,12 +105052,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.UI.ShiftResults
   shiftTimer: {fileID: 816895046}
   orderManager: {fileID: 816895044}
-  wallet: {fileID: 0}
-  oneStarAt: 2000
-  twoStarsAt: 3500
-  threeStarsAt: 7000
+  crashCounter: {fileID: 0}
+  ordersPerShift: 12
+  oneStarPercent: 30
+  twoStarPercent: 60
+  threeStarPercent: 80
   mainMenuSceneName: MainMenu
-  panelSprite: {fileID: 0}
+  panelSprite: {fileID: 21300000, guid: e5dbca140c439334d9a2c4e27c1b7f11, type: 3}
   cardSize: {x: 1150, y: 653}
   backdropColour: {r: 0, g: 0, b: 0, a: 0.55}
   titleSize: 58
@@ -117975,6 +117976,7 @@ MonoBehaviour:
   cargoSystem: {fileID: 935175481}
   shiftTimer: {fileID: 816895046}
   wallet: {fileID: 816895047}
+  crashCounter: {fileID: 0}
   timerWarningSeconds: 30
 --- !u!4 &1027706771
 Transform:
@@ -251063,6 +251065,7 @@ GameObject:
   - component: {fileID: 7231405031179160358}
   - component: {fileID: 7729447008075997701}
   - component: {fileID: 7729447008075997700}
+  - component: {fileID: 7729447008075997702}
   m_Layer: 0
   m_Name: Car
   m_TagString: Player
@@ -251598,6 +251601,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c5a6c49ebe0c461f8aa8a80c501651d8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Vehicle.TaxiEngineAudio
+--- !u!114 &7729447008075997702
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7092618432352137436}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b9afb5594f62a224888b9ccdcf718f14, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoomZoom.Orders.CrashCounter
+  impactThreshold: 6
+  cooldownSeconds: 0.5
+  randPerHit: 5
+  logActivity: 1
 --- !u!64 &7744078986300048918
 MeshCollider:
   m_ObjectHideFlags: 0

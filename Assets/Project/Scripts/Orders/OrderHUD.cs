@@ -18,12 +18,17 @@ namespace ZoomZoom.Orders.UI
     [DisallowMultipleComponent]
     public class OrderHUD : MonoBehaviour
     {
-       
+        [Header("Wiring (found automatically if left empty)")]
         [SerializeField] private OrderManager orderManager;
         [SerializeField] private CargoSystem cargoSystem;
         [SerializeField] private ShiftTimer shiftTimer;
         [SerializeField] private PlayerProgression wallet;
+        [Tooltip("Found automatically if left empty. Leave the vehicle without one and the " +
+                 "damage readout simply does not appear.")]
+        [SerializeField] private CrashCounter crashCounter;
 
+        [Header("Behaviour")]
+        [Tooltip("Seconds left in the shift when the timer turns red.")]
         [SerializeField] private float timerWarningSeconds = 30f;
 
         // Colours
@@ -41,6 +46,7 @@ namespace ZoomZoom.Orders.UI
         private Text _failedText;
         private Text _ingredientsText;
         private Text _foodText;
+        private Text _damageText;
         private Font _font;
 
         // Counters
@@ -58,6 +64,7 @@ namespace ZoomZoom.Orders.UI
             if (cargoSystem == null) cargoSystem = FindAnyObjectByType<CargoSystem>();
             if (shiftTimer == null) shiftTimer = FindAnyObjectByType<ShiftTimer>();
             if (wallet == null) wallet = FindAnyObjectByType<PlayerProgression>();
+            if (crashCounter == null) crashCounter = FindAnyObjectByType<CrashCounter>();
 
             _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             BuildHud();
@@ -151,6 +158,18 @@ namespace ZoomZoom.Orders.UI
 
             _foodText.text = $"Food  {cargoSystem.SlotsUsed}/{cargoSystem.Capacity}";
             _foodText.color = cargoSystem.SlotsUsed >= cargoSystem.Capacity ? OrderPalette.Warning : Color.white;
+
+            // Running damage bill. The money is not taken until the shift ends, so this is a
+            // warning rather than a live deduction: the wallet above stays honest about what has
+            // actually been earned.
+            if (_damageText != null && crashCounter != null)
+            {
+                int hits = crashCounter.Hits;
+                _damageText.text = hits == 0
+                    ? "Damage  none"
+                    : $"Damage  {hits} hit{(hits == 1 ? "" : "s")}  -R{crashCounter.Penalty:0}";
+                _damageText.color = hits == 0 ? Faded : Loss;
+            }
         }
 
         // ---- building -------------------------------------------------------------------------
@@ -196,6 +215,15 @@ namespace ZoomZoom.Orders.UI
             RectTransform cargoPanel = MakePanel(root, "Cargo", new Vector2(1f, 1f), new Vector2(-24f, -164f), new Vector2(300f, 50f));
             _ingredientsText = MakeText(cargoPanel, "Ingredients", new Vector2(18f, -6f), new Vector2(170f, 38f), 20, Color.white, TextAnchor.MiddleLeft);
             _foodText = MakeText(cargoPanel, "Food", new Vector2(190f, -6f), new Vector2(92f, 38f), 20, Color.white, TextAnchor.MiddleRight);
+
+            // Damage, directly under the cargo counts, since it is the same kind of fact: what
+            // the car is carrying and what it has cost so far.
+            if (crashCounter != null)
+            {
+                RectTransform damagePanel = MakePanel(root, "Damage", new Vector2(1f, 1f), new Vector2(-24f, -220f), new Vector2(300f, 50f));
+                _damageText = MakeText(damagePanel, "Damage", new Vector2(18f, -6f), new Vector2(264f, 38f), 20, Faded, TextAnchor.MiddleLeft);
+                _damageText.text = "Damage  none";
+            }
         }
 
         /// <summary>A dark rounded panel. anchor is the screen corner or edge it sticks to.</summary>

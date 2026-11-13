@@ -47,14 +47,24 @@ namespace ZoomZoom.Orders.UI
         [Tooltip("Found automatically if left empty.")]
         [SerializeField] private OrderManager orderManager;
 
-        [Tooltip("Found automatically if left empty. Its balance is what decides the star rating below; falls back to the Delivered/Late tally if there isn't one in the scene.")]
-        [SerializeField] private PlayerProgression wallet;
+        [Tooltip("Found automatically if left empty. Supplies the hit count and what it costs.")]
+        [SerializeField] private CrashCounter crashCounter;
 
-        [Header("Ranking")]
-        [Tooltip("Rand balance needed for 1, 2 and 3 stars. Matches the numbers already used in the hypothesis document and Ako's sheet 06 mockup.")]
-        [SerializeField] private float oneStarAt = 2000f;
-        [SerializeField] private float twoStarsAt = 3500f;
-        [SerializeField] private float threeStarsAt = 7000f;
+        [Header("Ranking (share of the orders a shift actually produces)")]
+        [Tooltip("How many orders a real shift puts in front of the player. 25 is the absolute " +
+                 "ceiling the spawner can reach (first at 3s, then one every 12s, throttled by " +
+                 "the 1-2-3-4 ramp), but that assumes no travel time at all. Playtesting puts " +
+                 "the real figure near 12, so that is what the stars are measured against.\n\n" +
+                 "Retune this one number after a playtest and all three star bars move with it.")]
+        [SerializeField] private int ordersPerShift = 12;
+
+        [Tooltip("Share of those orders that must be delivered for each star. Percentages " +
+                 "rather than counts so the bars follow Orders Per Shift instead of having to " +
+                 "be rewritten every time it changes.\n\n" +
+                 "At 12 orders these come out as 4, 7 and 10.")]
+        [Range(0, 100)] [SerializeField] private int oneStarPercent = 30;
+        [Range(0, 100)] [SerializeField] private int twoStarPercent = 60;
+        [Range(0, 100)] [SerializeField] private int threeStarPercent = 80;
 
         [Header("Scenes")]
         [Tooltip("Exact name of the start screen scene. It must be in File > Build Profiles > Scene List.")]
@@ -81,7 +91,8 @@ namespace ZoomZoom.Orders.UI
         [Header("Type")]
         [SerializeField] private int titleSize = 58;
         [SerializeField] private int starsSize = 54;
-        [SerializeField] private int rowSize = 34;
+        [Tooltip("Five rows now share the body, so this is smaller than it was with three.")]
+        [SerializeField] private int rowSize = 30;
         [SerializeField] private int buttonTextSize = 30;
 
         [Header("Colours (tuned for the cream panel, not the old dark one)")]
@@ -106,12 +117,14 @@ namespace ZoomZoom.Orders.UI
         private Text _deliveredValue;
         private Text _lateValue;
         private Text _moneyValue;
+        private Text _damageValue;
+        private Text _totalValue;
 
         private void Awake()
         {
             if (shiftTimer == null) shiftTimer = FindAnyObjectByType<ShiftTimer>();
             if (orderManager == null) orderManager = FindAnyObjectByType<OrderManager>();
-            if (wallet == null) wallet = FindAnyObjectByType<PlayerProgression>();
+            if (crashCounter == null) crashCounter = FindAnyObjectByType<CrashCounter>();
 
             if (shiftTimer == null || orderManager == null)
             {
@@ -157,25 +170,48 @@ namespace ZoomZoom.Orders.UI
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
 
-            // RANKING: the number that decides first place is the wallet balance at the
-            // whistle, since that is the canonical running total and stays correct even if
-            // something outside order resolution ever touches money. Falls back to Value, this
-            // class's own tally of OrderResolved events, if no PlayerProgression is in the scene.
-            float profit = wallet != null ? wallet.Money : Value;
-            int stars = profit >= threeStarsAt ? 3 : profit >= twoStarsAt ? 2 : profit >= oneStarAt ? 1 : 0;
+            // RANKING: what share of a shift's orders actually got there, not how much money was
+            // made. See the note on the threshold fields for why the old Rand bars could not be
+            // reached.
+            int stars = Delivered >= DeliveriesFor(threeStarPercent) ? 3
+                      : Delivered >= DeliveriesFor(twoStarPercent) ? 2
+                      : Delivered >= DeliveriesFor(oneStarPercent) ? 1 : 0;
             _starsLine.text = Stars(stars);
+
+            // The damage bill is charged once, here, rather than during the drive, so the wallet
+            // on the HUD only ever shows money genuinely earned and the cost of driving badly
+            // arrives as one readable number at the end.
+            int hits = crashCounter != null ? crashCounter.Hits : 0;
+            float damage = crashCounter != null ? crashCounter.Penalty : 0f;
+            float total = Value - damage;
 
             _deliveredValue.text = Delivered.ToString();
             _lateValue.text = Late.ToString();
-            _moneyValue.text = Value < 0f ? $"-R{-Value:0}" : $"R{Value:0}";
+            _moneyValue.text = Money(Value);
+            _damageValue.text = hits == 0 ? "none" : $"{hits} x R{crashCounter.RandPerHit:0}   -R{damage:0}";
+            _damageValue.color = hits == 0 ? inkColour : lateTextColour;
+            _totalValue.text = Money(total);
+            _totalValue.color = total < 0f ? lateTextColour : deliveredTextColour;
 
             _panel.SetActive(true);
 
-            Debug.Log($"[ShiftResults] Shift over: {Delivered} delivered, {Late} late, R{Value:0}.");
+            Debug.Log($"[ShiftResults] Shift over: {Delivered} delivered, {Late} late, " +
+                      $"R{Value:0} earned, {hits} hit(s) costing R{damage:0}, total R{total:0}. " +
+                      $"{stars} star(s) against bars of {DeliveriesFor(oneStarPercent)}, " +
+                      $"{DeliveriesFor(twoStarPercent)} and {DeliveriesFor(threeStarPercent)} " +
+                      $"out of {ordersPerShift}.");
         }
 
-        /// <summary>Three stars at R7 000, two at R3 500, one at R2 000 — the thresholds already
-        /// used in the hypothesis document, so a result here means the same thing it does there.</summary>
+        /// <summary>Deliveries needed to hit a given share of a shift's orders. Rounded to the
+        /// nearest whole order, and never zero, so a low percentage still has to be earned.</summary>
+        private int DeliveriesFor(int percent) =>
+            Mathf.Max(1, Mathf.RoundToInt(ordersPerShift * percent / 100f));
+
+        /// <summary>Rand with the minus sign outside the R, so a loss reads "-R120" rather than
+        /// "R-120".</summary>
+        private static string Money(float amount) =>
+            amount < 0f ? $"-R{-amount:0}" : $"R{amount:0}";
+
         private static string Stars(int count)
         {
             string s = "";
@@ -301,14 +337,24 @@ namespace ZoomZoom.Orders.UI
                 titleSize, inkColour, TextAnchor.MiddleCenter, true);
             _title.text = "TIME UP!";
 
-            _starsLine = MakeText(card, "Stars", new Vector2(0.08f, 0.545f), new Vector2(0.92f, BodyTop),
+            _starsLine = MakeText(card, "Stars", new Vector2(0.08f, 0.575f), new Vector2(0.92f, BodyTop),
                 starsSize, starColour, TextAnchor.MiddleCenter, true);
             AddOutline(_starsLine.gameObject, inkColour, 2f);
 
-            // Three stat rows: label on the left of the body, number on the right.
-            MakeStatRow(card, "Delivered", "Delivered", 0.450f, 0.545f, deliveredTextColour, out _deliveredValue);
-            MakeStatRow(card, "Late", "Late", 0.355f, 0.450f, lateTextColour, out _lateValue);
-            MakeStatRow(card, "Money", "Money", 0.260f, 0.355f, inkColour, out _moneyValue);
+            // Five stat rows between the stars and the buttons: label left, number right. Total
+            // is last and a size larger, because it is the one number the player came for.
+            const float rowBand = 0.062f;
+            float rowTop = 0.575f;
+
+            MakeStatRow(card, "Delivered", "Delivered", rowTop - rowBand, rowTop, deliveredTextColour, out _deliveredValue);
+            rowTop -= rowBand;
+            MakeStatRow(card, "Late", "Late", rowTop - rowBand, rowTop, lateTextColour, out _lateValue);
+            rowTop -= rowBand;
+            MakeStatRow(card, "Money", "Money", rowTop - rowBand, rowTop, inkColour, out _moneyValue);
+            rowTop -= rowBand;
+            MakeStatRow(card, "Damage", "Damage", rowTop - rowBand, rowTop, inkColour, out _damageValue);
+            rowTop -= rowBand;
+            MakeStatRow(card, "Total", "Total", rowTop - rowBand, rowTop, deliveredTextColour, out _totalValue, rowSize + 6);
 
             // Buttons across the bottom of the cream body.
             const float buttonBottom = BodyBottom + 0.025f;
@@ -321,14 +367,19 @@ namespace ZoomZoom.Orders.UI
         /// <summary>A label on the left and its number on the right, both on one band of the body,
         /// which reads far better than one centred line of padded spaces.</summary>
         private void MakeStatRow(RectTransform card, string name, string label, float bottom, float top,
-            Color colour, out Text value)
+            Color colour, out Text value, int size = 0)
         {
+            if (size <= 0) size = rowSize;
+
             Text labelText = MakeText(card, name + " label", new Vector2(0.12f, bottom), new Vector2(0.55f, top),
-                rowSize, inkColour, TextAnchor.MiddleLeft, true);
+                size, inkColour, TextAnchor.MiddleLeft, true);
             labelText.text = label;
 
-            value = MakeText(card, name + " value", new Vector2(0.45f, bottom), new Vector2(0.88f, top),
-                rowSize, colour, TextAnchor.MiddleRight, true);
+            // The value box starts before the label box ends; both are single words on opposite
+            // sides, so the overlap is harmless and gives a long value like "3 x R5   -R15" the
+            // room it needs.
+            value = MakeText(card, name + " value", new Vector2(0.40f, bottom), new Vector2(0.88f, top),
+                size, colour, TextAnchor.MiddleRight, true);
             value.text = "0";
         }
 
