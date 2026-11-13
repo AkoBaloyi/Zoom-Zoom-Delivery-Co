@@ -1,7 +1,9 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+#if UNITY_EDITOR
 using UnityEditor;
+#endif
 using UnityEngine;
 
 namespace SimpleCity.AI
@@ -25,6 +27,8 @@ namespace SimpleCity.AI
             return new List<Vector3>(adjacentMarkers.Select(x => x.Position).ToList());
         }
 
+#if UNITY_EDITOR
+        // Selection is editor-only. Without this guard a player build fails to compile.
         private void OnDrawGizmos()
         {
             if (Selection.activeObject == gameObject)
@@ -42,6 +46,7 @@ namespace SimpleCity.AI
                 Gizmos.color = Color.white;
             }
         }
+#endif
     }
 
 }
